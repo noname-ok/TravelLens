@@ -1,11 +1,8 @@
 import { useState } from 'react';
+import { Home, MapPin, Camera, User } from 'lucide-react';
 
 const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
 const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-const imgHomePage = "https://www.figma.com/api/mcp/asset/019963c7-7f9c-443a-944d-930d6bfaa970";
-const imgMap = "https://www.figma.com/api/mcp/asset/a6fb27a2-9d0e-405a-b437-d8694ba2142b";
-const imgCameraIntelligence = "https://www.figma.com/api/mcp/asset/1f1dbed4-7f29-48d5-8ccf-f532f9a0ff41";
-const imgProfile = "https://www.figma.com/api/mcp/asset/deb0c6ee-f9c5-43fa-8048-e6fadafb78bb";
 const imgMedia = "https://www.figma.com/api/mcp/asset/6e5b9028-e512-464f-8c4c-8da7097d76ff";
 const imgLove = "https://www.figma.com/api/mcp/asset/5948b008-a6f4-49fc-b5e9-69df2d30ebb7";
 const imgBookmark = "https://www.figma.com/api/mcp/asset/a7d40849-3e0d-479f-8f45-41121762ea9e";
@@ -46,14 +43,14 @@ interface JournalScreenProps {
   userName?: string;
   userEmail?: string;
   onLogout?: () => void;
+  currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
+  onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
 }
 
 type Tab = 'video' | 'photos' | 'audio';
-type NavTab = 'home' | 'nearby' | 'ailens' | 'profile';
 
-export default function JournalScreen({ userName, userEmail, onLogout }: JournalScreenProps) {
+export default function JournalScreen({ userName, userEmail, onLogout, currentScreen, onNavigate }: JournalScreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>('video');
-  const [activeNavTab, setActiveNavTab] = useState<NavTab>('home');
 
   // Get user initials
   const userInitial = userName?.charAt(0) || userEmail?.charAt(0).toUpperCase() || 'U';
@@ -222,12 +219,16 @@ export default function JournalScreen({ userName, userEmail, onLogout }: Journal
           <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
             {/* Home */}
             <button
-              onClick={() => setActiveNavTab('home')}
+              onClick={() => onNavigate('home')}
               className="flex-1 flex flex-col items-center"
             >
-              <img src={imgHomePage} alt="Home" className="size-[32px]" />
+              <Home 
+                size={28}
+                className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
+              />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 Home
               </p>
@@ -235,12 +236,16 @@ export default function JournalScreen({ userName, userEmail, onLogout }: Journal
 
             {/* Nearby */}
             <button
-              onClick={() => setActiveNavTab('nearby')}
+              onClick={() => onNavigate('mapview')}
               className="flex-1 flex flex-col items-center"
             >
-              <img src={imgMap} alt="Nearby" className="size-[32px] opacity-70" />
+              <MapPin 
+                size={28}
+                className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
+              />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'nearby' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 Nearby
               </p>
@@ -248,12 +253,16 @@ export default function JournalScreen({ userName, userEmail, onLogout }: Journal
 
             {/* AI Lens */}
             <button
-              onClick={() => setActiveNavTab('ailens')}
+              onClick={() => onNavigate('ailens')}
               className="flex-1 flex flex-col items-center"
             >
-              <img src={imgCameraIntelligence} alt="AI Lens" className="size-[32px] opacity-70" />
+              <Camera 
+                size={28}
+                className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
+              />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 AI Lens
               </p>
@@ -261,15 +270,16 @@ export default function JournalScreen({ userName, userEmail, onLogout }: Journal
 
             {/* Profile */}
             <button
-              onClick={() => {
-                setActiveNavTab('profile');
-                onLogout?.();
-              }}
+              onClick={() => onNavigate('profile')}
               className="flex-1 flex flex-col items-center"
             >
-              <img src={imgProfile} alt="Profile" className="size-[32px] opacity-70" />
+              <User 
+                size={28}
+                className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
+              />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 Profile
               </p>

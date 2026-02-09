@@ -7,12 +7,16 @@ import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
 import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
 import OnboardingScreen from '@/app/components/OnboardingScreen';
 import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
+import JournalScreen from '@/app/components/JournalScreen';
+import MapViewScreen from '@/app/components/MapViewScreen';
+import AILensScreen from '@/app/components/AILensScreen';
+import ProfileScreen from '@/app/components/ProfileScreen';
 import JournalCard from './components/JournalCard';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -131,6 +135,32 @@ export default function App() {
           />
         )}
         {currentScreen === 'home' && user && (
+          <JournalScreen
+            userName={user.displayName || ''}
+            userEmail={user.email || ''}
+            onLogout={handleLogout}
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
+        {currentScreen === 'mapview' && user && (
+          <MapViewScreen
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
+        {currentScreen === 'ailens' && user && (
+          <AILensScreen
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
+        {currentScreen === 'profile' && user && (
+          <ProfileScreen
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
           <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
             {/* --- HEADER (Rectangle 1 & Frame 3894) --- */}
             <header className="sticky top-0 z-20 w-full h-[109px] bg-white border-b border-gray-100 px-6 pt-[52px]">
@@ -138,7 +168,7 @@ export default function App() {
                 {/* Group 3893: Avatar + Journal Title */}
                 <div className="flex items-center gap-[12px]">
                   <div className="w-[40px] h-[40px] bg-[#CDE5FF] rounded-full flex items-center justify-center text-[#2C638B] font-bold">
-                    {user.displayName?.charAt(0) || "U"}
+                    {user?.displayName?.charAt(0) || "U"}
                   </div>
                   <h1 className="font-['Inter'] font-medium text-[20px] leading-[22px] tracking-[-0.408px] text-black">
                     Journal
@@ -175,7 +205,6 @@ export default function App() {
               <JournalCard />
             </main>
           </div>
-        )}
       </div>
     </div>
   );
