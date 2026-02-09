@@ -1,14 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { Home, MapPin, Camera, User } from 'lucide-react';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { PLACE_FILTERS, Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
 
 const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
 const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-const imgHomePage = "https://www.figma.com/api/mcp/asset/019963c7-7f9c-443a-944d-930d6bfaa970";
-const imgMap = "https://www.figma.com/api/mcp/asset/a6fb27a2-9d0e-405a-b437-d8694ba2142b";
-const imgCameraIntelligence = "https://www.figma.com/api/mcp/asset/1f1dbed4-7f29-48d5-8ccf-f532f9a0ff41";
-const imgProfile = "https://www.figma.com/api/mcp/asset/deb0c6ee-f9c5-43fa-8048-e6fadafb78bb";
 
 const libraries: ("places")[] = ["places"];
 
@@ -58,10 +55,11 @@ function HomeIndicator({ className }: { className?: string }) {
 }
 
 interface MapViewScreenProps {
-  onNavigate?: (screen: 'home' | 'nearby' | 'ailens' | 'profile') => void;
+  currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
+  onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
 }
 
-export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
+export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScreenProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [center, setCenter] = useState<PlaceLocation>({ lat: 11.5564, lng: 104.9282 }); // Phnom Penh default
   const [userLocation, setUserLocation] = useState<PlaceLocation | null>(null);
@@ -72,7 +70,6 @@ export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string>('');
-  const [activeNavTab, setActiveNavTab] = useState<'home' | 'nearby' | 'ailens' | 'profile'>('nearby');
 
   // Get user location on mount
   useEffect(() => {
@@ -275,9 +272,8 @@ export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
     });
   };
 
-  const handleNavigation = (tab: 'home' | 'nearby' | 'ailens' | 'profile') => {
-    setActiveNavTab(tab);
-    onNavigate?.(tab);
+  const handleNavigation = (screen: 'home' | 'mapview' | 'ailens' | 'profile') => {
+    onNavigate(screen);
   };
 
   return (
@@ -535,14 +531,13 @@ export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
               onClick={() => handleNavigation('home')}
               className="flex-1 flex flex-col items-center"
             >
-              <img 
-                src={imgHomePage} 
-                alt="Home" 
-                className="size-[32px]" 
-                style={{ opacity: activeNavTab === 'home' ? 1 : 0.7 }}
+              <Home 
+                size={28}
+                className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 Home
               </p>
@@ -550,17 +545,16 @@ export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
 
             {/* Nearby */}
             <button
-              onClick={() => handleNavigation('nearby')}
+              onClick={() => handleNavigation('mapview')}
               className="flex-1 flex flex-col items-center"
             >
-              <img 
-                src={imgMap} 
-                alt="Nearby" 
-                className="size-[32px]"
-                style={{ opacity: activeNavTab === 'nearby' ? 1 : 0.7 }}
+              <MapPin 
+                size={28}
+                className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'nearby' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 Nearby
               </p>
@@ -571,14 +565,13 @@ export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
               onClick={() => handleNavigation('ailens')}
               className="flex-1 flex flex-col items-center"
             >
-              <img 
-                src={imgCameraIntelligence} 
-                alt="AI Lens" 
-                className="size-[32px]" 
-                style={{ opacity: activeNavTab === 'ailens' ? 1 : 0.7 }}
+              <Camera 
+                size={28}
+                className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 AI Lens
               </p>
@@ -589,14 +582,13 @@ export default function MapViewScreen({ onNavigate }: MapViewScreenProps) {
               onClick={() => handleNavigation('profile')}
               className="flex-1 flex flex-col items-center"
             >
-              <img 
-                src={imgProfile} 
-                alt="Profile" 
-                className="size-[32px]" 
-                style={{ opacity: activeNavTab === 'profile' ? 1 : 0.7 }}
+              <User 
+                size={28}
+                className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                activeNavTab === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
                 Profile
               </p>

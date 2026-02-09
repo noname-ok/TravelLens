@@ -9,11 +9,13 @@ import OnboardingScreen from '@/app/components/OnboardingScreen';
 import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
 import JournalScreen from '@/app/components/JournalScreen';
 import MapViewScreen from '@/app/components/MapViewScreen';
+import AILensScreen from '@/app/components/AILensScreen';
+import ProfileScreen from '@/app/components/ProfileScreen';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -129,17 +131,26 @@ export default function App() {
             userName={user.displayName || ''}
             userEmail={user.email || ''}
             onLogout={handleLogout}
-            onNavigate={(screen) => {
-              if (screen === 'nearby') setCurrentScreen('mapview');
-            }}
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
           />
         )}
         {currentScreen === 'mapview' && user && (
           <MapViewScreen
-            onNavigate={(screen) => {
-              if (screen === 'home') setCurrentScreen('home');
-              else if (screen === 'profile') handleLogout();
-            }}
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
+        {currentScreen === 'ailens' && user && (
+          <AILensScreen
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
+        {currentScreen === 'profile' && user && (
+          <ProfileScreen
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
           />
         )}
       </div>
