@@ -2,7 +2,9 @@ const imgNotch = "https://www.figma.com/api/mcp/asset/ee2a526a-538d-4916-92d6-2e
 const imgRightSide = "https://www.figma.com/api/mcp/asset/55d3e1b0-b3df-4c65-a4f5-b39410a602db";
 const imgIcon1 = "https://www.figma.com/api/mcp/asset/3350b0c3-3072-4ea6-86d0-37a67f8115f8";
 const imgEye = "https://www.figma.com/api/mcp/asset/e1e0e2ad-5130-408c-8bb0-aa43e9b978f1";
-const imgEmail = "https://www.figma.com/api/mcp/asset/827cfffd-a921-435f-978f-ffaf94e23b3c";
+const imgFacebook = "https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg";
+const imgGmail = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg";
+const imgApple = "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg";
 
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
@@ -29,16 +31,10 @@ function StatusBarIPhone({ className }: { className?: string }) {
 export default function LoginScreen() {
   return (
     <div className="bg-white relative size-full" data-name="Login" data-node-id="1:2487">
-      <a className="absolute content-stretch cursor-pointer flex items-start left-[51px] p-[10px] top-[724px]" data-node-id="1:2489">
-        <p className="font-['Poppins:Regular',sans-serif] leading-[0] not-italic relative shrink-0 text-[0px] text-[10px] text-black text-left" data-node-id="1:2490">
-          <span className="leading-[normal] text-[rgba(0,0,0,0.6)]">{`Doesn't have account on dicover? `}</span>
-          <span className="font-['Poppins:SemiBold',sans-serif] leading-[normal]">Create Account</span>
-        </p>
-      </a>
       <div className="absolute content-stretch flex flex-col gap-[13px] items-center left-[33px] top-[80px] w-[323px]" data-node-id="1:2491">
         <div className="relative shrink-0 size-[114px]" data-name="icon 1" data-node-id="1:2492">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <img alt="" className="absolute left-[-22.5%] max-w-none size-[145%] top-[-13.75%]" src={imgIcon1} />
+            <img alt="" className="absolute left-[-22.5%] max-w-none size-[145%] top-[-10.75%]" src={imgIcon1} />
           </div>
         </div>
         <div className="content-stretch flex flex-col gap-[30px] items-center relative shrink-0 w-full" data-node-id="1:2493">
@@ -97,36 +93,29 @@ export default function LoginScreen() {
             </div>
             <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="1:2518">
               <div className="content-stretch flex gap-[8px] h-[52px] items-start relative shrink-0 w-full" data-node-id="1:2519">
-                <div className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] flex-col h-full items-start justify-center min-h-px min-w-px p-[15px] relative rounded-[3px]" data-name="login method" data-node-id="1:2520">
-                  <div className="content-stretch flex gap-[10px] items-center relative shrink-0" data-node-id="I1:2520;4:644">
-                    <div className="relative shrink-0 size-[20px]" data-name="Email" data-node-id="I1:2520;4:645">
-                      <img alt="" className="block max-w-none size-full" src={imgEmail} />
-                    </div>
-                    <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-black text-center" data-node-id="I1:2520;4:659">
-                      Continue with Derleng account
-                    </p>
+                <button className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] flex-col h-full items-center justify-center min-h-px min-w-px p-[10px] relative rounded-[8px] cursor-pointer hover:bg-gray-50 transition-colors" data-name="login method">
+                  <div className="relative shrink-0 size-[24px]">
+                    <img alt="Facebook" className="block max-w-none size-full" src={imgFacebook} />
                   </div>
-                </div>
-                <div className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] flex-col h-full items-start justify-center min-h-px min-w-px p-[15px] relative rounded-[3px]" data-name="login method" data-node-id="1:2521">
-                  <div className="content-stretch flex gap-[10px] items-center relative shrink-0" data-node-id="I1:2521;4:644">
-                    <div className="relative shrink-0 size-[20px]" data-name="Email" data-node-id="I1:2521;4:645">
-                      <img alt="" className="block max-w-none size-full" src={imgEmail} />
-                    </div>
-                    <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-black text-center" data-node-id="I1:2521;4:659">
-                      Continue with Derleng account
-                    </p>
+                </button>
+                <button className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] flex-col h-full items-center justify-center min-h-px min-w-px p-[10px] relative rounded-[8px] cursor-pointer hover:bg-gray-50 transition-colors" data-name="login method">
+                  <div className="relative shrink-0 size-[24px]">
+                    <img alt="Gmail" className="block max-w-none size-full" src={imgGmail} />
                   </div>
-                </div>
-                <div className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] flex-col h-full items-start justify-center min-h-px min-w-px p-[15px] relative rounded-[3px]" data-name="login method" data-node-id="1:2522">
-                  <div className="content-stretch flex gap-[10px] items-center relative shrink-0" data-node-id="I1:2522;4:644">
-                    <div className="relative shrink-0 size-[20px]" data-name="Email" data-node-id="I1:2522;4:645">
-                      <img alt="" className="block max-w-none size-full" src={imgEmail} />
-                    </div>
-                    <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-black text-center" data-node-id="I1:2522;4:659">
-                      Continue with Derleng account
-                    </p>
+                </button>
+                <button className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] flex-col h-full items-center justify-center min-h-px min-w-px p-[10px] relative rounded-[8px] cursor-pointer hover:bg-gray-50 transition-colors" data-name="login method">
+                  <div className="relative shrink-0 size-[24px]">
+                    <img alt="Apple" className="block max-w-none size-full" src={imgApple} />
                   </div>
-                </div>
+                </button>
+              </div>
+              <div className="content-stretch flex items-center justify-center relative shrink-0 w-full mt-4">
+                <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic text-[12px] text-[rgba(0,0,0,0.6)] text-center">
+                  Doesn't have account yet?{' '}
+                  <button className="font-['Poppins:SemiBold',sans-serif] text-[12px] text-black cursor-pointer hover:underline">
+                    Create Account
+                  </button>
+                </p>
               </div>
             </div>
           </div>
