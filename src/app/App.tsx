@@ -7,6 +7,7 @@ import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
 import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
 import OnboardingScreen from '@/app/components/OnboardingScreen';
 import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
+import JournalScreen from '@/app/components/JournalScreen';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
@@ -123,32 +124,11 @@ export default function App() {
           />
         )}
         {currentScreen === 'home' && user && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-white">
-            <div className="text-center">
-              <div className="mb-6">
-                <div className="w-24 h-24 bg-[#0fa3e2] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white text-4xl font-['Poppins:SemiBold',sans-serif]">
-                    {user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <h1 className="font-['Poppins:SemiBold',sans-serif] text-2xl text-black mb-2">
-                  Welcome to TravelLens!
-                </h1>
-                <p className="font-['Poppins:Regular',sans-serif] text-lg text-black mb-1">
-                  {user.displayName}
-                </p>
-                <p className="font-['Poppins:Regular',sans-serif] text-sm text-[rgba(0,0,0,0.6)]">
-                  {user.email}
-                </p>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="bg-red-500 text-white px-8 py-3 rounded-[15px] font-['Poppins:Medium',sans-serif] text-[14px] hover:bg-red-600 transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
+          <JournalScreen
+            userName={user.displayName || ''}
+            userEmail={user.email || ''}
+            onLogout={handleLogout}
+          />
         )}
       </div>
     </div>
