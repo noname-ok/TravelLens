@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const imgNotch = "https://www.figma.com/api/mcp/asset/8a63521d-68e1-44e1-8b29-d36d92b1b97b";
 const imgRightSide = "https://www.figma.com/api/mcp/asset/9b62d40e-ea82-4fc9-a1c0-be4e0c2e089c";
@@ -6,6 +6,21 @@ const imgVector = "https://www.figma.com/api/mcp/asset/90336c2f-f3a7-4d22-a8f2-6
 const imgAngleLeft = "https://www.figma.com/api/mcp/asset/1a3f9342-d6e1-494e-8825-82e9199de542";
 const imgCaretDown = "https://www.figma.com/api/mcp/asset/b396ffcd-cced-4a3d-9c24-71435feaeac8";
 const imgEye = "https://www.figma.com/api/mcp/asset/a6af9c4a-b252-47b0-aecc-6f4ebecbc5cd";
+
+// Common country codes
+const COUNTRY_CODES = [
+  { code: '+1', country: 'US/CA', flag: '🇺🇸' },
+  { code: '+44', country: 'UK', flag: '🇬🇧' },
+  { code: '+60', country: 'MY', flag: '🇲🇾' },
+  { code: '+65', country: 'SG', flag: '🇸🇬' },
+  { code: '+81', country: 'JP', flag: '🇯🇵' },
+  { code: '+82', country: 'KR', flag: '🇰🇷' },
+  { code: '+84', country: 'VN', flag: '🇻🇳' },
+  { code: '+86', country: 'CN', flag: '🇨🇳' },
+  { code: '+855', country: 'KH', flag: '🇰🇭' },
+  { code: '+91', country: 'IN', flag: '🇮🇳' },
+  { code: '+61', country: 'AU', flag: '🇦🇺' },
+];
 
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
@@ -58,6 +73,24 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showCountryDropdown) {
+        setShowCountryDropdown(false);
+      }
+    };
+
+    if (showCountryDropdown) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showCountryDropdown]);
 
   const handleInputChange = (field: keyof SignUpFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -127,22 +160,55 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
               Phone
             </label>
             <div className="content-stretch flex gap-[5px] items-start relative shrink-0 w-full" data-node-id="1:2608">
-              <div className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex h-[52px] items-center justify-between pl-[15px] pr-[10px] py-[10px] relative rounded-[15px] shrink-0 w-[85px]" data-node-id="1:2609">
-                <input
-                  type="text"
-                  value={formData.countryCode}
-                  onChange={(e) => handleInputChange('countryCode', e.target.value)}
-                  className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[14px] text-black w-[50px] outline-none"
-                  data-node-id="1:2610"
-                />
-                <div className="h-[18px] relative shrink-0 w-[19px]" data-name="caret-down" data-node-id="1:2611">
-                  <img alt="" className="block max-w-none size-full" src={imgCaretDown} />
-                </div>
+              {/* Country Code Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCountryDropdown(!showCountryDropdown);
+                  }}
+                  className="border border-[rgba(0,0,0,0.1)] border-solid flex h-[52px] items-center gap-2 pl-[15px] pr-[10px] py-[10px] rounded-[15px] min-w-[120px] hover:bg-gray-50 transition-colors"
+                  data-node-id="1:2609"
+                >
+                  <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black">
+                    {COUNTRY_CODES.find(c => c.code === formData.countryCode)?.country}
+                  </span>
+                  <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black">{formData.countryCode}</span>
+                  <div className="h-[18px] w-[19px] ml-auto shrink-0" data-name="caret-down" data-node-id="1:2611">
+                    <img alt="" className="block max-w-none size-full" src={imgCaretDown} />
+                  </div>
+                </button>
+                
+                {/* Dropdown Menu */}
+                {showCountryDropdown && (
+                  <div className="absolute top-[calc(100%+4px)] left-0 bg-white border border-[rgba(0,0,0,0.1)] rounded-[10px] shadow-lg z-50 w-[180px] max-h-[250px] overflow-y-auto">
+                    {COUNTRY_CODES.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('countryCode', item.code);
+                          setShowCountryDropdown(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left ${
+                          formData.countryCode === item.code ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <span className="text-[16px]">{item.flag}</span>
+                        <span className="font-['Poppins:Medium',sans-serif] text-[12px] text-black flex-1">{item.code}</span>
+                        <span className="font-['Poppins:Regular',sans-serif] text-[10px] text-gray-500">{item.country}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+              
+              {/* Phone Input */}
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
                 placeholder="123 456 789"
                 className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-[1_0_0] h-[52px] items-center min-h-px min-w-px pl-[15px] py-[10px] relative rounded-[15px] font-['Poppins:Regular',sans-serif] text-[12px] text-black outline-none focus:border-[#0fa3e2]"
                 data-node-id="1:2613"

@@ -32,9 +32,10 @@ function StatusBarIPhone({ className }: { className?: string }) {
 
 interface LoginScreenProps {
   onCreateAccount?: () => void;
+  onForgetPassword?: () => void;
 }
 
-export default function LoginScreen({ onCreateAccount }: LoginScreenProps) {
+export default function LoginScreen({ onCreateAccount, onForgetPassword }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -51,7 +52,18 @@ export default function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     setLoading(false);
 
     if (!result.success) {
-      toast.error(result.error || 'Failed to sign in');
+      // Show more specific error messages
+      if (result.error?.includes('user-not-found')) {
+        toast.error('No account found with this email. Please sign up first.');
+      } else if (result.error?.includes('wrong-password')) {
+        toast.error('Incorrect password. Please try again.');
+      } else if (result.error?.includes('invalid-email')) {
+        toast.error('Invalid email address.');
+      } else if (result.error?.includes('invalid-credential')) {
+        toast.error('Invalid email or password.');
+      } else {
+        toast.error(result.error || 'Failed to sign in');
+      }
     }
   };
 
@@ -129,9 +141,13 @@ export default function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                   </div>
                 </div>
               </div>
-              <a className="block cursor-pointer font-['Poppins:Regular',sans-serif] leading-[0] min-w-full not-italic relative shrink-0 text-[#0061d2] text-[12px] text-right w-[min-content]" data-node-id="1:2512">
+              <button 
+                onClick={onForgetPassword}
+                className="block cursor-pointer font-['Poppins:Regular',sans-serif] leading-[0] min-w-full not-italic relative shrink-0 text-[#0061d2] text-[12px] text-right w-[min-content] hover:opacity-80" 
+                data-node-id="1:2512"
+              >
                 <p className="[text-decoration-skip-ink:none] decoration-solid leading-[normal] underline whitespace-pre-wrap">Forgot password?</p>
-              </a>
+              </button>
               <button
                 onClick={handleLogin}
                 disabled={loading}

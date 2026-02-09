@@ -5,8 +5,9 @@ import {
   updateProfile,
   GoogleAuthProvider,
   FacebookAuthProvider,
-  OAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
   User
 } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
@@ -77,4 +78,31 @@ export const logOut = async () => {
 // Get current user
 export const getCurrentUser = (): User | null => {
   return auth.currentUser;
+};
+
+// Check if email exists in Firebase
+export const checkEmailExists = async (email: string) => {
+  try {
+    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+    return { success: true, exists: signInMethods.length > 0, methods: signInMethods };
+  } catch (error: any) {
+    return { success: false, error: error.message, exists: false };
+  }
+};
+
+// Send password reset email
+export const sendPasswordReset = async (email: string) => {
+  try {
+    // First check if email exists
+    const emailCheck = await checkEmailExists(email);
+    
+    if (!emailCheck.exists) {
+      return { success: false, error: 'No account found with this email address' };
+    }
+    
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 };

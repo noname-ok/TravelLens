@@ -3,11 +3,12 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
 import LoginScreen from '@/app/components/LoginScreen';
 import SignUpScreen, { SignUpFormData } from '@/app/components/SignUpScreen';
+import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
 
-type Screen = 'login' | 'signup' | 'home';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'home';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -66,12 +67,20 @@ export default function App() {
       <div className="w-full h-full max-w-md mx-auto border-x border-border shadow-2xl flex flex-col">
         <Toaster position="top-center" />
         {currentScreen === 'login' && (
-          <LoginScreen onCreateAccount={() => setCurrentScreen('signup')} />
+          <LoginScreen 
+            onCreateAccount={() => setCurrentScreen('signup')}
+            onForgetPassword={() => setCurrentScreen('forgetPassword')}
+          />
         )}
         {currentScreen === 'signup' && (
           <SignUpScreen 
             onBack={() => setCurrentScreen('login')} 
             onSignUp={handleSignUp}
+          />
+        )}
+        {currentScreen === 'forgetPassword' && (
+          <ForgetPasswordScreen 
+            onBack={() => setCurrentScreen('login')}
           />
         )}
         {currentScreen === 'home' && user && (
