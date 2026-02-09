@@ -46,12 +46,13 @@ interface JournalScreenProps {
   userName?: string;
   userEmail?: string;
   onLogout?: () => void;
+  onNavigate?: (screen: 'nearby') => void;
 }
 
 type Tab = 'video' | 'photos' | 'audio';
 type NavTab = 'home' | 'nearby' | 'ailens' | 'profile';
 
-export default function JournalScreen({ userName, userEmail, onLogout }: JournalScreenProps) {
+export default function JournalScreen({ userName, userEmail, onLogout, onNavigate }: JournalScreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>('video');
   const [activeNavTab, setActiveNavTab] = useState<NavTab>('home');
 
@@ -235,7 +236,10 @@ export default function JournalScreen({ userName, userEmail, onLogout }: Journal
 
             {/* Nearby */}
             <button
-              onClick={() => setActiveNavTab('nearby')}
+              onClick={() => {
+                setActiveNavTab('nearby');
+                onNavigate?.('nearby');
+              }}
               className="flex-1 flex flex-col items-center"
             >
               <img src={imgMap} alt="Nearby" className="size-[32px] opacity-70" />
