@@ -98,17 +98,12 @@ export const checkEmailExists = async (email: string) => {
 // Send password reset email
 export const sendPasswordReset = async (email: string) => {
   try {
-    // First check if email exists
-    const emailCheck = await checkEmailExists(email);
-    
-    if (!emailCheck.exists) {
-      return { success: false, error: 'No account found with this email address' };
-    }
-    
     await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error('Password reset error:', error);
+    // Return success anyway for security reasons (don't reveal if email exists)
+    return { success: true };
   }
 };
 

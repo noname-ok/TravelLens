@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { checkEmailExists, sendPasswordReset } from '@/app/services/authService';
+import { sendPasswordReset } from '@/app/services/authService';
 
 const imgNotch = "https://www.figma.com/api/mcp/asset/f253bd1d-f8f7-4e3e-a85c-75dc10cd4849";
 const imgRightSide = "https://www.figma.com/api/mcp/asset/dd4c1885-54a0-4e58-8757-354edd73ec7a";
@@ -56,6 +56,9 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
   const [countryCode, setCountryCode] = useState('+855');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Check if phone auth is enabled (requires Blaze plan)
+  const phoneAuthEnabled = false; // Set to true after upgrading to Blaze plan
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -90,35 +93,25 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
 
       setLoading(true);
 
-      // Check if email exists first
-      const checkResult = await checkEmailExists(email);
-      
-      if (!checkResult.success) {
-        setLoading(false);
-        toast.error('Failed to verify email. Please try again.');
-        return;
-      }
-
-      if (!checkResult.exists) {
-        setLoading(false);
-        toast.error('This email is not registered. Please sign up first.');
-        return;
-      }
-
       // Send password reset email
       const resetResult = await sendPasswordReset(email);
       setLoading(false);
 
       if (resetResult.success) {
-        toast.success('Password reset email sent! Please check your inbox.');
+        toast.success('If this email is registered, a password reset link will be sent. Please check your inbox.');
         setTimeout(() => {
           if (onBack) onBack();
         }, 2000);
       } else {
-        toast.error(resetResult.error || 'Failed to send reset email');
+        toast.error('Failed to send reset email. Please try again.');
       }
     } else {
       // Phone number reset
+      if (!phoneAuthEnabled) {
+        toast.error('Phone authentication requires Firebase Blaze plan. Please use email reset.');
+        return;
+      }
+      
       if (!phone) {
         toast.error('Please enter your phone number');
         return;
@@ -241,13 +234,15 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
                 </div>
               )}
               
-              <button
-                onClick={() => setResetMethod(resetMethod === 'email' ? 'phone' : 'email')}
-                className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#0061d2] text-[10px] cursor-pointer hover:underline"
-                data-node-id="1:2539"
-              >
-                {resetMethod === 'email' ? 'Reset with phone number' : 'Reset with email'}
-              </button>
+              {phoneAuthEnabled && (
+                <button
+                  onClick={() => setResetMethod(resetMethod === 'email' ? 'phone' : 'email')}
+                  className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#0061d2] text-[10px] cursor-pointer hover:underline"
+                  data-node-id="1:2539"
+                >
+                  {resetMethod === 'email' ? 'Reset with phone number' : 'Reset with email'}
+                </button>
+              )}
             </div>
           </div>
           
