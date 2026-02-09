@@ -46,9 +46,10 @@ function StatusBarIPhone({ className }: { className?: string }) {
 
 interface ForgetPasswordScreenProps {
   onBack?: () => void;
+  onPhoneVerification?: (phone: string, countryCode: string) => void;
 }
 
-export default function ForgetPasswordScreen({ onBack }: ForgetPasswordScreenProps) {
+export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: ForgetPasswordScreenProps) {
   const [resetMethod, setResetMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -117,8 +118,24 @@ export default function ForgetPasswordScreen({ onBack }: ForgetPasswordScreenPro
         toast.error(resetResult.error || 'Failed to send reset email');
       }
     } else {
-      // Phone number reset - not implemented yet
-      toast.info('Phone number reset is coming soon!');
+      // Phone number reset
+      if (!phone) {
+        toast.error('Please enter your phone number');
+        return;
+      }
+
+      // Validate phone number (basic check)
+      if (phone.length < 6) {
+        toast.error('Please enter a valid phone number');
+        return;
+      }
+
+      // Navigate to phone verification screen
+      if (onPhoneVerification) {
+        onPhoneVerification(phone, countryCode);
+      } else {
+        toast.error('Phone verification not configured');
+      }
     }
   };
 

@@ -4,16 +4,21 @@ import { auth } from '@/app/config/firebase';
 import LoginScreen from '@/app/components/LoginScreen';
 import SignUpScreen, { SignUpFormData } from '@/app/components/SignUpScreen';
 import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
+import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
+import OnboardingScreen from '@/app/components/OnboardingScreen';
+import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'home';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+855');
 
   // Listen to auth state changes
   useEffect(() => {
@@ -35,7 +40,7 @@ export default function App() {
     
     if (result.success) {
       toast.success('Account created successfully!');
-      setCurrentScreen('login');
+      setCurrentScreen('onboarding');
     } else {
       toast.error(result.error || 'Failed to create account');
     }
@@ -49,6 +54,17 @@ export default function App() {
     } else {
       toast.error('Failed to log out');
     }
+  };
+
+  const handlePhoneVerification = (phone: string, code: string) => {
+    setPhoneNumber(phone);
+    setCountryCode(code);
+    setCurrentScreen('phoneVerification');
+  };
+
+  const handlePhoneVerified = () => {
+    toast.success('Phone number verified successfully!');
+    setCurrentScreen('createNewPassword');
   };
 
   if (loading) {
@@ -81,6 +97,29 @@ export default function App() {
         {currentScreen === 'forgetPassword' && (
           <ForgetPasswordScreen 
             onBack={() => setCurrentScreen('login')}
+            onPhoneVerification={handlePhoneVerification}
+          />
+        )}
+        {currentScreen === 'phoneVerification' && (
+          <PhoneVerificationScreen
+            phoneNumber={phoneNumber}
+            countryCode={countryCode}
+            onVerified={handlePhoneVerified}
+            onBack={() => setCurrentScreen('forgetPassword')}
+          />
+        )}
+        {currentScreen === 'onboarding' && (
+          <OnboardingScreen
+            onNext={() => setCurrentScreen('login')}
+          />
+        )}
+        {currentScreen === 'createNewPassword' && (
+          <CreateNewPasswordScreen
+            onBack={() => setCurrentScreen('phoneVerification')}
+            onPasswordCreated={() => {
+              toast.success('Password changed successfully!');
+              setCurrentScreen('login');
+            }}
           />
         )}
         {currentScreen === 'home' && user && (

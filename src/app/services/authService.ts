@@ -8,6 +8,11 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult,
+  PhoneAuthProvider,
+  linkWithCredential,
   User
 } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
@@ -101,6 +106,97 @@ export const sendPasswordReset = async (email: string) => {
     }
     
     await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ============ PHONE VERIFICATION FUNCTIONS ============
+
+// Store confirmation result globally
+let confirmationResult: ConfirmationResult | null = null;
+
+// Initialize reCAPTCHA verifier (invisible)
+export const initializeRecaptcha = (elementId: string) => {
+  try {
+    const recaptchaVerifier = new RecaptchaVerifier(auth, elementId, {
+      size: 'invisible',
+      callback: () => {
+        // reCAPTCHA solved
+        console.log('reCAPTCHA verified');
+      },
+      'expired-callback': () => {
+        console.log('reCAPTCHA expired');
+      }
+    });
+    return { success: true, verifier: recaptchaVerifier };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Send SMS verification code
+export const sendPhoneVerificationCode = async (
+  phoneNumber: string, 
+  recaptchaVerifier: RecaptchaVerifier
+) => {
+  try {
+    // Phone number must be in E.164 format: +14155552671
+    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending SMS:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Verify the SMS code
+export const verifyPhoneCode = async (code: string) => {
+  try {
+    if (!confirmationResult) {
+      return { success: false, error: 'No verification in progress' };
+    }
+    
+    const result = await confirmationResult.confirm(code);
+    return { success: true, user: result.user };
+  } catch (error: any) {
+    console.error('Error verifying code:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Link phone number to existing email account
+export const linkPhoneToAccount = async (
+  phoneNumber: string,
+  verificationCode: string
+) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'No user logged in' };
+    }
+
+    const credential = PhoneAuthProvider.credential(
+      confirmationResult?.verificationId || '',
+      verificationCode
+    );
+    
+    await linkWithCredential(currentUser, credential);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Reset password using phone number
+export const sendPasswordResetViaSMS = async (
+  phoneNumber: string,
+  recaptchaVerifier: RecaptchaVerifier
+) => {
+  try {
+    // Send SMS code
+    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
