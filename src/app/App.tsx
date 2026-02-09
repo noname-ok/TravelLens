@@ -11,7 +11,6 @@ import JournalScreen from '@/app/components/JournalScreen';
 import MapViewScreen from '@/app/components/MapViewScreen';
 import AILensScreen from '@/app/components/AILensScreen';
 import ProfileScreen from '@/app/components/ProfileScreen';
-import JournalCard from './components/JournalCard';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
@@ -92,12 +91,13 @@ export default function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-background flex items-center justify-center">
-      <div className="w-full h-full max-w-md mx-auto border-x border-border shadow-2xl flex flex-col">
+      <div className="w-full h-full max-w-3xl mx-auto border-x border-border shadow-2xl flex flex-col">
         <Toaster position="top-center" />
         {currentScreen === 'login' && (
           <LoginScreen 
             onCreateAccount={() => setCurrentScreen('signup')}
             onForgetPassword={() => setCurrentScreen('forgetPassword')}
+            onLoginSuccess={() => setCurrentScreen('home')}
           />
         )}
         {currentScreen === 'signup' && (
@@ -200,9 +200,7 @@ export default function App() {
 
             {/* --- SCROLLABLE FEED --- */}
             <main className="flex-1 overflow-y-auto p-5 pb-24 space-y-6">
-              {/* You can map through data here, but for now, we'll call your new component */}
-              <JournalCard />
-              <JournalCard />
+              {/* feed is rendered inside JournalScreen now */}
             </main>
           </div>
       </div>

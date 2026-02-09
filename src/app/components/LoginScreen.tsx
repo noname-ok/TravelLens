@@ -33,9 +33,10 @@ function StatusBarIPhone({ className }: { className?: string }) {
 interface LoginScreenProps {
   onCreateAccount?: () => void;
   onForgetPassword?: () => void;
+  onLoginSuccess?: () => void;
 }
 
-export default function LoginScreen({ onCreateAccount, onForgetPassword }: LoginScreenProps) {
+export default function LoginScreen({ onCreateAccount, onForgetPassword, onLoginSuccess }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +51,12 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword }: Login
     setLoading(true);
     const result = await signInWithEmail(email, password);
     setLoading(false);
+
+    if (result.success) {
+      // call optional success callback so parent can navigate immediately
+      onLoginSuccess?.();
+      return;
+    }
 
     if (!result.success) {
       // Show more specific error messages
