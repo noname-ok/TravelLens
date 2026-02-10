@@ -6,7 +6,7 @@ const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab2
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
     <div className={className || ""}>
-      <div className="h-[47px] relative w-[390px]">
+      <div className="h-[47px] relative w-full">
         <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
           <img alt="" className="block max-w-none size-full" src={imgNotch} />
         </div>
@@ -28,7 +28,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
 function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ""}>
-      <div className="h-[34px] relative w-[375px]">
+      <div className="h-[34px] relative w-full">
         <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
@@ -43,31 +43,32 @@ interface AILensScreenProps {
 export default function AILensScreen({ currentScreen, onNavigate }: AILensScreenProps) {
   return (
     <div className="bg-white relative size-full">
-      {/* Status Bar */}
-      <StatusBarIPhone className="absolute h-[47px] left-0 overflow-clip top-0 w-[390px] z-10" />
+      <div className="relative mx-auto w-full max-w-[390px] h-full">
+        {/* Status Bar */}
+        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0 z-10" />
 
-      {/* Header */}
-      <div className="absolute left-[24px] top-[52px]">
-        <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
-          AI Lens
-        </h1>
-      </div>
+        {/* Header */}
+        <div className="absolute left-[24px] top-[52px]">
+          <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
+            AI Lens
+          </h1>
+        </div>
 
-      {/* Content Area - Placeholder */}
-      <div className="absolute left-0 right-0 top-[100px] bottom-[93px] flex items-center justify-center">
-        <p className="font-['Poppins',sans-serif] text-[16px] text-gray-400">
-          AI Lens content coming soon...
-        </p>
-      </div>
+        {/* Content Area - Placeholder */}
+        <div className="absolute left-0 right-0 top-[100px] bottom-[90px] flex items-center justify-center">
+          <p className="font-['Poppins',sans-serif] text-[16px] text-gray-400">
+            AI Lens content coming soon...
+          </p>
+        </div>
 
-      {/* Bottom Navigation */}
-      <div className="absolute left-[-2px] top-[755px] w-[390px]">
-        {/* Divider */}
-        <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
-        
-        {/* Nav Bar */}
-        <div className="flex flex-col h-[78px] p-[10px]">
-          <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
+        {/* Bottom Navigation */}
+        <div className="absolute left-0 right-0 bottom-0 h-[90px]">
+          {/* Divider */}
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          
+          {/* Nav Bar */}
+          <div className="flex flex-col h-[78px] p-[10px]">
+            <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
             {/* Home */}
             <button
               onClick={() => onNavigate?.('home')}
@@ -135,11 +136,12 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
                 Profile
               </p>
             </button>
+            </div>
           </div>
-        </div>
 
-        {/* Home Indicator */}
-        <HomeIndicator className="absolute h-[34px] left-px top-[59.53px] w-[375px]" />
+          {/* Home Indicator */}
+          <HomeIndicator className="absolute h-[34px] left-0 right-0 bottom-0" />
+        </div>
       </div>
     </div>
   );

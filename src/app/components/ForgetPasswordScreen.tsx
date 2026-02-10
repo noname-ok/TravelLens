@@ -25,7 +25,7 @@ const COUNTRY_CODES = [
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
     <div className={className || ""} data-name="StatusBar / iPhone 13" data-node-id="1:64">
-      <div className="h-[47px] relative w-[390px]" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
+      <div className="h-[47px] relative w-full" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
         <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]" data-name="Notch" data-node-id="1:66">
           <img alt="" className="block max-w-none size-full" src={imgNotch} />
         </div>
@@ -139,17 +139,17 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2]"></div>
         </div>
       )}
-      
-      <button 
-        onClick={onBack}
-        className="absolute cursor-pointer h-[46px] left-[24px] top-[53px] w-[25px] z-10" 
-        data-name="angle-left" 
-        data-node-id="1:2525"
-      >
-        <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
-      </button>
-      
-      <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]" data-node-id="1:2527">
+      <div className="relative mx-auto w-full max-w-[390px] h-full">
+        <button 
+          onClick={onBack}
+          className="absolute cursor-pointer h-[46px] left-[24px] top-[53px] w-[25px] z-10" 
+          data-name="angle-left" 
+          data-node-id="1:2525"
+        >
+          <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
+        </button>
+        
+        <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]" data-node-id="1:2527">
         <div className="content-stretch flex flex-col gap-[20px] items-start relative shrink-0" data-node-id="1:2528">
           <div className="relative shrink-0 size-[114px]" data-name="icon 1" data-node-id="1:2529">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -260,9 +260,10 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
             </p>
           </button>
         </div>
+        </div>
+        
+        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
-      
-      <StatusBarIPhone className="-translate-x-1/2 absolute h-[47px] left-[calc(50%-0.5px)] overflow-clip top-0 w-[390px]" />
     </div>
   );
 }

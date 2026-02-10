@@ -1,21 +1,27 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/app/config/firebase';
-import LoginScreen from '@/app/components/LoginScreen';
-import SignUpScreen, { SignUpFormData } from '@/app/components/SignUpScreen';
-import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
-import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
-import OnboardingScreen from '@/app/components/OnboardingScreen';
-import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
-import JournalScreen from '@/app/components/JournalScreen';
-import MapViewScreen from '@/app/components/MapViewScreen';
-import AILensScreen from '@/app/components/AILensScreen';
-import ProfileScreen from '@/app/components/ProfileScreen';
-import { Toaster } from '@/app/components/ui/sonner';
+import { auth } from './config/firebase';
+import LoginScreen from './components/LoginScreen';
+import SignUpScreen, { SignUpFormData } from './components/SignUpScreen';
+import ForgetPasswordScreen from './components/ForgetPasswordScreen';
+import PhoneVerificationScreen from './components/PhoneVerificationScreen';
+import OnboardingScreen from './components/OnboardingScreen';
+import CreateNewPasswordScreen from './components/CreateNewPasswordScreen';
+import JournalScreen, { JournalEntry, JournalTab } from './components/JournalScreen';
+import MapViewScreen from './components/MapViewScreen';
+import AILensScreen from './components/AILensScreen';
+import ProfileScreen from './components/ProfileScreen';
+import JournalDetailScreen from './components/JournalDetailScreen';
+import CreateJournalScreen from './components/CreateJournalScreen';
+import EditProfileScreen from './components/EditProfileScreen';
+import LanguageScreen from './components/LanguageScreen';
+import TermsScreen from './components/TermsScreen';
+import PrivacyScreen from './components/PrivacyScreen';
+import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
-import { signUpWithEmail, logOut } from '@/app/services/authService';
+import { signUpWithEmail, logOut } from './services/authService';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -23,9 +29,24 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+855');
+  const [selectedJournal, setSelectedJournal] = useState<JournalEntry | null>(null);
+  const [pendingJournal, setPendingJournal] = useState<JournalEntry | null>(null);
+  const [journalInitialTab, setJournalInitialTab] = useState<JournalTab>('community');
+  const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
+  const [deletedJournalId, setDeletedJournalId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState('John Doe');
+  const [profileLocation, setProfileLocation] = useState('Mars, Solar System');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | undefined>(undefined);
 
   // Listen to auth state changes
   useEffect(() => {
+    // Only run if auth actually exists to prevent the crash
+    if (!auth) {
+      console.error("Firebase Auth is null! Check your firebase.ts file.");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -84,12 +105,13 @@ export default function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-background flex items-center justify-center">
-      <div className="w-full h-full max-w-md mx-auto border-x border-border shadow-2xl flex flex-col">
+      <div className="w-full h-full max-w-[390px] mx-auto border-x border-border shadow-2xl flex flex-col">
         <Toaster position="top-center" />
         {currentScreen === 'login' && (
           <LoginScreen 
             onCreateAccount={() => setCurrentScreen('signup')}
             onForgetPassword={() => setCurrentScreen('forgetPassword')}
+            onLoginSuccess={() => setCurrentScreen('home')}
           />
         )}
         {currentScreen === 'signup' && (
@@ -132,25 +154,153 @@ export default function App() {
             userEmail={user.email || ''}
             onLogout={handleLogout}
             currentScreen={currentScreen}
-            onNavigate={(screen) => setCurrentScreen(screen)}
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onCreateJournal={() => setCurrentScreen('createJournal')}
+            onEditJournal={(journal) => {
+              setEditingJournal(journal);
+              setJournalInitialTab('myJournal');
+              setCurrentScreen('createJournal');
+            }}
+            onOpenJournal={(journal) => {
+              setSelectedJournal(journal);
+              setCurrentScreen('journalDetail');
+            }}
+            initialTab={journalInitialTab}
+            pendingJournal={pendingJournal}
+            onConsumePendingJournal={() => setPendingJournal(null)}
+            deletedJournalId={deletedJournalId}
+            onConsumeDeletedJournal={() => setDeletedJournalId(null)}
+          />
+        )}
+        {currentScreen === 'journalDetail' && user && selectedJournal && (
+          <JournalDetailScreen
+            onBack={() => setCurrentScreen('home')}
+            currentScreen={currentScreen === 'journalDetail' ? 'home' : currentScreen}
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            userInitial={(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+            title={selectedJournal.title}
+            location={selectedJournal.location}
+            description={selectedJournal.description}
+            author={selectedJournal.author || user.displayName || user.email || 'User'}
+            timeAgo={selectedJournal.timeAgo}
+            likes={selectedJournal.likes}
+            bookmarks={selectedJournal.bookmarks}
+            imageUrl={selectedJournal.imageUrl}
+          />
+        )}
+        {currentScreen === 'createJournal' && user && (
+          <CreateJournalScreen
+            onBack={() => {
+              setEditingJournal(null);
+              setCurrentScreen('home');
+            }}
+            mode={editingJournal ? 'edit' : 'create'}
+            initialEntry={
+              editingJournal
+                ? {
+                    title: editingJournal.title,
+                    location: editingJournal.location,
+                    description: editingJournal.description,
+                    imageUrl: editingJournal.imageUrl,
+                  }
+                : undefined
+            }
+            onSubmit={(entry) => {
+              const author = user.displayName || user.email || 'User';
+              const existing = editingJournal;
+              setPendingJournal({
+                id: existing ? existing.id : `my-${Date.now()}`,
+                timeAgo: existing ? existing.timeAgo : 'just now',
+                title: entry.title,
+                location: entry.location,
+                description: entry.description,
+                imageUrl: entry.imageUrl,
+                likes: existing ? existing.likes : 0,
+                bookmarks: existing ? existing.bookmarks : 0,
+                views: existing ? existing.views : 0,
+                isLiked: existing ? existing.isLiked : false,
+                isSaved: existing ? existing.isSaved : false,
+                author: existing ? existing.author || author : author,
+              });
+              setJournalInitialTab('myJournal');
+              toast.success(existing ? 'Journal updated successfully' : 'Journal posted successfully');
+              setEditingJournal(null);
+              setCurrentScreen('home');
+            }}
+            onDelete={() => {
+              if (editingJournal) {
+                setDeletedJournalId(editingJournal.id);
+                toast.success('Journal deleted');
+                setEditingJournal(null);
+              } else {
+                toast.success('Draft discarded');
+              }
+              setJournalInitialTab('myJournal');
+              setCurrentScreen('home');
+            }}
           />
         )}
         {currentScreen === 'mapview' && user && (
           <MapViewScreen
             currentScreen={currentScreen}
-            onNavigate={(screen) => setCurrentScreen(screen)}
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
           />
         )}
         {currentScreen === 'ailens' && user && (
           <AILensScreen
             currentScreen={currentScreen}
-            onNavigate={(screen) => setCurrentScreen(screen)}
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
           />
         )}
         {currentScreen === 'profile' && user && (
           <ProfileScreen
             currentScreen={currentScreen}
-            onNavigate={(screen) => setCurrentScreen(screen)}
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onEditProfile={() => setCurrentScreen('editProfile')}
+            onChangeLanguage={() => setCurrentScreen('language')}
+            onOpenTerms={() => setCurrentScreen('terms')}
+            onOpenPrivacy={() => setCurrentScreen('privacy')}
+            onLogout={handleLogout}
+            userName={profileName || user.displayName || 'John Doe'}
+            userLocation={profileLocation}
+            userAvatarUrl={profileAvatarUrl}
+          />
+        )}
+        {currentScreen === 'editProfile' && user && (
+          <EditProfileScreen
+            currentScreen="profile"
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+            initialName={profileName || user.displayName || 'John Doe'}
+            initialLocation={profileLocation}
+            initialAvatarUrl={profileAvatarUrl}
+            onSave={(data) => {
+              setProfileName(data.name);
+              setProfileLocation(data.location);
+              setProfileAvatarUrl(data.avatarUrl);
+              setCurrentScreen('profile');
+            }}
+          />
+        )}
+        {currentScreen === 'language' && user && (
+          <LanguageScreen
+            currentScreen="profile"
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+          />
+        )}
+        {currentScreen === 'terms' && user && (
+          <TermsScreen
+            currentScreen="profile"
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+          />
+        )}
+        {currentScreen === 'privacy' && user && (
+          <PrivacyScreen
+            currentScreen="profile"
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
           />
         )}
       </div>
