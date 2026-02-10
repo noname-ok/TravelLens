@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import commentIcon from '@/assets/comment.svg';
 import backIcon from '@/assets/Back.svg';
@@ -18,6 +18,7 @@ interface JournalDetailProps {
   onBack: () => void;
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
+  userInitial?: string;
   title?: string;
   location?: string;
   description?: string;
@@ -34,6 +35,7 @@ export default function JournalDetailScreen({
   onBack,
   currentScreen,
   onNavigate,
+  userInitial,
   title = 'Kyoto, Japan',
   location = 'Kyoto, Japan',
   description = "The silence of the Zen gardens in Kyoto is something that can't be captured in a photo alone...",
@@ -191,14 +193,17 @@ export default function JournalDetailScreen({
             ) : (
               <div className="absolute inset-0 bg-[url('Frame 7.png')] bg-cover bg-center mix-blend-luminosity opacity-80" />
             )}
-            <h1 className="absolute bottom-[28px] left-[32px] font-['Inter'] font-bold text-[24px] text-white tracking-[-0.408px]">
-              {title}
-            </h1>
+            <div className="absolute bottom-[24px] left-[32px] space-y-1">
+              <h1 className="font-['Inter'] font-bold text-[24px] text-white tracking-[-0.408px]">
+                {title}
+              </h1>
+              <p className="font-['Inter'] font-medium text-[12px] text-white/80">{location}</p>
+            </div>
           </div>
 
           <div className="flex items-center px-[16px] py-[18px] gap-[12px]">
             <div className="w-10 h-10 bg-[#CDE5FF] rounded-full flex items-center justify-center text-[#2C638B] font-bold">
-              {author.charAt(0).toUpperCase()}
+              {(userInitial || author.charAt(0)).toUpperCase()}
             </div>
             <div className="flex-1">
               <p className="font-['Inter'] font-extrabold text-[14px] text-[#49454F]">{author}</p>
