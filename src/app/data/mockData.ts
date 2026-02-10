@@ -1,9 +1,12 @@
-export interface AIExplanation {
+export interface AIExplanationResult {
   title: string;
   description: string;
   category: string;
   culturalNote?: string;
+  interestingFact?: string;
 }
+
+export type AIExplanation = AIExplanationResult;
 
 export interface Attraction {
   id: string;
