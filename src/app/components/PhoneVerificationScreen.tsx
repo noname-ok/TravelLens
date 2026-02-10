@@ -11,7 +11,7 @@ const imgAngleLeft = "https://www.figma.com/api/mcp/asset/db9dbf19-8dfd-49d3-bfa
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
     <div className={className || ""} data-name="StatusBar / iPhone 13">
-      <div className="h-[47px] relative w-[390px]" data-name="Dark Mode=False, Type=Default">
+      <div className="h-[47px] relative w-full" data-name="Dark Mode=False, Type=Default">
         <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]" data-name="Notch">
           <img alt="" className="block max-w-none size-full" src={imgNotch} />
         </div>
@@ -119,15 +119,16 @@ export default function PhoneVerificationScreen({
         </div>
       )}
 
-      <button 
-        onClick={onBack}
-        className="absolute cursor-pointer h-[46px] left-[24px] top-[53px] w-[25px] z-10" 
-        data-name="angle-left"
-      >
-        <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
-      </button>
-      
-      <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]">
+      <div className="relative mx-auto w-full max-w-[390px] h-full">
+        <button 
+          onClick={onBack}
+          className="absolute cursor-pointer h-[46px] left-[24px] top-[53px] w-[25px] z-10" 
+          data-name="angle-left"
+        >
+          <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
+        </button>
+        
+        <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]">
         <div className="content-stretch flex flex-col gap-[20px] items-start relative shrink-0">
           <div className="relative shrink-0 size-[114px]" data-name="icon 1">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -203,10 +204,11 @@ export default function PhoneVerificationScreen({
         </div>
       </div>
 
-      {/* reCAPTCHA container (invisible) */}
-      <div id="recaptcha-container"></div>
-      
-      <StatusBarIPhone className="-translate-x-1/2 absolute h-[47px] left-[calc(50%-0.5px)] overflow-clip top-0 w-[390px]" />
+        {/* reCAPTCHA container (invisible) */}
+        <div id="recaptcha-container"></div>
+        
+        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
+      </div>
     </div>
   );
 }

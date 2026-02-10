@@ -7,15 +7,21 @@ import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
 import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
 import OnboardingScreen from '@/app/components/OnboardingScreen';
 import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
-import JournalScreen from '@/app/components/JournalScreen';
+import JournalScreen, { JournalEntry, JournalTab } from '@/app/components/JournalScreen';
 import MapViewScreen from '@/app/components/MapViewScreen';
 import AILensScreen from '@/app/components/AILensScreen';
 import ProfileScreen from '@/app/components/ProfileScreen';
+import JournalDetailScreen from '@/app/components/JournalDetailScreen';
+import CreateJournalScreen from '@/app/components/CreateJournalScreen';
+import EditProfileScreen from '@/app/components/EditProfileScreen';
+import LanguageScreen from '@/app/components/LanguageScreen';
+import TermsScreen from '@/app/components/TermsScreen';
+import PrivacyScreen from '@/app/components/PrivacyScreen';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from '@/app/services/authService';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -23,6 +29,14 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+855');
+  const [selectedJournal, setSelectedJournal] = useState<JournalEntry | null>(null);
+  const [pendingJournal, setPendingJournal] = useState<JournalEntry | null>(null);
+  const [journalInitialTab, setJournalInitialTab] = useState<JournalTab>('community');
+  const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
+  const [deletedJournalId, setDeletedJournalId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState('John Doe');
+  const [profileLocation, setProfileLocation] = useState('Mars, Solar System');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | undefined>(undefined);
 
   // Listen to auth state changes
   useEffect(() => {
@@ -91,7 +105,7 @@ export default function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-background flex items-center justify-center">
-      <div className="w-full h-full max-w-3xl mx-auto border-x border-border shadow-2xl flex flex-col">
+      <div className="w-full h-full max-w-[390px] mx-auto border-x border-border shadow-2xl flex flex-col">
         <Toaster position="top-center" />
         {currentScreen === 'login' && (
           <LoginScreen 
@@ -141,6 +155,89 @@ export default function App() {
             onLogout={handleLogout}
             currentScreen={currentScreen}
             onNavigate={(screen) => setCurrentScreen(screen)}
+            onCreateJournal={() => setCurrentScreen('createJournal')}
+            onEditJournal={(journal) => {
+              setEditingJournal(journal);
+              setJournalInitialTab('myJournal');
+              setCurrentScreen('createJournal');
+            }}
+            onOpenJournal={(journal) => {
+              setSelectedJournal(journal);
+              setCurrentScreen('journalDetail');
+            }}
+            initialTab={journalInitialTab}
+            pendingJournal={pendingJournal}
+            onConsumePendingJournal={() => setPendingJournal(null)}
+            deletedJournalId={deletedJournalId}
+            onConsumeDeletedJournal={() => setDeletedJournalId(null)}
+          />
+        )}
+        {currentScreen === 'journalDetail' && user && selectedJournal && (
+          <JournalDetailScreen
+            onBack={() => setCurrentScreen('home')}
+            currentScreen={currentScreen === 'journalDetail' ? 'home' : currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            userInitial={(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+            title={selectedJournal.title}
+            location={selectedJournal.location}
+            description={selectedJournal.description}
+            author={selectedJournal.author || user.displayName || user.email || 'User'}
+            timeAgo={selectedJournal.timeAgo}
+            likes={selectedJournal.likes}
+            bookmarks={selectedJournal.bookmarks}
+            imageUrl={selectedJournal.imageUrl}
+          />
+        )}
+        {currentScreen === 'createJournal' && user && (
+          <CreateJournalScreen
+            onBack={() => {
+              setEditingJournal(null);
+              setCurrentScreen('home');
+            }}
+            mode={editingJournal ? 'edit' : 'create'}
+            initialEntry={
+              editingJournal
+                ? {
+                    title: editingJournal.title,
+                    location: editingJournal.location,
+                    description: editingJournal.description,
+                    imageUrl: editingJournal.imageUrl,
+                  }
+                : undefined
+            }
+            onSubmit={(entry) => {
+              const author = user.displayName || user.email || 'User';
+              const existing = editingJournal;
+              setPendingJournal({
+                id: existing ? existing.id : `my-${Date.now()}`,
+                timeAgo: existing ? existing.timeAgo : 'just now',
+                title: entry.title,
+                location: entry.location,
+                description: entry.description,
+                imageUrl: entry.imageUrl,
+                likes: existing ? existing.likes : 0,
+                bookmarks: existing ? existing.bookmarks : 0,
+                views: existing ? existing.views : 0,
+                isLiked: existing ? existing.isLiked : false,
+                isSaved: existing ? existing.isSaved : false,
+                author: existing ? existing.author || author : author,
+              });
+              setJournalInitialTab('myJournal');
+              toast.success(existing ? 'Journal updated successfully' : 'Journal posted successfully');
+              setEditingJournal(null);
+              setCurrentScreen('home');
+            }}
+            onDelete={() => {
+              if (editingJournal) {
+                setDeletedJournalId(editingJournal.id);
+                toast.success('Journal deleted');
+                setEditingJournal(null);
+              } else {
+                toast.success('Draft discarded');
+              }
+              setJournalInitialTab('myJournal');
+              setCurrentScreen('home');
+            }}
           />
         )}
         {currentScreen === 'mapview' && user && (
@@ -159,50 +256,53 @@ export default function App() {
           <ProfileScreen
             currentScreen={currentScreen}
             onNavigate={(screen) => setCurrentScreen(screen)}
+            onEditProfile={() => setCurrentScreen('editProfile')}
+            onChangeLanguage={() => setCurrentScreen('language')}
+            onOpenTerms={() => setCurrentScreen('terms')}
+            onOpenPrivacy={() => setCurrentScreen('privacy')}
+            onLogout={handleLogout}
+            userName={profileName || user.displayName || 'John Doe'}
+            userLocation={profileLocation}
+            userAvatarUrl={profileAvatarUrl}
           />
         )}
-          <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
-            {/* --- HEADER (Rectangle 1 & Frame 3894) --- */}
-            <header className="sticky top-0 z-20 w-full h-[109px] bg-white border-b border-gray-100 px-6 pt-[52px]">
-              <div className="flex justify-between items-center w-full">
-                {/* Group 3893: Avatar + Journal Title */}
-                <div className="flex items-center gap-[12px]">
-                  <div className="w-[40px] h-[40px] bg-[#CDE5FF] rounded-full flex items-center justify-center text-[#2C638B] font-bold">
-                    {user?.displayName?.charAt(0) || "U"}
-                  </div>
-                  <h1 className="font-['Inter'] font-medium text-[20px] leading-[22px] tracking-[-0.408px] text-black">
-                    Journal
-                  </h1>
-                </div>
-                
-                {/* Search Icon */}
-                <button className="w-[29.2px] h-[27px] flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                </button>
-              </div>
-            </header>
-
-            {/* --- TABS (Community / Following etc.) --- */}
-            <nav className="flex w-full bg-[#F7F9FF] border-b border-[#DEE3EB]">
-              <button className="flex-1 py-3 text-center border-b-2 border-[#094B72] text-[#094B72] font-['Roboto'] font-medium text-[14px]">
-                Community
-              </button>
-              <button className="flex-1 py-3 text-center text-[#084B72]/60 font-['Roboto'] font-medium text-[14px]">
-                Following
-              </button>
-              <button className="flex-1 py-3 text-center text-[#084B72]/60 font-['Roboto'] font-medium text-[14px]">
-                Local
-              </button>
-            </nav>
-
-            {/* --- SCROLLABLE FEED --- */}
-            <main className="flex-1 overflow-y-auto p-5 pb-24 space-y-6">
-              {/* feed is rendered inside JournalScreen now */}
-            </main>
-          </div>
+        {currentScreen === 'editProfile' && user && (
+          <EditProfileScreen
+            currentScreen="profile"
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+            initialName={profileName || user.displayName || 'John Doe'}
+            initialLocation={profileLocation}
+            initialAvatarUrl={profileAvatarUrl}
+            onSave={(data) => {
+              setProfileName(data.name);
+              setProfileLocation(data.location);
+              setProfileAvatarUrl(data.avatarUrl);
+              setCurrentScreen('profile');
+            }}
+          />
+        )}
+        {currentScreen === 'language' && user && (
+          <LanguageScreen
+            currentScreen="profile"
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+          />
+        )}
+        {currentScreen === 'terms' && user && (
+          <TermsScreen
+            currentScreen="profile"
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+          />
+        )}
+        {currentScreen === 'privacy' && user && (
+          <PrivacyScreen
+            currentScreen="profile"
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            onBack={() => setCurrentScreen('profile')}
+          />
+        )}
       </div>
     </div>
   );

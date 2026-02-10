@@ -1,34 +1,29 @@
+import { useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
-
-const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""}>
-      <div className="h-[47px] relative w-[390px]">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
+import privateAccountIcon from '@/assets/PrivateAccount.svg';
+import gpsIcon from '@/assets/GPS.svg';
+import languageIcon from '@/assets/Language.svg';
+import darkModeIcon from '@/assets/DarkMode.svg';
+import tncIcon from '@/assets/TnC.svg';
+import privacyIcon from '@/assets/Privacy.svg';
+import openNewTabIcon from '@/assets/OpenNewTab.svg';
+import rightArrowIcon from '@/assets/RightArrow.svg';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/app/components/ui/alert-dialog';
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
-    <div className={className || ""}>
-      <div className="h-[34px] relative w-[375px]">
+    <div className={className || ''}>
+      <div className="h-[34px] relative w-full">
         <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
@@ -38,108 +33,258 @@ function HomeIndicator({ className }: { className?: string }) {
 interface ProfileScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate?: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
+  onEditProfile?: () => void;
+  onChangeLanguage?: () => void;
+  onOpenTerms?: () => void;
+  onOpenPrivacy?: () => void;
+  onLogout?: () => void;
+  userName?: string;
+  userLocation?: string;
+  userAvatarUrl?: string;
 }
 
-export default function ProfileScreen({ currentScreen, onNavigate }: ProfileScreenProps) {
+export default function ProfileScreen({
+  currentScreen,
+  onNavigate,
+  onEditProfile,
+  onChangeLanguage,
+  onOpenTerms,
+  onOpenPrivacy,
+  onLogout,
+  userName = 'John Doe',
+  userLocation = 'Mars, Solar System',
+  userAvatarUrl,
+}: ProfileScreenProps) {
+  const [privateAccountEnabled, setPrivateAccountEnabled] = useState(false);
+  const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+
   return (
     <div className="bg-white relative size-full">
-      {/* Status Bar */}
-      <StatusBarIPhone className="absolute h-[47px] left-0 overflow-clip top-0 w-[390px] z-10" />
-
-      {/* Header */}
-      <div className="absolute left-[24px] top-[52px]">
-        <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
-          Profile
-        </h1>
-      </div>
-
-      {/* Content Area - Placeholder */}
-      <div className="absolute left-0 right-0 top-[100px] bottom-[93px] flex items-center justify-center">
-        <p className="font-['Poppins',sans-serif] text-[16px] text-gray-400">
-          Profile content coming soon...
-        </p>
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="absolute left-[-2px] top-[755px] w-[390px]">
-        {/* Divider */}
-        <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
-        
-        {/* Nav Bar */}
-        <div className="flex flex-col h-[78px] p-[10px]">
-          <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
-            {/* Home */}
-            <button
-              onClick={() => onNavigate?.('home')}
-              className="flex-1 flex flex-col items-center"
-            >
-              <Home 
-                size={28}
-                className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
-                strokeWidth={2}
-              />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
-              }`}>
-                Home
-              </p>
-            </button>
-
-            {/* Nearby */}
-            <button
-              onClick={() => onNavigate?.('mapview')}
-              className="flex-1 flex flex-col items-center"
-            >
-              <MapPin 
-                size={28}
-                className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
-                strokeWidth={2}
-              />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
-              }`}>
-                Nearby
-              </p>
-            </button>
-
-            {/* AI Lens */}
-            <button
-              onClick={() => onNavigate?.('ailens')}
-              className="flex-1 flex flex-col items-center"
-            >
-              <Camera 
-                size={28}
-                className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
-                strokeWidth={2}
-              />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
-              }`}>
-                AI Lens
-              </p>
-            </button>
-
-            {/* Profile */}
-            <button
-              onClick={() => onNavigate?.('profile')}
-              className="flex-1 flex flex-col items-center"
-            >
-              <User 
-                size={28}
-                className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
-                strokeWidth={2}
-              />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
-              }`}>
-                Profile
-              </p>
-            </button>
+      <style>{`
+          .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+        `}</style>
+      <div className="relative mx-auto w-full max-w-[390px] h-full">
+        <div className="absolute left-[27px] top-[77px] w-[202px] h-[68px] flex items-center gap-[24px]">
+          <div className="w-[68px] h-[68px] rounded-full bg-[#CDE5FF] overflow-hidden">
+            {userAvatarUrl ? (
+              <img src={userAvatarUrl} alt="profile" className="w-full h-full object-cover" />
+            ) : null}
+          </div>
+          <div className="flex flex-col justify-center gap-[10px]">
+            <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
+              {userName}
+            </p>
+            <p className="font-['Poppins',sans-serif] font-normal text-[12px] leading-[18px] tracking-[-0.165px] text-[rgba(0,0,0,0.6)]">
+              {userLocation}
+            </p>
           </div>
         </div>
 
-        {/* Home Indicator */}
-        <HomeIndicator className="absolute h-[34px] left-px top-[59.53px] w-[375px]" />
+        <div className="absolute left-[27px] top-[167px] w-[341px] h-px bg-[rgba(0,0,0,0.1)]" />
+
+        <div className="absolute left-[27px] top-[197px] w-[342px] bottom-[110px] overflow-y-auto no-scrollbar">
+          <div className="flex flex-col gap-[40px]">
+            <div className="flex flex-col gap-[20px]">
+              <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
+                Journal Privacy
+              </p>
+              <div className="flex flex-col gap-[15px]">
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <img src={privateAccountIcon} alt="private account" className="w-[18px] h-[18px]" />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
+                      Private Account
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPrivateAccountEnabled((prev) => !prev)}
+                    className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
+                      privateAccountEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
+                    }`}
+                    aria-pressed={privateAccountEnabled}
+                  >
+                    <div
+                      className={`absolute top-[2px] w-[39px] h-[21px] rounded-full bg-white transition-transform ${
+                        privateAccountEnabled ? 'translate-x-[24px]' : 'translate-x-[2px]'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <img src={gpsIcon} alt="gps" className="w-[18px] h-[18px]" />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
+                      Share GPS Data
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setGpsEnabled((prev) => !prev)}
+                    className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
+                      gpsEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
+                    }`}
+                    aria-pressed={gpsEnabled}
+                  >
+                    <div
+                      className={`absolute top-[2px] w-[39px] h-[21px] rounded-full bg-white transition-transform ${
+                        gpsEnabled ? 'translate-x-[24px]' : 'translate-x-[2px]'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-[20px]">
+              <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
+                Account Settings
+              </p>
+              <div className="flex flex-col gap-[15px]">
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <User size={18} className="text-black" strokeWidth={2} />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
+                      Edit Profile
+                    </p>
+                  </div>
+                  <button onClick={onEditProfile} className="flex items-center justify-center">
+                    <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <img src={languageIcon} alt="language" className="w-[18px] h-[18px]" />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
+                      Change Language
+                    </p>
+                  </div>
+                  <button onClick={onChangeLanguage} className="flex items-center justify-center">
+                    <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <img src={darkModeIcon} alt="dark mode" className="w-[18px] h-[18px]" />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
+                      Dark Mode
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setDarkModeEnabled((prev) => !prev)}
+                    className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
+                      darkModeEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
+                    }`}
+                    aria-pressed={darkModeEnabled}
+                  >
+                    <div
+                      className={`absolute top-[2px] w-[39px] h-[21px] rounded-full bg-white transition-transform ${
+                        darkModeEnabled ? 'translate-x-[24px]' : 'translate-x-[2px]'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-[20px]">
+              <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
+                Legal
+              </p>
+              <div className="flex flex-col gap-[15px]">
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <img src={tncIcon} alt="terms" className="w-[18px] h-[18px]" />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
+                      Terms and Condition
+                    </p>
+                  </div>
+                  <button onClick={onOpenTerms} className="flex items-center justify-center">
+                    <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <div className="flex items-center gap-[10px]">
+                    <img src={privacyIcon} alt="privacy" className="w-[18px] h-[18px]" />
+                    <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
+                      Privacy Policy
+                    </p>
+                  </div>
+                  <button onClick={onOpenPrivacy} className="flex items-center justify-center">
+                    <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-[10px] items-center">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button className="w-full flex flex-col items-center justify-center border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[10px] py-[20px] bg-[#FFDAD6] text-center">
+                    <span className="font-['Poppins',sans-serif] font-medium text-[15px] leading-[18px] tracking-[-0.165px] text-black underline">
+                      Logout
+                    </span>
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Log out?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to log out of your account?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onLogout}>Yes, log out</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <p className="font-['Poppins',sans-serif] font-normal text-[12px] leading-[18px] tracking-[-0.165px] text-[rgba(0,0,0,0.6)]">
+                Version 3.0.0
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute left-0 right-0 bottom-0 h-[90px]">
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          <div className="flex flex-col h-[78px] p-[10px]">
+            <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
+              <button onClick={() => onNavigate?.('home')} className="flex-1 flex flex-col items-center">
+                <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                  Home
+                </p>
+              </button>
+
+              <button onClick={() => onNavigate?.('mapview')} className="flex-1 flex flex-col items-center">
+                <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                  Nearby
+                </p>
+              </button>
+
+              <button onClick={() => onNavigate?.('ailens')} className="flex-1 flex flex-col items-center">
+                <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                  AI Lens
+                </p>
+              </button>
+
+              <button onClick={() => onNavigate?.('profile')} className="flex-1 flex flex-col items-center">
+                <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                  Profile
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <HomeIndicator className="absolute h-[34px] left-0 right-0 bottom-0" />
+        </div>
       </div>
     </div>
   );

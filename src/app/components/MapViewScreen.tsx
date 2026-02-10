@@ -25,7 +25,7 @@ const mapOptions: google.maps.MapOptions = {
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
     <div className={className || ""}>
-      <div className="h-[47px] relative w-[390px]">
+      <div className="h-[47px] relative w-full">
         <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
           <img alt="" className="block max-w-none size-full" src={imgNotch} />
         </div>
@@ -47,7 +47,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
 function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ""}>
-      <div className="h-[34px] relative w-[375px]">
+      <div className="h-[34px] relative w-full">
         <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
@@ -278,71 +278,72 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
 
   return (
     <div className="bg-white relative size-full">
-      {/* Status Bar */}
-      <StatusBarIPhone className="absolute h-[47px] left-0 overflow-clip top-0 w-[390px]" />
+      <div className="relative mx-auto w-full max-w-[390px] h-full">
+        {/* Status Bar */}
+        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
 
-      {/* Header */}
-      <div className="absolute left-[24px] top-[52px]">
-        <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
-          Map View
-        </h1>
-      </div>
-
-      {/* Search Bar */}
-      <div className="absolute left-[24px] top-[100px] right-[24px] z-10">
-        <div className="bg-[#f5f5f5] flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
-          {/* Menu Icon */}
-          <button className="shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b"/>
-            </svg>
-          </button>
-
-          {/* Search Input */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Search your location"
-            className="flex-1 bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] placeholder:text-[#2c638b] placeholder:opacity-70"
-          />
-
-          {/* Search Icon */}
-          <button onClick={handleSearch} className="shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
-            </svg>
-          </button>
+        {/* Header */}
+        <div className="absolute left-[24px] top-[52px]">
+          <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
+            Map View
+          </h1>
         </div>
-      </div>
 
-      {/* Filter Chips */}
-      <div className="absolute left-0 right-0 top-[160px] z-10 px-[24px]">
-        <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {PLACE_FILTERS.map((filter) => (
-            <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full shrink-0 transition-all ${
-                activeFilter === filter.id
-                  ? 'bg-[#2c638b] text-white shadow-md'
-                  : 'bg-white text-[#2c638b] border border-[#2c638b]'
-              }`}
-            >
-              <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
-                {filter.label}
-              </span>
+        {/* Search Bar */}
+        <div className="absolute left-[24px] top-[100px] right-[24px] z-10">
+          <div className="bg-[#f5f5f5] flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
+            {/* Menu Icon */}
+            <button className="shrink-0">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b"/>
+              </svg>
             </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Map Container - Google Maps */}
-      <div 
-        id="google-map" 
-        className="absolute left-0 right-0 top-[212px] bottom-[93px]"
-      >
+            {/* Search Input */}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search your location"
+              className="flex-1 bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] placeholder:text-[#2c638b] placeholder:opacity-70"
+            />
+
+            {/* Search Icon */}
+            <button onClick={handleSearch} className="shrink-0">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Chips */}
+        <div className="absolute left-0 right-0 top-[160px] z-10 px-[24px]">
+          <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {PLACE_FILTERS.map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full shrink-0 transition-all ${
+                  activeFilter === filter.id
+                    ? 'bg-[#2c638b] text-white shadow-md'
+                    : 'bg-white text-[#2c638b] border border-[#2c638b]'
+                }`}
+              >
+                <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
+                  {filter.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Map Container - Google Maps */}
+        <div 
+          id="google-map" 
+          className="absolute left-0 right-0 top-[212px] bottom-[90px]"
+        >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
             googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
@@ -507,25 +508,25 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         )}
       </div>
 
-      {/* Place Detail Sheet */}
-      {selectedPlace && (
-        <PlaceDetailSheet
-          place={selectedPlace}
-          onClose={() => {
-            setSelectedPlace(null);
-            setSelectedAttraction(null);
-          }}
-        />
-      )}
+        {/* Place Detail Sheet */}
+        {selectedPlace && (
+          <PlaceDetailSheet
+            place={selectedPlace}
+            onClose={() => {
+              setSelectedPlace(null);
+              setSelectedAttraction(null);
+            }}
+          />
+        )}
 
-      {/* Bottom Navigation */}
-      <div className="absolute left-[-2px] top-[755px] w-[390px]">
-        {/* Divider */}
-        <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
-        
-        {/* Nav Bar */}
-        <div className="flex flex-col h-[78px] p-[10px]">
-          <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
+        {/* Bottom Navigation */}
+        <div className="absolute left-0 right-0 bottom-0 h-[90px]">
+          {/* Divider */}
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          
+          {/* Nav Bar */}
+          <div className="flex flex-col h-[78px] p-[10px]">
+            <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
             {/* Home */}
             <button
               onClick={() => handleNavigation('home')}
@@ -593,11 +594,12 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                 Profile
               </p>
             </button>
+            </div>
           </div>
-        </div>
 
-        {/* Home Indicator */}
-        <HomeIndicator className="absolute h-[34px] left-px top-[59.53px] w-[375px]" />
+          {/* Home Indicator */}
+          <HomeIndicator className="absolute h-[34px] left-0 right-0 bottom-0" />
+        </div>
       </div>
     </div>
   );

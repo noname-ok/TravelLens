@@ -1,0 +1,121 @@
+import { useState } from 'react';
+import { Home, MapPin, Camera, User } from 'lucide-react';
+import backIcon from '@/assets/Back.svg';
+
+function HomeIndicator({ className }: { className?: string }) {
+  return (
+    <div className={className || ''}>
+      <div className="h-[34px] relative w-full">
+        <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
+      </div>
+    </div>
+  );
+}
+
+interface LanguageScreenProps {
+  currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
+  onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
+  onBack: () => void;
+}
+
+const LANGUAGES = [
+  'English',
+  'Spanish',
+  'French',
+  'German',
+  'Chinese (Simplified)',
+  'Japanese',
+  'Korean',
+  'Arabic',
+  'Hindi',
+  'Portuguese',
+];
+
+export default function LanguageScreen({ currentScreen, onNavigate, onBack }: LanguageScreenProps) {
+  const [selected, setSelected] = useState('English');
+
+  return (
+    <div className="bg-white relative size-full">
+      <style>{`
+          .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+        `}</style>
+
+      <div className="relative mx-auto w-full max-w-[390px] h-full">
+        <div className="absolute left-[27px] top-[62px] w-[341px] h-[23px] flex items-center justify-between">
+          <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
+            <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px]" />
+          </button>
+          <p className="font-['Poppins',sans-serif] text-[12px] text-black">Language</p>
+          <div className="w-[10.09px] h-[15.63px]" />
+        </div>
+
+        <div className="absolute left-0 right-0 top-[96px] bottom-[90px] overflow-y-auto no-scrollbar px-[27px]">
+          <div className="mt-4 flex flex-col gap-3">
+            {LANGUAGES.map((language) => (
+              <button
+                key={language}
+                onClick={() => setSelected(language)}
+                className={`flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[16px] text-left ${
+                  selected === language ? 'bg-[#F5FAFB]' : 'bg-white'
+                }`}
+              >
+                <span className="font-['Poppins',sans-serif] text-[14px] text-black">{language}</span>
+                <div
+                  className={`w-[14px] h-[14px] rounded-full border ${
+                    selected === language ? 'border-[#2C638B] bg-[#2C638B]' : 'border-[rgba(0,0,0,0.2)] bg-white'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="absolute left-0 right-0 bottom-0 h-[90px]">
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          <div className="flex flex-col h-[78px] p-[10px]">
+            <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
+              <button onClick={() => onNavigate('home')} className="flex-1 flex flex-col items-center">
+                <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                }`}>
+                  Home
+                </p>
+              </button>
+
+              <button onClick={() => onNavigate('mapview')} className="flex-1 flex flex-col items-center">
+                <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                }`}>
+                  Nearby
+                </p>
+              </button>
+
+              <button onClick={() => onNavigate('ailens')} className="flex-1 flex flex-col items-center">
+                <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                }`}>
+                  AI Lens
+                </p>
+              </button>
+
+              <button onClick={() => onNavigate('profile')} className="flex-1 flex flex-col items-center">
+                <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                }`}>
+                  Profile
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <HomeIndicator className="absolute h-[34px] left-0 right-0 bottom-0" />
+        </div>
+      </div>
+    </div>
+  );
+}
