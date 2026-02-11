@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
+import { toast } from 'sonner';
 import backIcon from '@/assets/Back.svg';
 
 function HomeIndicator({ className }: { className?: string }) {
@@ -16,7 +17,7 @@ interface EditProfileScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
   onBack: () => void;
-  onSave: (data: { name: string; location: string; avatarUrl?: string }) => void;
+  onSave: (data: { name: string; location: string; avatarUrl?: string; avatarFile?: File }) => void | Promise<void>;
   initialName?: string;
   initialLocation?: string;
   initialAvatarUrl?: string;
@@ -34,21 +35,43 @@ export default function EditProfileScreen({
   const [name, setName] = useState(initialName);
   const [location, setLocation] = useState(initialLocation);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(initialAvatarUrl);
+  const [avatarFile, setAvatarFile] = useState<File | undefined>(undefined);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setName(initialName);
+  }, [initialName]);
+
+  useEffect(() => {
+    setLocation(initialLocation);
+  }, [initialLocation]);
+
+  useEffect(() => {
+    setAvatarUrl(initialAvatarUrl);
+  }, [initialAvatarUrl]);
 
   const handlePickAvatar = () => {
     fileInputRef.current?.click();
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const nextUrl = URL.createObjectURL(file);
     setAvatarUrl(nextUrl);
+    setAvatarFile(file);
   };
 
-  const handleSave = () => {
-    onSave({ name, location, avatarUrl });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave({ name, location, avatarUrl, avatarFile });
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -62,8 +85,12 @@ export default function EditProfileScreen({
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
             <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px]" />
           </button>
-          <button onClick={handleSave} className="font-['Poppins',sans-serif] text-[12px] text-black">
-            Save
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="font-['Poppins',sans-serif] text-[12px] text-black disabled:opacity-50"
+          >
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
 

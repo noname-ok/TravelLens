@@ -16,6 +16,7 @@ import {
   User
 } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
+import { createUserProfile } from '@/app/services/profileService';
 import { SignUpFormData } from '@/app/components/SignUpScreen';
 
 // Sign up with email and password
@@ -28,9 +29,12 @@ export const signUpWithEmail = async (formData: SignUpFormData) => {
     );
     
     // Update user profile with display name
+    const displayName = `${formData.firstName} ${formData.lastName}`;
     await updateProfile(userCredential.user, {
-      displayName: `${formData.firstName} ${formData.lastName}`
+      displayName
     });
+
+    await createUserProfile(userCredential.user.uid, displayName);
 
     return { success: true, user: userCredential.user };
   } catch (error: any) {

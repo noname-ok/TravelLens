@@ -1,25 +1,26 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './config/firebase';
-import LoginScreen from './components/LoginScreen';
-import SignUpScreen, { SignUpFormData } from './components/SignUpScreen';
-import ForgetPasswordScreen from './components/ForgetPasswordScreen';
-import PhoneVerificationScreen from './components/PhoneVerificationScreen';
-import OnboardingScreen from './components/OnboardingScreen';
-import CreateNewPasswordScreen from './components/CreateNewPasswordScreen';
-import JournalScreen, { JournalEntry, JournalTab } from './components/JournalScreen';
-import MapViewScreen from './components/MapViewScreen';
-import AILensScreen from './components/AILensScreen';
-import ProfileScreen from './components/ProfileScreen';
-import JournalDetailScreen from './components/JournalDetailScreen';
-import CreateJournalScreen from './components/CreateJournalScreen';
-import EditProfileScreen from './components/EditProfileScreen';
-import LanguageScreen from './components/LanguageScreen';
-import TermsScreen from './components/TermsScreen';
-import PrivacyScreen from './components/PrivacyScreen';
-import { Toaster } from './components/ui/sonner';
+import { auth } from '@/app/config/firebase';
+import LoginScreen from '@/app/components/LoginScreen';
+import SignUpScreen, { SignUpFormData } from '@/app/components/SignUpScreen';
+import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
+import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
+import OnboardingScreen from '@/app/components/OnboardingScreen';
+import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
+import JournalScreen, { JournalEntry, JournalTab } from '@/app/components/JournalScreen';
+import MapViewScreen from '@/app/components/MapViewScreen';
+import AILensScreen from '@/app/components/AILensScreen';
+import ProfileScreen from '@/app/components/ProfileScreen';
+import JournalDetailScreen from '@/app/components/JournalDetailScreen';
+import CreateJournalScreen from '@/app/components/CreateJournalScreen';
+import EditProfileScreen from '@/app/components/EditProfileScreen';
+import LanguageScreen from '@/app/components/LanguageScreen';
+import TermsScreen from '@/app/components/TermsScreen';
+import PrivacyScreen from '@/app/components/PrivacyScreen';
+import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
-import { signUpWithEmail, logOut } from './services/authService';
+import { signUpWithEmail, logOut } from '@/app/services/authService';
+import { getUserProfile, saveUserProfile } from '@/app/services/profileService';
 
 type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
@@ -59,6 +60,24 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      const result = await getUserProfile(user.uid);
+      if (result.success && result.profile) {
+        setProfileName(result.profile.name || user.displayName || 'John Doe');
+        setProfileLocation(result.profile.location || '');
+        setProfileAvatarUrl(result.profile.avatarUrl);
+        return;
+      }
+      setProfileName(user.displayName || user.email || 'John Doe');
+      setProfileLocation('');
+      setProfileAvatarUrl(undefined);
+    };
+
+    loadProfile();
+  }, [user]);
 
   const handleSignUp = async (data: SignUpFormData) => {
     const result = await signUpWithEmail(data);
@@ -274,10 +293,24 @@ export default function App() {
             initialName={profileName || user.displayName || 'John Doe'}
             initialLocation={profileLocation}
             initialAvatarUrl={profileAvatarUrl}
-            onSave={(data) => {
-              setProfileName(data.name);
-              setProfileLocation(data.location);
-              setProfileAvatarUrl(data.avatarUrl);
+            onSave={async (data) => {
+              const result = await saveUserProfile({
+                uid: user.uid,
+                name: data.name,
+                location: data.location,
+                avatarFile: data.avatarFile,
+                avatarUrl: data.avatarUrl,
+              });
+
+              if (!result.success) {
+                toast.error(result.error || 'Failed to save profile');
+                return;
+              }
+
+              setProfileName(result.profile?.name || data.name);
+              setProfileLocation(result.profile?.location || data.location);
+              setProfileAvatarUrl(result.profile?.avatarUrl || data.avatarUrl);
+              toast.success('Profile updated');
               setCurrentScreen('profile');
             }}
           />
