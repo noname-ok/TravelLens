@@ -2,7 +2,7 @@ import { Home, MapPin, Camera, User, Image, Mic, Send, Settings2, Volume2, Bot, 
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { AIChatSheet } from './AIChatSheet';
 // Fix: Use relative path if @ alias isn't fully working yet
-import { getImageExplanation, AIExplanationResult } from '../services/geminiService'; 
+import { getImageExplanation, askAIQuestion, AIExplanationResult } from '../services/geminiService'; 
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -146,27 +146,39 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   };
 
   const handleAnalyze = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    setIsLoading(true);
+  // Use a guard to ensure both refs are available
+  if (!videoRef.current || !canvasRef.current || videoRef.current.readyState !== 4) {
+    toast.error("Camera is still warming up. Try again in a second!");
+    return;
+  }
+  
+  setIsLoading(true);
+  const video = videoRef.current;
+  const canvas = canvasRef.current; // Now TypeScript knows this isn't null because of the guard above
 
-    const context = canvasRef.current.getContext('2d');
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
-    context?.drawImage(videoRef.current, 0, 0);
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  
+  const context = canvas.getContext('2d');
+  if (context) {
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  }
 
-    const imageData = canvasRef.current.toDataURL('image/jpeg');
-    
-    try {
-      const result = await getImageExplanation(imageData);
-      setExplanation(result);
-      setCapturedImage(imageData);
-      setViewMode('hybrid');
-    } catch (error) {
-      toast.error("AI Analysis failed. Try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const imageData = canvas.toDataURL('image/jpeg', 0.8);
+  
+  try {
+    const result = await getImageExplanation(imageData);
+    setExplanation(result);
+    setCapturedImage(imageData);
+    setViewMode('hybrid');
+  } catch (error: any) {
+    toast.error(error.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  
 
   const handleSheetDragStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -309,12 +321,31 @@ function HybridView({
   onDragStart: (e: React.TouchEvent) => void
   onDragEnd: (e: React.TouchEvent) => void
 }) {
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
   const sampleQuestions = [
     'What does this mean?',
     'Is it safe?',
     'Best time to visit?',
     'How much does it cost?',
   ];
+
+  const handleAskQuestion = async (question: string) => {
+    if (!question.trim()) return;
+    setIsLoading(true);
+    try {
+      // Call the askAIQuestion function and show toast notification
+      const response = await askAIQuestion(question, image, explanation);
+      toast.success(response);
+      setInput('');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to get response. Try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="absolute inset-0">
@@ -347,7 +378,9 @@ function HybridView({
               {sampleQuestions.map((q, idx) => (
                 <button
                   key={idx}
-                  className="flex-shrink-0 bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm px-4 py-2 rounded-full whitespace-nowrap transition-colors"
+                  onClick={() => handleAskQuestion(q)}
+                  disabled={isLoading}
+                  className="flex-shrink-0 bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm px-4 py-2 rounded-full whitespace-nowrap disabled:opacity-50 transition-colors"
                 >
                   {q}
                 </button>
@@ -362,9 +395,23 @@ function HybridView({
             <input
               type="text"
               placeholder="Ask a question..."
-              className="flex-1 bg-transparent text-white placeholder-white/60 outline-none text-sm"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !isLoading) {
+                  handleAskQuestion(input);
+                }
+              }}
+              disabled={isLoading}
+              className="flex-1 bg-transparent text-white placeholder-white/60 outline-none text-sm disabled:opacity-50"
             />
-            <Send size={18} className="text-white/60 cursor-pointer" />
+            <button
+              onClick={() => handleAskQuestion(input)}
+              disabled={isLoading || !input.trim()}
+              className="text-white/60 hover:text-white disabled:opacity-50 transition-colors"
+            >
+              <Send size={18} />
+            </button>
           </div>
         </div>
       </div>
@@ -393,12 +440,55 @@ function FullChatView({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const touchStartY = useRef(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sampleQuestions = [
     'What does this mean?',
     'Is it safe?',
     'Best time to visit?',
   ];
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (question: string) => {
+    if (!question.trim()) return;
+    
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: question,
+      timestamp: new Date(),
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Call AI service for follow-up question
+      const aiResponse = await askAIQuestion(question, imageData, explanation);
+      
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error asking question:', error);
+      toast.error('Failed to get AI response. Try again.');
+      // Remove the user message if the AI call fails
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDragStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -465,6 +555,7 @@ function FullChatView({
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Persistent Recommendations */}
@@ -473,7 +564,9 @@ function FullChatView({
           {sampleQuestions.map((q, idx) => (
             <button
               key={idx}
-              className="flex-shrink-0 bg-white border border-gray-200 text-gray-700 text-xs px-3 py-2 rounded-full whitespace-nowrap hover:bg-gray-50 transition-colors"
+              onClick={() => handleSendMessage(q)}
+              disabled={isLoading}
+              className="flex-shrink-0 bg-white border border-gray-200 text-gray-700 text-xs px-3 py-2 rounded-full whitespace-nowrap hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               {q}
             </button>
@@ -496,9 +589,21 @@ function FullChatView({
               placeholder="What would you like to know?"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-500"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !isLoading) {
+                  handleSendMessage(input);
+                }
+              }}
+              disabled={isLoading}
+              className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-500 disabled:opacity-50"
             />
-            <Send size={18} className="text-gray-500 cursor-pointer" />
+            <button
+              onClick={() => handleSendMessage(input)}
+              disabled={isLoading || !input.trim()}
+              className="text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
+            >
+              <Send size={18} />
+            </button>
           </div>
         </div>
       </div>

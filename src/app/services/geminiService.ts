@@ -1,14 +1,28 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini API
+// Rate limiting for free tier
+const rateLimiter = {
+  lastRequestTime: 0,
+  minDelayMs: 5000, 
+  requestCount: 0,
+  resetTime: Date.now() + 60000,
+  
+  canMakeRequest(): boolean {
+    const now = Date.now();
+    if (now > this.resetTime) {
+      this.resetTime = now + 60000;
+      this.requestCount = 0;
+    }
+    if (this.requestCount >= 1) return false;
+    if (now - this.lastRequestTime < this.minDelayMs) return false;
+    
+    this.lastRequestTime = now;
+    this.requestCount++;
+    return true;
+  }
+};
+
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!apiKey) {
-  console.warn(
-    'VITE_GEMINI_API_KEY is not set. AI features will not work. Please add it to your .env file.'
-  );
-}
-
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface AIExplanationResult {
@@ -26,80 +40,58 @@ export interface TranslationResult {
   targetLanguage: string;
 }
 
-/**
- * Get AI explanation for an image using Gemini Vision
- * This function analyzes an image and provides:
- * - What it is
- * - Why it matters
- * - Cultural/historical context
- * - Interesting facts
- */
-export async function getImageExplanation(
-  imageData: string
-): Promise<AIExplanationResult> {
-  if (!genAI) {
-    throw new Error(
-      'Gemini API is not initialized. Please set VITE_GEMINI_API_KEY in your environment.'
-    );
+export async function getImageExplanation(imageData: string): Promise<AIExplanationResult> {
+  if (!genAI) throw new Error('Gemini API not initialized.');
+  if (!rateLimiter.canMakeRequest()) {
+    throw new Error('⏸️ Rate limit hit! Free tier allows ~1 request per minute.');
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const parts = imageData.split(',');
+    if (parts.length < 2 || !parts[1]) {
+      throw new Error('Captured image data is empty.');
+    }
+    const base64Data = parts[1];
+    const mimeType = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
 
-    // Convert base64 to image data
-    const base64Data = imageData.split(',')[1] || imageData;
-    const mimeType = imageData.includes('png') ? 'image/png' : 'image/jpeg';
+    // Model selection with fallback
+    let model;
+    try {
+      model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    } catch (e) {
+      model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    }
 
     const prompt = `You are a knowledgeable travel guide assistant helping travelers understand places and objects.
-
-Analyze this image carefully and provide:
-1. **What is it?** - A brief, clear identification of what's in the image
-2. **Why does it matter?** - Historical, cultural, or practical significance
-3. **Category** - Classify it (e.g., Architecture, Food, Nature, Historical, Modern Architecture, Arts & Crafts)
-4. **Cultural Note** - If relevant, provide important cultural etiquette or warnings (e.g., "Remove shoes before entering", "Photography restricted")
-5. **Interesting Fact** - One fascinating or lesser-known fact about this object/place
-
-Format your response as JSON with these exact keys:
-{
-  "title": "Name/identification",
-  "description": "Combined explanation of what it is and why it matters",
-  "category": "Category name",
-  "culturalNote": "Cultural etiquette or warning (if applicable, otherwise omit)",
-  "interestingFact": "One interesting fact"
-}
-
-Keep descriptions concise but informative (2-3 sentences max). Make it engaging for travelers.`;
+    Analyze this image and provide a JSON response with keys: title, description, category, culturalNote, and interestingFact.`;
 
     const response = await model.generateContent([
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType as
-            | 'image/jpeg'
-            | 'image/png'
-            | 'image/gif'
-            | 'image/webp',
-        },
-      },
+      { inlineData: { data: base64Data, mimeType } },
       prompt,
     ]);
 
-    const responseText =
-      response.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    // Extract JSON from response
+    const responseText = response.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from Gemini');
-    }
+    if (!jsonMatch) throw new Error('Invalid response format');
 
-    const result = JSON.parse(jsonMatch[0]) as AIExplanationResult;
-    return result;
-  } catch (error) {
-    console.error('Error getting image explanation:', error);
-    throw error;
+    return JSON.parse(jsonMatch[0]) as AIExplanationResult;
+
+  } catch (error: any) {
+    let userMessage = 'AI analysis failed. ';
+    const errorMsg = error.message?.toLowerCase() || '';
+    
+    if (errorMsg.includes('429') || errorMsg.includes('quota')) {
+      userMessage = '⏸️ Quota exceeded! Free tier allows ~1 request/minute.';
+    } else if (errorMsg.includes('404')) {
+      userMessage = '❌ API not found. Check your API key source.';
+    } else {
+      userMessage += error.message;
+    }
+    throw new Error(userMessage);
   }
 }
+
+// ... Keep your existing translateImageText, askAIQuestion, and enrichAttractionWithContext functions here
 
 /**
  * Translate text using Gemini
@@ -180,7 +172,22 @@ export async function askAIQuestion(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    console.log('🔄 Processing follow-up question...');
+    
+    // Try primary model first
+    let model;
+    try {
+      model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      console.log('✅ Using gemini-2.0-flash for question');
+    } catch (e) {
+      try {
+        model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        console.log('✅ Using gemini-1.5-flash for question');
+      } catch (e2) {
+        model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+        console.log('✅ Using gemini-pro-vision for question');
+      }
+    }
 
     const base64Data = imageData.split(',')[1] || imageData;
     const mimeType = imageData.includes('png') ? 'image/png' : 'image/jpeg';
@@ -213,9 +220,17 @@ Please provide a helpful, context-aware answer. Keep it concise (2-3 sentences) 
 
     const answer =
       response.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('✅ Received answer for question');
     return answer;
   } catch (error) {
-    console.error('Error asking AI question:', error);
+    console.error('❌ Error asking AI question:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('404')) {
+        console.error('🔴 API Error 404: Check your API key');
+      } else if (error.message.includes('401') || error.message.includes('403')) {
+        console.error('🔴 Authentication Error: Get a new API key from https://aistudio.google.com/app/apikey');
+      }
+    }
     throw error;
   }
 }
