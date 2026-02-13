@@ -2,11 +2,16 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import fs from 'fs'
 
 export default defineConfig({
   server: {
     host: true, // This exposes the project on your local network
-    port: 5173  // You can specify a port if you like
+    port: 5174,  // You can specify a port if you like
+    https: {
+      key: fs.readFileSync('./localhost+1-key.pem'),
+      cert: fs.readFileSync('./localhost+1.pem'),
+    },
   },
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
