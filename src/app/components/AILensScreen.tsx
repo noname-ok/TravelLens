@@ -153,6 +153,9 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   }
   
   setIsLoading(true);
+  // Show "Consulting..." toast immediately when starting analysis
+  const toastId = toast.loading('🤖 Consulting the travel guide... Please wait ~5 seconds');
+  
   const video = videoRef.current;
   const canvas = canvasRef.current; // Now TypeScript knows this isn't null because of the guard above
 
@@ -171,7 +174,10 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
     setExplanation(result);
     setCapturedImage(imageData);
     setViewMode('hybrid');
+    toast.dismiss(toastId);
+    toast.success('✨ Analysis complete! Swipe up to explore.');  
   } catch (error: any) {
+    toast.dismiss(toastId);
     toast.error(error.message);
   } finally {
     setIsLoading(false);
@@ -247,7 +253,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
                 <button 
                   onClick={handleAnalyze}
                   disabled={isLoading}
-                  className="absolute bottom-20 right-6 z-20 w-16 h-16 bg-white/20 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                  className="absolute bottom-20 right-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 disabled:bg-white/15 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
                 >
                   {isLoading ? (
                     <Loader2 size={32} className="text-white animate-spin" />
@@ -357,11 +363,15 @@ function HybridView({
       <div
         onTouchStart={onDragStart}
         onTouchEnd={onDragEnd}
-        className="absolute bottom-0 left-0 right-0 h-[50%] bg-white/10 backdrop-blur-2xl border-t border-white/20 rounded-t-3xl flex flex-col overflow-hidden z-20"
+        className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-b from-white/20 to-white/10 backdrop-blur-3xl border-t border-white/30 rounded-t-3xl flex flex-col overflow-hidden z-20 shadow-2xl"
+        style={{
+          backdropFilter: 'blur(20px) brightness(1.1)',
+          WebkitBackdropFilter: 'blur(20px) brightness(1.1)'
+        }}
       >
         {/* Handle bar */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1 bg-white/40 rounded-full" />
+        <div className="flex justify-center pt-4 pb-3">
+          <div className="w-12 h-1.5 bg-white/50 rounded-full shadow-md" />
         </div>
 
         {/* Content */}
@@ -391,7 +401,7 @@ function HybridView({
 
         {/* Micro Input */}
         <div className="px-4 pb-4 border-t border-white/20 pt-3">
-          <div className="flex gap-2 items-center bg-white/15 border border-white/20 rounded-full px-4 py-2">
+          <div className="flex gap-2 items-center bg-white/20 hover:bg-white/25 border border-white/30 rounded-full px-4 py-2 backdrop-blur-md transition-all" style={{ backdropFilter: 'blur(10px)' }}>
             <input
               type="text"
               placeholder="Ask a question..."
@@ -403,14 +413,14 @@ function HybridView({
                 }
               }}
               disabled={isLoading}
-              className="flex-1 bg-transparent text-white placeholder-white/60 outline-none text-sm disabled:opacity-50"
+              className="flex-1 bg-transparent text-white placeholder-white/70 outline-none text-sm disabled:opacity-50"
             />
             <button
               onClick={() => handleAskQuestion(input)}
               disabled={isLoading || !input.trim()}
-              className="text-white/60 hover:text-white disabled:opacity-50 transition-colors"
+              className="text-white/70 hover:text-white disabled:opacity-50 transition-colors"
             >
-              <Send size={18} />
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             </button>
           </div>
         </div>
@@ -505,7 +515,11 @@ function FullChatView({
     <div
       onTouchStart={handleDragStart}
       onTouchEnd={handleDragEnd}
-      className="absolute inset-0 bg-white rounded-t-3xl flex flex-col z-30 overflow-hidden"
+      className="absolute inset-0 bg-gradient-to-b from-white/90 to-white rounded-t-3xl flex flex-col z-30 overflow-hidden backdrop-blur-sm"
+      style={{
+        backdropFilter: 'blur(10px) brightness(0.95)',
+        WebkitBackdropFilter: 'blur(10px) brightness(0.95)'
+      }}
     >
       {/* Handle bar at top */}
       <div className="flex justify-center pt-3 pb-4 border-b border-gray-200">

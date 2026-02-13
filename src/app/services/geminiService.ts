@@ -13,8 +13,7 @@ const rateLimiter = {
       this.resetTime = now + 60000;
       this.requestCount = 0;
     }
-    if (this.requestCount >= 1) return false;
-    if (now - this.lastRequestTime < this.minDelayMs) return false;
+if (this.requestCount >= 15) return false; // Allows 10 requests per minute    if (now - this.lastRequestTime < this.minDelayMs) return false;
     
     this.lastRequestTime = now;
     this.requestCount++;
