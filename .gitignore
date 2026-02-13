@@ -31,3 +31,8 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+
+*.pem
+*-key.pem
+vite.config.ts

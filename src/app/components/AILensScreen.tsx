@@ -197,12 +197,22 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
     // Swipe up to expand
     if (diff < -50 && viewMode === 'hybrid') {
       setViewMode('fullchat');
+      // Initialize chat messages with explanation if this is the first time opening chat
+      if (messages.length === 0 && explanation) {
+        setMessages([{
+          id: '0',
+          role: 'assistant',
+          content: `${explanation.title}\n\n${explanation.description}\n\n${explanation.culturalNote ? `💡 ${explanation.culturalNote}\n\n` : ''}${explanation.interestingFact ? `✨ ${explanation.interestingFact}\n\n` : ''}What would you like to know about this?`,
+          timestamp: new Date(),
+        }]);
+      }
     }
     // Swipe down to dismiss
     else if (diff > 50 && viewMode === 'hybrid') {
       setViewMode('camera');
       setCapturedImage(null);
       setExplanation(null);
+      setMessages([]); // Clear messages when going back to camera
     }
   };
 
@@ -280,6 +290,8 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
             <FullChatView 
               imageData={capturedImage}
               explanation={explanation}
+              messages={messages}
+              setMessages={setMessages}
               onDragDown={() => setViewMode('hybrid')}
             />
           )}
@@ -433,20 +445,16 @@ function HybridView({
 function FullChatView({ 
   imageData,
   explanation,
+  messages,
+  setMessages,
   onDragDown
 }: {
   imageData: string
   explanation: AIExplanationResult
+  messages: ChatMessage[]
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
   onDragDown: () => void
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '0',
-      role: 'assistant',
-      content: `Hi! I can answer questions about ${explanation.title}. What would you like to know?`,
-      timestamp: new Date(),
-    },
-  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const touchStartY = useRef(0);
@@ -501,14 +509,30 @@ function FullChatView({
   };
 
   const handleDragStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
+    // Only allow swipe gestures from the top area (handle bar and header)
+    // This prevents conflicts with scrolling in the messages area
+    const touchY = e.touches[0].clientY;
+    const headerHeight = 120; // Approximate height of handle bar + header area
+
+    // If touch starts below the header area, don't track for swipe gestures
+    if (touchY > headerHeight) {
+      return;
+    }
+
+    touchStartY.current = touchY;
   };
 
   const handleDragEnd = (e: React.TouchEvent) => {
+    // Only process swipe if we actually started tracking (touch was in header area)
+    if (touchStartY.current === 0) return;
+
     const diff = e.changedTouches[0].clientY - touchStartY.current;
     if (diff > 50) {
       onDragDown();
     }
+
+    // Reset touch tracking
+    touchStartY.current = 0;
   };
 
   return (
@@ -528,12 +552,26 @@ function FullChatView({
 
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900">Ask About {explanation.title}</h2>
-        <p className="text-xs text-gray-500 mt-1">Get instant answers powered by AI</p>
+        <h2 className="text-lg font-bold text-gray-900">AI Analysis & Chat</h2>
+        <p className="text-xs text-gray-500 mt-1">Explore details and ask questions about {explanation.title}</p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+        onTouchStart={(e) => {
+          // Prevent swipe gestures when scrolling in messages area
+          e.stopPropagation();
+        }}
+        onTouchMove={(e) => {
+          // Allow normal scrolling in messages area
+          e.stopPropagation();
+        }}
+        onTouchEnd={(e) => {
+          // Prevent swipe gestures when ending touch in messages area
+          e.stopPropagation();
+        }}
+      >
         {messages.map(message => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
             {message.role === 'assistant' && (
@@ -573,7 +611,12 @@ function FullChatView({
       </div>
 
       {/* Persistent Recommendations */}
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+      <div
+        className="px-4 py-3 border-b border-gray-100 bg-gray-50/50"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {sampleQuestions.map((q, idx) => (
             <button
@@ -589,7 +632,12 @@ function FullChatView({
       </div>
 
       {/* Multimedia Input Bar */}
-      <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-3">
+      <div
+        className="bg-white border-t border-gray-200 px-4 py-4 space-y-3"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
         <div className="flex gap-3 items-center">
           <button className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
             <Image size={20} className="text-gray-600" />
