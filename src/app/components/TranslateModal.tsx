@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Copy, Check } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/app/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { translateImageText } from '@/app/services/geminiService';
 import { toast } from 'sonner';
 
@@ -17,6 +18,11 @@ interface TranslateModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageData: string;
+  onTranslateComplete?: (translation: {
+    originalText: string;
+    translatedText: string;
+    sourceLanguage: string;
+  }, language: string) => void;
 }
 
 const SUPPORTED_LANGUAGES = [
@@ -36,7 +42,7 @@ const SUPPORTED_LANGUAGES = [
   { code: 'Vietnamese', label: 'Vietnamese (Tiếng Việt)' },
 ];
 
-export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalProps) {
+export function TranslateModal({ isOpen, onClose, imageData, onTranslateComplete }: TranslateModalProps) {
   const [targetLanguage, setTargetLanguage] = useState('English');
   const [translation, setTranslation] = useState<{
     originalText: string;
@@ -45,6 +51,23 @@ export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalPro
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [setAsDefault, setSetAsDefault] = useState(false);
+
+  // Load default language on component mount
+  useEffect(() => {
+    const defaultLang = localStorage.getItem('travelLens_defaultLanguage');
+    if (defaultLang) {
+      setTargetLanguage(defaultLang);
+    }
+  }, []);
+
+  // Save default language when checkbox is checked and translation completes
+  const saveDefaultLanguage = (language: string) => {
+    if (setAsDefault) {
+      localStorage.setItem('travelLens_defaultLanguage', language);
+      toast.success(`Default language set to ${language}`);
+    }
+  };
 
   const handleTranslate = async () => {
     if (!imageData) {
@@ -56,6 +79,16 @@ export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalPro
     try {
       const result = await translateImageText(imageData, targetLanguage);
       setTranslation(result);
+      // Save default language if checkbox was checked
+      saveDefaultLanguage(targetLanguage);
+      
+      // Call the callback to pass translation result back to parent
+      if (onTranslateComplete) {
+        onTranslateComplete(result, targetLanguage);
+      }
+      
+      // Close the modal
+      onClose();
     } catch (error) {
       console.error('Translation error:', error);
       toast.error('Failed to translate. Please try again.');
@@ -75,6 +108,49 @@ export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalPro
         toast.error('Failed to copy');
       }
     }
+  };
+
+  // Format text for better readability
+  const formatText = (text: string): string => {
+    if (!text || text === 'No text found') return text;
+
+    // Split by existing line breaks and clean up
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    // If there are multiple lines, preserve them
+    if (lines.length > 1) {
+      return lines.join('\n');
+    }
+
+    // For single long paragraphs, try to break them up
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+
+    // If we have multiple sentences, add line breaks between them
+    if (sentences.length > 1) {
+      return sentences.map(s => s.trim()).join('.\n\n') + (text.match(/[.!?]$/) ? text.slice(-1) : '.');
+    }
+
+    // For very long single sentences, try to break at commas or other natural points
+    if (text.length > 100) {
+      const words = text.split(' ');
+      const chunks: string[] = [];
+      let currentChunk = '';
+
+      for (const word of words) {
+        if ((currentChunk + ' ' + word).length > 80 && currentChunk.length > 30) {
+          chunks.push(currentChunk);
+          currentChunk = word;
+        } else {
+          currentChunk += (currentChunk ? ' ' : '') + word;
+        }
+      }
+
+      if (currentChunk) chunks.push(currentChunk);
+
+      return chunks.join('\n');
+    }
+
+    return text;
   };
 
   return (
@@ -105,6 +181,22 @@ export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalPro
             </Select>
           </div>
 
+          {/* Set as Default Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="setDefault"
+              checked={setAsDefault}
+              onCheckedChange={(checked) => setSetAsDefault(checked === true)}
+              disabled={isLoading}
+            />
+            <label
+              htmlFor="setDefault"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Set as default language
+            </label>
+          </div>
+
           {/* Translate Button */}
           {!translation && (
             <Button
@@ -133,9 +225,11 @@ export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalPro
                     <p className="text-xs font-semibold text-muted-foreground uppercase">
                       Original Text
                     </p>
-                    <p className="text-sm leading-relaxed">
-                      {translation.originalText}
-                    </p>
+                    <div className="max-h-32 overflow-y-auto border rounded-md p-3 bg-background/50">
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {formatText(translation.originalText)}
+                      </div>
+                    </div>
                   </div>
                 </Card>
               )}
@@ -145,9 +239,11 @@ export function TranslateModal({ isOpen, onClose, imageData }: TranslateModalPro
                   <p className="text-xs font-semibold text-muted-foreground uppercase">
                     Translation
                   </p>
-                  <p className="text-sm leading-relaxed font-medium">
-                    {translation.translatedText}
-                  </p>
+                  <div className="max-h-40 overflow-y-auto border rounded-md p-3 bg-background/50">
+                    <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap">
+                      {formatText(translation.translatedText)}
+                    </div>
+                  </div>
                   {translation.translatedText !== 'No text found' && (
                     <Button
                       onClick={copyToClipboard}
