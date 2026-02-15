@@ -20,6 +20,7 @@ import PrivacyScreen from './components/PrivacyScreen';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from './services/authService';
+import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
 
 type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
@@ -34,9 +35,8 @@ export default function App() {
   const [journalInitialTab, setJournalInitialTab] = useState<JournalTab>('community');
   const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
   const [deletedJournalId, setDeletedJournalId] = useState<string | null>(null);
-  const [profileName, setProfileName] = useState('John Doe');
-  const [profileLocation, setProfileLocation] = useState('Mars, Solar System');
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | undefined>(undefined);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Listen to auth state changes
   useEffect(() => {
@@ -47,14 +47,39 @@ export default function App() {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      setLoading(false);
       if (user) {
+        // Load user profile from Firestore
+        setProfileLoading(true);
+        try {
+          const profile = await getUserProfile(user.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+          // Create a basic profile if none exists
+          const basicProfile: UserProfile = {
+            uid: user.uid,
+            name: user.displayName || 'User',
+            location: '',
+            preferences: {
+              privateAccount: false,
+              shareGpsData: false,
+              darkMode: false,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          setUserProfile(basicProfile);
+        } finally {
+          setProfileLoading(false);
+        }
         setCurrentScreen('home');
       } else {
+        setUserProfile(null);
         setCurrentScreen('login');
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -252,7 +277,7 @@ export default function App() {
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
           />
         )}
-        {currentScreen === 'profile' && user && (
+        {currentScreen === 'profile' && user && userProfile && (
           <ProfileScreen
             currentScreen={currentScreen}
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
@@ -261,23 +286,128 @@ export default function App() {
             onOpenTerms={() => setCurrentScreen('terms')}
             onOpenPrivacy={() => setCurrentScreen('privacy')}
             onLogout={handleLogout}
-            userName={profileName || user.displayName || 'John Doe'}
-            userLocation={profileLocation}
-            userAvatarUrl={profileAvatarUrl}
+            userName={userProfile.name}
+            userLocation={userProfile.location}
+            userAvatarUrl={userProfile.avatarUrl}
+            privateAccountEnabled={userProfile.preferences.privateAccount}
+            gpsEnabled={userProfile.preferences.shareGpsData}
+            darkModeEnabled={userProfile.preferences.darkMode}
+            onPrivateAccountToggle={async (enabled) => {
+              const success = await updateUserProfile(user.uid, {
+                preferences: { privateAccount: enabled }
+              });
+              if (success && userProfile) {
+                setUserProfile({
+                  ...userProfile,
+                  preferences: { ...userProfile.preferences, privateAccount: enabled }
+                });
+              }
+            }}
+            onGpsToggle={async (enabled) => {
+              const success = await updateUserProfile(user.uid, {
+                preferences: { shareGpsData: enabled }
+              });
+              if (success && userProfile) {
+                setUserProfile({
+                  ...userProfile,
+                  preferences: { ...userProfile.preferences, shareGpsData: enabled }
+                });
+              }
+            }}
+            onDarkModeToggle={async (enabled) => {
+              const success = await updateUserProfile(user.uid, {
+                preferences: { darkMode: enabled }
+              });
+              if (success && userProfile) {
+                setUserProfile({
+                  ...userProfile,
+                  preferences: { ...userProfile.preferences, darkMode: enabled }
+                });
+              }
+            }}
           />
         )}
-        {currentScreen === 'editProfile' && user && (
+        {currentScreen === 'profile' && user && !userProfile && (
+          <div className="h-screen flex items-center justify-center bg-white">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2] mx-auto mb-4"></div>
+              <p className="font-['Poppins:Regular',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)]">
+                {profileLoading ? 'Loading profile...' : 'Setting up your profile...'}
+              </p>
+              {!profileLoading && (
+                <button
+                  onClick={async () => {
+                    // Try to create a basic profile if loading failed
+                    setProfileLoading(true);
+                    try {
+                      const basicProfile: UserProfile = {
+                        uid: user.uid,
+                        name: user.displayName || 'User',
+                        location: '',
+                        preferences: {
+                          privateAccount: false,
+                          shareGpsData: false,
+                          darkMode: false,
+                        },
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                      };
+                      setUserProfile(basicProfile);
+                    } catch (error) {
+                      console.error('Error creating basic profile:', error);
+                    } finally {
+                      setProfileLoading(false);
+                    }
+                  }}
+                  className="mt-4 px-4 py-2 bg-[#0fa3e2] text-white rounded-lg"
+                >
+                  Continue with Basic Profile
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {currentScreen === 'profile' && !user && (
+          <div className="h-screen flex items-center justify-center bg-white">
+            <div className="text-center">
+              <p className="font-['Poppins:Regular',sans-serif] text-[16px] text-[rgba(0,0,0,0.6)]">Please log in to view your profile</p>
+              <button
+                onClick={() => setCurrentScreen('login')}
+                className="mt-4 px-4 py-2 bg-[#0fa3e2] text-white rounded-lg"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        )}
+        {currentScreen === 'editProfile' && user && userProfile && (
           <EditProfileScreen
             currentScreen="profile"
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
             onBack={() => setCurrentScreen('profile')}
-            initialName={profileName || user.displayName || 'John Doe'}
-            initialLocation={profileLocation}
-            initialAvatarUrl={profileAvatarUrl}
-            onSave={(data) => {
-              setProfileName(data.name);
-              setProfileLocation(data.location);
-              setProfileAvatarUrl(data.avatarUrl);
+            initialName={userProfile.name}
+            initialLocation={userProfile.location}
+            initialAvatarUrl={userProfile.avatarUrl}
+            onSave={async (data) => {
+              const success = await updateUserProfile(user.uid, {
+                name: data.name,
+                location: data.location,
+                avatarUrl: data.avatarUrl,
+              });
+
+              if (success) {
+                setUserProfile({
+                  ...userProfile,
+                  name: data.name,
+                  location: data.location,
+                  avatarUrl: data.avatarUrl,
+                  updatedAt: new Date(),
+                });
+                toast.success('Profile updated successfully');
+              } else {
+                toast.error('Failed to update profile');
+              }
+
               setCurrentScreen('profile');
             }}
           />
