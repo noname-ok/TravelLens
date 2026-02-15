@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import backIcon from '@/assets/Back.svg';
+import { uploadAvatar } from '@/app/services/userProfileService';
+import { auth } from '@/app/config/firebase';
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -34,6 +36,8 @@ export default function EditProfileScreen({
   const [name, setName] = useState(initialName);
   const [location, setLocation] = useState(initialLocation);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(initialAvatarUrl);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handlePickAvatar = () => {
@@ -43,12 +47,31 @@ export default function EditProfileScreen({
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    setSelectedFile(file);
     const nextUrl = URL.createObjectURL(file);
     setAvatarUrl(nextUrl);
   };
 
-  const handleSave = () => {
-    onSave({ name, location, avatarUrl });
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let finalAvatarUrl = avatarUrl;
+
+      // Upload avatar if a new file was selected
+      if (selectedFile && auth.currentUser) {
+        const uploadedUrl = await uploadAvatar(auth.currentUser.uid, selectedFile);
+        if (uploadedUrl) {
+          finalAvatarUrl = uploadedUrl;
+        }
+      }
+
+      onSave({ name, location, avatarUrl: finalAvatarUrl });
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -62,8 +85,12 @@ export default function EditProfileScreen({
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
             <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px]" />
           </button>
-          <button onClick={handleSave} className="font-['Poppins',sans-serif] text-[12px] text-black">
-            Save
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="font-['Poppins',sans-serif] text-[12px] text-black disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
 

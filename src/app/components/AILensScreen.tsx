@@ -1,9 +1,11 @@
-import { Home, MapPin, Camera, User, Image, Mic, Send, Settings2, Volume2, Bot, Loader2, GripHorizontal } from 'lucide-react';
+import { Home, MapPin, Camera, User, Image, Mic, Send, Settings2, Volume2, Bot, Loader2, GripHorizontal, Languages } from 'lucide-react';
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { AIChatSheet } from './AIChatSheet';
+import { TranslateModal } from './TranslateModal';
 // Fix: Use relative path if @ alias isn't fully working yet
-import { getImageExplanation, askAIQuestion, AIExplanationResult } from '../services/geminiService'; 
+import { getImageExplanation, askAIQuestion, AIExplanationResult, translateImageText } from '../services/geminiService';
 import { toast } from 'sonner';
+import { Checkbox } from '@/app/components/ui/checkbox';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -22,7 +24,7 @@ interface ChatMessage {
   image?: string;
 }
 
-type ViewMode = 'camera' | 'hybrid' | 'fullchat';
+type ViewMode = 'camera' | 'hybrid' | 'fullchat' | 'translation';
 
 interface DetectedText {
   id: string;
@@ -80,8 +82,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   const [input, setInput] = useState('');
   
   // Translation & Language
-  const [fromLang, setFromLang] = useState('Auto');
-  const [toLang, setToLang] = useState('English');
+  // Removed toLang and fromLang as they're no longer needed with modal approach
 
   // AI & Data State
   const [explanation, setExplanation] = useState<AIExplanationResult | null>(null);
@@ -89,6 +90,18 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   const [location, setLocation] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [detectedTexts, setDetectedTexts] = useState<DetectedText[]>([]);
+
+  // Translation Modal State
+  const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
+  const [translateImageData, setTranslateImageData] = useState<string | null>(null);
+
+  // Translation View State
+  const [translationResult, setTranslationResult] = useState<{
+    originalText: string;
+    translatedText: string;
+    sourceLanguage: string;
+  } | null>(null);
+  const [currentLanguage, setCurrentLanguage] = useState('English');
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -184,6 +197,72 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   }
 };
 
+  const handleTranslate = async () => {
+    // Use a guard to ensure both refs are available
+    if (!videoRef.current || !canvasRef.current || videoRef.current.readyState !== 4) {
+      toast.error("Camera is still warming up. Try again in a second!");
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    // Check if user has a default language set
+    const defaultLanguage = localStorage.getItem('travelLens_defaultLanguage');
+
+    if (defaultLanguage) {
+      // Skip modal and translate directly with default language
+      setIsLoading(true);
+      try {
+        const result = await translateImageText(imageData, defaultLanguage);
+        setTranslateImageData(imageData);
+        setTranslationResult(result);
+        setCurrentLanguage(defaultLanguage);
+        setViewMode('translation');
+        toast.success(`Translated to ${defaultLanguage}`);
+      } catch (error) {
+        console.error('Translation error:', error);
+        toast.error('Failed to translate. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // No default language, show modal for language selection
+      setTranslateImageData(imageData);
+      setIsTranslateModalOpen(true);
+    }
+  };
+
+  const handleLanguageChange = async (newLanguage: string) => {
+    if (!translateImageData) {
+      toast.error("No image data available");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await translateImageText(translateImageData, newLanguage);
+      setTranslationResult(result);
+      setCurrentLanguage(newLanguage);
+      toast.success(`Translated to ${newLanguage}`);
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Failed to translate. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   
 
   const handleSheetDragStart = (e: React.TouchEvent) => {
@@ -247,20 +326,37 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
                 </div>
               ))}
 
-              {/* Top Translation Bar */}
+              {/* 🌐 Top Translation Pill (Entry Point) - Removed language selector as per user requirements */}
               {viewMode === 'camera' && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-                  <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 flex items-center gap-2 text-white text-sm font-medium">
-                    <span>{fromLang}</span>
-                    <span className="text-white/60">⇄</span>
-                    <span>{toLang}</span>
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
+                  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-6 py-2.5 flex items-center gap-3 shadow-2xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter">Translate</span>
+                      <span className="text-sm font-semibold text-white">Text</span>
+                    </div>
+                    
+                    <div className="w-px h-4 bg-white/20" />
+                    
+                    <div className="flex items-center gap-2">
+                      <Languages size={14} className="text-blue-400" />
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* Translation FAB - Bottom Left Corner */}
+              {viewMode === 'camera' && (
+                <button
+                  onClick={handleTranslate}
+                  className="absolute bottom-20 left-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
+                >
+                  <Languages size={32} className="text-white" />
+                </button>
+              )}
+
               {/* Robot FAB - Bottom Right Corner */}
               {viewMode === 'camera' && (
-                <button 
+                <button
                   onClick={handleAnalyze}
                   disabled={isLoading}
                   className="absolute bottom-20 right-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 disabled:bg-white/15 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
@@ -287,12 +383,23 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
 
           {/* LAYER 3: Full Screen Chatbox */}
           {viewMode === 'fullchat' && capturedImage && explanation && (
-            <FullChatView 
+            <FullChatView
               imageData={capturedImage}
               explanation={explanation}
               messages={messages}
               setMessages={setMessages}
               onDragDown={() => setViewMode('hybrid')}
+            />
+          )}
+
+          {/* LAYER 4: Translation Results View */}
+          {viewMode === 'translation' && translateImageData && translationResult && (
+            <TranslationView
+              imageData={translateImageData}
+              translation={translationResult}
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+              onBack={() => setViewMode('camera')}
             />
           )}
         </div>
@@ -308,6 +415,19 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
             <HomeIndicator />
         </div>
       </div>
+
+      {/* Translation Modal */}
+      <TranslateModal
+        isOpen={isTranslateModalOpen}
+        onClose={() => setIsTranslateModalOpen(false)}
+        imageData={translateImageData || ''}
+        onTranslateComplete={(translation, language) => {
+          setTranslationResult(translation);
+          setCurrentLanguage(language);
+          setViewMode('translation');
+          toast.success(`Translated to ${language}`);
+        }}
+      />
     </div>
   );
 }
@@ -679,5 +799,226 @@ function NavButton({ icon, label, active, onClick }: { icon: ReactNode, label: s
       {icon}
       <span className="text-[10px] font-medium">{label}</span>
     </button>
+  );
+}
+
+// ============================================================================
+// TRANSLATION VIEW COMPONENT
+// ============================================================================
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'English', label: 'English' },
+  { code: 'Spanish', label: 'Spanish (Español)' },
+  { code: 'French', label: 'French (Français)' },
+  { code: 'German', label: 'German (Deutsch)' },
+  { code: 'Italian', label: 'Italian (Italiano)' },
+  { code: 'Portuguese', label: 'Portuguese (Português)' },
+  { code: 'Japanese', label: 'Japanese (日本語)' },
+  { code: 'Chinese', label: 'Chinese (中文)' },
+  { code: 'Korean', label: 'Korean (한국어)' },
+  { code: 'Russian', label: 'Russian (Русский)' },
+  { code: 'Arabic', label: 'Arabic (العربية)' },
+  { code: 'Hindi', label: 'Hindi (हिंदी)' },
+  { code: 'Thai', label: 'Thai (ไทย)' },
+  { code: 'Vietnamese', label: 'Vietnamese (Tiếng Việt)' },
+];
+
+function TranslationView({
+  imageData,
+  translation,
+  currentLanguage,
+  onLanguageChange,
+  onBack
+}: {
+  imageData: string;
+  translation: {
+    originalText: string;
+    translatedText: string;
+    sourceLanguage: string;
+    travelerTip?: string; // Add this line to the local type definition
+  };
+  currentLanguage: string;
+  onLanguageChange: (language: string) => void;
+  onBack: () => void;
+}) {
+  const [selectedLanguage, setSelectedLanguage] = useState(currentLanguage);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [setAsDefault, setSetAsDefault] = useState(false);
+
+  // Format text for better readability
+  const formatText = (text: string): string => {
+    if (!text || text === 'No text found') return text;
+
+    // Split by existing line breaks and clean up
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    // If there are multiple lines, preserve them
+    if (lines.length > 1) {
+      return lines.join('\n');
+    }
+
+    // For single long paragraphs, try to break them up
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+
+    // If we have multiple sentences, add line breaks between them
+    if (sentences.length > 1) {
+      return sentences.map(s => s.trim()).join('.\n\n') + (text.match(/[.!?]$/) ? text.slice(-1) : '.');
+    }
+
+    // For very long single sentences, try to break at commas or other natural points
+    if (text.length > 100) {
+      const words = text.split(' ');
+      const chunks: string[] = [];
+      let currentChunk = '';
+
+      for (const word of words) {
+        if ((currentChunk + ' ' + word).length > 80 && currentChunk.length > 30) {
+          chunks.push(currentChunk);
+          currentChunk = word;
+        } else {
+          currentChunk += (currentChunk ? ' ' : '') + word;
+        }
+      }
+
+      if (currentChunk) chunks.push(currentChunk);
+
+      return chunks.join('\n');
+    }
+
+    return text;
+  };
+
+  const handleLanguageSelect = (language: string) => {
+    if (language !== currentLanguage) {
+      setSelectedLanguage(language);
+      setIsConfirmModalOpen(true);
+    }
+  };
+
+  const handleConfirmLanguageChange = () => {
+    if (setAsDefault) {
+      localStorage.setItem('travelLens_defaultLanguage', selectedLanguage);
+      toast.success(`Default language set to ${selectedLanguage}`);
+    }
+    onLanguageChange(selectedLanguage);
+    setIsConfirmModalOpen(false);
+  };
+
+  return (
+    <div className="absolute inset-0 bg-black">
+      {/* Background Image */}
+      <img src={imageData} className="w-full h-full object-cover absolute inset-0" />
+      <div className="absolute inset-0 bg-black/40" />
+
+      {/* Content Overlay */}
+      <div className="relative z-10 h-full flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+          <button
+            onClick={onBack}
+            className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/30 rounded-full flex items-center justify-center transition-all"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-white text-sm font-medium">Translated to</span>
+            <select
+              value={currentLanguage}
+              onChange={(e) => handleLanguageSelect(e.target.value)}
+              className="bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/30 text-white text-sm px-3 py-1 rounded-full outline-none"
+            >
+              {SUPPORTED_LANGUAGES.map(lang => (
+                <option key={lang.code} value={lang.code} className="text-black">
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Translation Content Overlay */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5 overscroll-contain"
+             style={{
+               WebkitOverflowScrolling: 'touch',
+               scrollbarWidth: 'thin',
+               scrollbarColor: 'rgba(255,255,255,0.3) transparent'
+             }}>
+          
+          {/* 1. Original Text Card */}
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2 opacity-60">
+              <span className="text-[10px] font-bold text-white uppercase">Detected Text</span>
+            </div>
+            <p className="text-white text-base leading-relaxed whitespace-pre-line">{formatText(translation.originalText)}</p>
+          </div>
+
+          {/* 2. Translation Card */}
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-5 shadow-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+              <span className="text-[10px] font-bold text-white uppercase tracking-widest">Translation</span>
+            </div>
+            <p className="text-white text-xl font-semibold leading-snug whitespace-pre-line">{formatText(translation.translatedText)}</p>
+          </div>
+
+          {/* 3. ✨ NEW: Traveler's Tip (The "Explain" Part) */}
+          {translation.travelerTip && (
+            <div className="bg-amber-500/10 backdrop-blur-2xl border border-amber-500/30 rounded-2xl p-5 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Bot size={16} className="text-amber-400" />
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Traveler's Tip</span>
+              </div>
+              <p className="text-white text-sm italic leading-relaxed opacity-90">
+                "{translation.travelerTip}"
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Language Change Confirmation Modal */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Change Language</h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Translate this text to {selectedLanguage}?
+            </p>
+
+            <div className="flex items-center space-x-2 mb-6">
+              <Checkbox
+                id="setDefault"
+                checked={setAsDefault}
+                onCheckedChange={(checked) => setSetAsDefault(checked as boolean)}
+              />
+              <label
+                htmlFor="setDefault"
+                className="text-sm text-gray-700 cursor-pointer"
+              >
+                Set as default language
+              </label>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmLanguageChange}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+              >
+                Translate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

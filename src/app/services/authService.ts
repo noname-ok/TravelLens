@@ -16,21 +16,31 @@ import {
   User
 } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
+import { initializeUserProfile } from './userProfileService';
 import { SignUpFormData } from '@/app/components/SignUpScreen';
 
 // Sign up with email and password
 export const signUpWithEmail = async (formData: SignUpFormData) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(
-      auth, 
-      formData.email, 
+      auth,
+      formData.email,
       formData.password
     );
-    
+
     // Update user profile with display name
     await updateProfile(userCredential.user, {
       displayName: `${formData.firstName} ${formData.lastName}`
     });
+
+    // Initialize user profile in Firestore
+    const profileInitialized = await initializeUserProfile(userCredential.user.uid, {
+      name: `${formData.firstName} ${formData.lastName}`,
+    });
+
+    if (!profileInitialized) {
+      console.warn('User account created but profile initialization failed');
+    }
 
     return { success: true, user: userCredential.user };
   } catch (error: any) {

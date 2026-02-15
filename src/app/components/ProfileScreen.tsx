@@ -41,6 +41,12 @@ interface ProfileScreenProps {
   userName?: string;
   userLocation?: string;
   userAvatarUrl?: string;
+  privateAccountEnabled?: boolean;
+  gpsEnabled?: boolean;
+  darkModeEnabled?: boolean;
+  onPrivateAccountToggle?: (enabled: boolean) => void;
+  onGpsToggle?: (enabled: boolean) => void;
+  onDarkModeToggle?: (enabled: boolean) => void;
 }
 
 export default function ProfileScreen({
@@ -54,10 +60,13 @@ export default function ProfileScreen({
   userName = 'John Doe',
   userLocation = 'Mars, Solar System',
   userAvatarUrl,
+  privateAccountEnabled = false,
+  gpsEnabled = false,
+  darkModeEnabled = false,
+  onPrivateAccountToggle,
+  onGpsToggle,
+  onDarkModeToggle,
 }: ProfileScreenProps) {
-  const [privateAccountEnabled, setPrivateAccountEnabled] = useState(false);
-  const [gpsEnabled, setGpsEnabled] = useState(false);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
   return (
     <div className="bg-white relative size-full">
@@ -99,7 +108,7 @@ export default function ProfileScreen({
                     </p>
                   </div>
                   <button
-                    onClick={() => setPrivateAccountEnabled((prev) => !prev)}
+                    onClick={() => onPrivateAccountToggle?.(!privateAccountEnabled)}
                     className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
                       privateAccountEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
                     }`}
@@ -121,7 +130,7 @@ export default function ProfileScreen({
                     </p>
                   </div>
                   <button
-                    onClick={() => setGpsEnabled((prev) => !prev)}
+                    onClick={() => onGpsToggle?.(!gpsEnabled)}
                     className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
                       gpsEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
                     }`}
@@ -174,7 +183,7 @@ export default function ProfileScreen({
                     </p>
                   </div>
                   <button
-                    onClick={() => setDarkModeEnabled((prev) => !prev)}
+                    onClick={() => onDarkModeToggle?.(!darkModeEnabled)}
                     className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
                       darkModeEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
                     }`}

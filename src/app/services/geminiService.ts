@@ -1,5 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export interface TranslationResult {
+  originalText: string;
+  translatedText: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  travelerTip?: string; // Add this line
+}
+
 // Rate limiting settings for Gemini 2.5 Flash Free Tier
 const rateLimiter = {
   lastRequestTime: 0,
@@ -120,7 +128,7 @@ export async function askAIQuestion(
 }
 
 /**
- * 3️⃣ Text Translation
+ * 3️⃣ Text Translation + Traveler's Tip
  */
 export async function translateImageText(imageData: string, targetLang = 'English'): Promise<any> {
     if (!genAI) throw new Error('Gemini API not initialized.');
@@ -130,10 +138,24 @@ export async function translateImageText(imageData: string, targetLang = 'Englis
         const base64Data = imageData.split(',')[1];
         const mimeType = imageData.match(/:(.*?);/)?.[1] || 'image/jpeg';
 
-        const prompt = `Extract any text in this image and translate it to ${targetLang}. Return JSON: { originalText, translatedText, sourceLanguage }.`;
+        // UPDATED PROMPT: Requesting travelerTip in the JSON output
+        const prompt = `Extract the text from this image and translate it into ${targetLang}. 
+        Also, provide a one-sentence 'Traveler's Tip' explaining the cultural or practical significance 
+        (e.g., religious notice, local rule, or menu detail).
+        
+        Return ONLY a JSON object with these exact keys:
+        { 
+          "originalText": "...", 
+          "translatedText": "...", 
+          "sourceLanguage": "...", 
+          "travelerTip": "..." 
+        }`;
 
         const result = await model.generateContent([{ inlineData: { data: base64Data, mimeType } }, prompt]);
-        const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
-        return jsonMatch ? JSON.parse(jsonMatch[0]) : { error: "No text found" };
+        const responseText = result.response.text();
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        
+        if (!jsonMatch) throw new Error("No text found in image.");
+        return JSON.parse(jsonMatch[0]);
     });
 }

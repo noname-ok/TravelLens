@@ -33,6 +33,23 @@ lerna-debug.log*
 *.sw?
 
 
-*.pem
-*-key.pem
+# Local SSL Certificates
+localhost+1.pem
+localhost+1-key.pem
+
+# Only ignore vite.config.ts if it contains absolute paths or secrets
 vite.config.ts
+#// Example snippet inside vite.config.ts
+# export default defineConfig({
+#   server: {
+#     https: {
+#       key: process.env.VITE_SSL_KEY,
+#       cert: process.env.VITE_SSL_CERT,
+#     },
+#   },
+# })
+
+
+#add localhost path to .env
+# VITE_SSL_KEY=./localhost+1-key.pem
+# VITE_SSL_CERT=./localhost+1.pem
