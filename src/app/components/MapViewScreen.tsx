@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { Home, MapPin, Camera, User } from 'lucide-react';
+import { Home, MapPin, Camera, User, Compass, LocateFixed } from 'lucide-react';
 import PlaceDetailSheet from './PlaceDetailSheet';
-import { PLACE_FILTERS, Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
+import { Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
 
 const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
 const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
@@ -66,10 +66,16 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceDetails | null>(null);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter] = useState('all'); // Keep for compatibility, but not used
+  const [searchedPlace, setSearchedPlace] = useState<Attraction | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Get user location on mount
   useEffect(() => {
@@ -90,6 +96,35 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
       );
     }
   }, []);
+
+  // Strict validation to filter out irrelevant places
+  const isValidPlaceForFilter = useCallback((place: google.maps.places.PlaceResult, filterTypes: string[]): boolean => {
+    if (!place.types || !place.name) return false;
+    
+    // Define excluded types for each filter to prevent mismatches
+    const excludeMap: { [key: string]: string[] } = {
+      all: ['bank', 'atm', 'finance', 'accounting', 'insurance_agency', 'car_repair', 'car_dealer', 'gas_station', 'convenience_store', 'supermarket', 'lodging', 'real_estate_agency', 'laundry', 'car_wash', 'parking', 'storage'],
+    };
+    
+    const excludedTypes = excludeMap[activeFilter] || excludeMap['all'];
+    
+    // Reject if place has any excluded type
+    const hasExcludedType = place.types.some(type => excludedTypes.includes(type));
+    if (hasExcludedType) {
+      console.log(`❌ Filtered out: ${place.name} - contains excluded type:`, place.types);
+      return false;
+    }
+    
+    // Accept if place has at least one desired type
+    const hasDesiredType = place.types.some(type => filterTypes.includes(type));
+    if (!hasDesiredType) {
+      console.log(`❌ Filtered out: ${place.name} - doesn't match filter types`);
+      return false;
+    }
+    
+    console.log(`✅ Accepted: ${place.name}`);
+    return true;
+  }, [activeFilter]);
 
   // Search nearby places based on filter
   const searchNearbyPlaces = useCallback((location: PlaceLocation, placeTypes: string[]) => {
@@ -116,18 +151,22 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         console.log(`Search ${searchesCompleted}/${totalSearches} for "${placeType}": ${status}, found ${results?.length || 0} places`);
         
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          results
-            .filter(place => place.geometry?.location)
-            .forEach((place) => {
-              // Check if this place already exists in allResults
-              const exists = allResults.some(a => a.placeId === place.place_id);
-              if (!exists) {
-                allResults.push({
-                  placeId: place.place_id!,
-                  name: place.name!,
-                  position: {
-                    lat: place.geometry!.location!.lat(),
-                    lng: place.geometry!.location!.lng(),
+          // Apply strict filtering to remove banks and irrelevant places
+          const validResults = results
+            .filter(place => place.geometry?.location && isValidPlaceForFilter(place, placeTypes));
+          
+          console.log(`✅ Valid results for ${placeType}: ${validResults.length}/${results.length}`);
+          
+          validResults.forEach((place) => {
+            // Check if this place already exists in allResults
+            const exists = allResults.some(a => a.placeId === place.place_id);
+            if (!exists) {
+              allResults.push({
+                placeId: place.place_id!,
+                name: place.name!,
+                position: {
+                  lat: place.geometry!.location!.lat(),
+                  lng: place.geometry!.location!.lng(),
                   },
                   types: place.types || [],
                   rating: place.rating,
@@ -138,7 +177,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                 });
               }
             });
-        }
+          }
         
         // When all searches complete, update state
         if (searchesCompleted === totalSearches) {
@@ -158,7 +197,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             }
             map.fitBounds(bounds);
             // Don't zoom in too much
-            const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+            google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
               const currentZoom = map.getZoom();
               if (currentZoom && currentZoom > 15) {
                 map.setZoom(15);
@@ -170,7 +209,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         }
       });
     });
-  }, [map]);
+  }, [map, isValidPlaceForFilter]);
 
   // Fetch detailed place information
   const fetchPlaceDetails = useCallback((placeId: string, attraction: Attraction) => {
@@ -217,18 +256,221 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   // Handle map load
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
+    // Initialize services
+    if (!autocompleteServiceRef.current) {
+      autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
+    }
+    if (!placesServiceRef.current) {
+      placesServiceRef.current = new google.maps.places.PlacesService(map);
+    }
+
+    // Add listener for clicks on Google Maps POI markers
+    map.addListener('click', (e: any) => {
+      if (e.placeId) {
+        // Prevent default behavior of showing Google's info window
+        e.stop();
+        
+        // Fetch basic place info first
+        const service = new google.maps.places.PlacesService(map);
+        service.getDetails(
+          {
+            placeId: e.placeId,
+            fields: ['name', 'place_id', 'geometry', 'types', 'rating', 'user_ratings_total', 'photos', 'vicinity']
+          },
+          (place, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry?.location) {
+              const attraction: Attraction = {
+                placeId: place.place_id!,
+                name: place.name!,
+                position: {
+                  lat: place.geometry.location.lat(),
+                  lng: place.geometry.location.lng()
+                },
+                types: place.types || [],
+                rating: place.rating,
+                userRatingsTotal: place.user_ratings_total,
+                vicinity: place.vicinity,
+                photos: place.photos
+              };
+              
+              // Show info window
+              setSelectedAttraction(attraction);
+              
+              // Fetch and show full details
+              fetchPlaceDetails(place.place_id!, attraction);
+            }
+          }
+        );
+      }
+    });
   }, []);
 
-  // Search when map loads and filter changes
-  useEffect(() => {
-    if (map && userLocation) {
-      const filter = PLACE_FILTERS.find(f => f.id === activeFilter);
-      if (filter) {
-        console.log(`Filter changed to: ${filter.label}, searching for types:`, filter.types);
-        searchNearbyPlaces(userLocation, filter.types);
+  // Calculate distance between two points (Haversine formula)
+  const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
+
+  // Handle search input change
+  const handleSearchInput = useCallback((value: string) => {
+    setSearchQuery(value);
+    
+    if (!value.trim()) {
+      setPredictions([]);
+      setShowPredictions(false);
+      return;
+    }
+
+    // Check if services are available
+    if (!autocompleteServiceRef.current) {
+      // Try to initialize if Google Maps is available
+      if (window.google && window.google.maps && window.google.maps.places) {
+        autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
+      } else {
+        console.warn('Google Maps AutocompleteService not ready yet');
+        return;
       }
     }
-  }, [map, userLocation, activeFilter, searchNearbyPlaces]);
+
+    const currentLoc = userLocation || center;
+    const request: google.maps.places.AutocompletionRequest = {
+      input: value,
+      location: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
+      radius: 20000, // 20km radius (matches MAX_DISTANCE_KM filter)
+      componentRestrictions: { country: 'my' } // Restrict to Malaysia
+    };
+
+    autocompleteServiceRef.current.getPlacePredictions(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        // Fetch details for each prediction to get coordinates and calculate distance
+        const detailsPromises = results.slice(0, 10).map((prediction) => {
+          return new Promise<{prediction: google.maps.places.AutocompletePrediction, distance: number}>((resolve) => {
+            // Initialize placesService if needed
+            if (!placesServiceRef.current && map) {
+              placesServiceRef.current = new google.maps.places.PlacesService(map);
+            }
+            
+            if (!placesServiceRef.current) {
+              resolve({ prediction, distance: Infinity });
+              return;
+            }
+            
+            placesServiceRef.current.getDetails(
+              { placeId: prediction.place_id, fields: ['geometry'] },
+              (place, detailStatus) => {
+                if (detailStatus === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+                  const distance = calculateDistance(
+                    currentLoc.lat,
+                    currentLoc.lng,
+                    place.geometry.location.lat(),
+                    place.geometry.location.lng()
+                  );
+                  resolve({ prediction, distance });
+                } else {
+                  resolve({ prediction, distance: Infinity });
+                }
+              }
+            );
+          });
+        });
+
+        Promise.all(detailsPromises).then((predictionsWithDistance) => {
+          // Filter out results beyond 20km and sort by distance
+          const MAX_DISTANCE_KM = 20;
+          const sorted = predictionsWithDistance
+            .filter(item => item.distance <= MAX_DISTANCE_KM)
+            .sort((a, b) => a.distance - b.distance)
+            .map(item => item.prediction);
+          setPredictions(sorted);
+          setShowPredictions(sorted.length > 0);
+        });
+      } else {
+        setPredictions([]);
+        setShowPredictions(false);
+      }
+    });
+  }, [userLocation, center, calculateDistance, map]);
+
+  // Handle prediction selection
+  const handlePredictionSelect = useCallback((prediction: google.maps.places.AutocompletePrediction) => {
+    if (!placesServiceRef.current || !map) return;
+    
+    setSearchQuery(prediction.description);
+    setShowPredictions(false);
+    setPredictions([]);
+    
+    placesServiceRef.current.getDetails(
+      {
+        placeId: prediction.place_id,
+        fields: ['place_id', 'name', 'geometry', 'types', 'formatted_address', 'vicinity', 'rating']
+      },
+      (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry?.location && place.place_id) {
+          const newCenter = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          };
+          
+          const searchedAttraction: Attraction = {
+            placeId: place.place_id,
+            name: place.name || 'Selected Place',
+            position: newCenter,
+            types: place.types || [],
+            rating: place.rating,
+            vicinity: place.vicinity || place.formatted_address,
+          };
+          
+          setSearchedPlace(searchedAttraction);
+          setCenter(newCenter);
+          map.panTo(newCenter);
+          map.setZoom(16);
+        }
+      }
+    );
+  }, [map]);
+
+  // Search for tourist destinations (triggered by floating button)
+  const searchTouristDestinations = useCallback(() => {
+    if (!map) return;
+    
+    // Use searched place location if available, otherwise use user's current location or map center
+    const searchLocation = searchedPlace?.position || userLocation || center;
+    
+    const touristTypes = [
+      'tourist_attraction',
+      'museum',
+      'art_gallery',
+      'aquarium',
+      'zoo',
+      'amusement_park',
+      'park',
+      'church',
+      'hindu_temple',
+      'mosque',
+      'stadium',
+      'library'
+    ];
+    
+    console.log('Searching for tourist destinations at:', searchLocation);
+    searchNearbyPlaces(searchLocation, touristTypes);
+  }, [searchedPlace, userLocation, center, map, searchNearbyPlaces]);
+
+  // Reset map to user's current location
+  const resetToUserLocation = useCallback(() => {
+    if (!userLocation || !map) return;
+    
+    setSearchedPlace(null); // Clear searched place so nearby button uses current location
+    setCenter(userLocation);
+    map.panTo(userLocation);
+    map.setZoom(15);
+  }, [userLocation, map]);
 
   // Log when attractions update
   useEffect(() => {
@@ -244,32 +486,6 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   // Handle marker click
   const handleMarkerClick = (attraction: Attraction) => {
     setSelectedAttraction(attraction);
-  };
-
-  // Handle search
-  const handleSearch = () => {
-    if (!searchQuery || !map) return;
-
-    const service = new google.maps.places.PlacesService(map);
-    const request = {
-      query: searchQuery,
-      fields: ['name', 'geometry', 'place_id', 'types'],
-    };
-
-    service.findPlaceFromQuery(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
-        const place = results[0];
-        if (place.geometry?.location) {
-          const newCenter = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng(),
-          };
-          setCenter(newCenter);
-          map.panTo(newCenter);
-          map.setZoom(15);
-        }
-      }
-    });
   };
 
   const handleNavigation = (screen: 'home' | 'mapview' | 'ailens' | 'profile') => {
@@ -289,60 +505,10 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
           </h1>
         </div>
 
-        {/* Search Bar */}
-        <div className="absolute left-[24px] top-[100px] right-[24px] z-10">
-          <div className="bg-[#f5f5f5] flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
-            {/* Menu Icon */}
-            <button className="shrink-0">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b"/>
-              </svg>
-            </button>
-
-            {/* Search Input */}
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search your location"
-              className="flex-1 bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] placeholder:text-[#2c638b] placeholder:opacity-70"
-            />
-
-            {/* Search Icon */}
-            <button onClick={handleSearch} className="shrink-0">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Filter Chips */}
-        <div className="absolute left-0 right-0 top-[160px] z-10 px-[24px]">
-          <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {PLACE_FILTERS.map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full shrink-0 transition-all ${
-                  activeFilter === filter.id
-                    ? 'bg-[#2c638b] text-white shadow-md'
-                    : 'bg-white text-[#2c638b] border border-[#2c638b]'
-                }`}
-              >
-                <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
-                  {filter.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
-          className="absolute left-0 right-0 top-[212px] bottom-[90px]"
+          className="absolute left-0 right-0 top-[160px] bottom-[90px]"
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
@@ -353,6 +519,77 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               setLoadError('Failed to load Google Maps. Check API key restrictions.');
             }}
           >
+            {/* Search Bar - Must be inside LoadScript for Autocomplete to work */}
+            <div className="absolute left-[24px] top-[-60px] right-[24px] z-10">
+              <div className="bg-[#f5f5f5] flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
+                {/* Menu Icon */}
+                <button className="shrink-0">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b"/>
+                  </svg>
+                </button>
+
+                {/* Autocomplete Search Input */}
+                <div className="flex-1 relative">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchInput(e.target.value)}
+                    onFocus={() => {
+                      if (predictions.length > 0) setShowPredictions(true);
+                    }}
+                    onBlur={() => {
+                      // Delay to allow click on prediction
+                      setTimeout(() => setShowPredictions(false), 200);
+                    }}
+                    placeholder="Search here..."
+                    className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] placeholder:text-[#2c638b] placeholder:opacity-70"
+                    onClick={(e) => {
+                      // Select all text on click if there's content
+                      const input = e.currentTarget;
+                      if (input.value) {
+                        setTimeout(() => input.select(), 0);
+                      }
+                    }}
+                  />
+                  
+                  {/* Custom Dropdown for Predictions */}
+                  {showPredictions && predictions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
+                      {predictions.map((prediction) => (
+                        <button
+                          key={prediction.place_id}
+                          onClick={() => handlePredictionSelect(prediction)}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition"
+                        >
+                          <div className="flex items-start gap-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b"/>
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-['Poppins',sans-serif] text-[14px] text-black font-medium truncate">
+                                {prediction.structured_formatting.main_text}
+                              </p>
+                              <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 truncate">
+                                {prediction.structured_formatting.secondary_text}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Icon */}
+                <button className="shrink-0">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
             {loadError ? (
               <div className="flex flex-col items-center justify-center h-full bg-gradient-to-b from-[#ffe8e8] to-[#ffd0d0]">
                 <div className="mb-[24px]">
@@ -414,7 +651,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
 
               {/* Attraction Markers */}
               {(() => {
-                console.log(`Rendering ${attractions.length} markers`);
+                console.log(`Rendering ${attractions.length} tourist markers`);
                 return attractions.map((attraction) => (
                   <Marker
                     key={attraction.placeId}
@@ -428,6 +665,22 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                   />
                 ));
               })()}
+
+              {/* Searched Place Marker (Different Color) */}
+              {searchedPlace && (
+                <Marker
+                  position={searchedPlace.position}
+                  onClick={() => {
+                    handleMarkerClick(searchedPlace);
+                    fetchPlaceDetails(searchedPlace.placeId, searchedPlace);
+                  }}
+                  icon={{
+                    url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                    scaledSize: new google.maps.Size(40, 40)
+                  }}
+                  title={searchedPlace.name}
+                />
+              )}
 
               {/* Info Window */}
               {selectedAttraction && (
@@ -506,6 +759,32 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             </div>
           </div>
         )}
+
+        {/* Floating Action Buttons */}
+        <div className="absolute bottom-[30px] left-[24px] z-20 flex gap-3">
+          {/* View Nearby Button */}
+          <button
+            onClick={searchTouristDestinations}
+            disabled={!map || loading}
+            className="bg-[#2c638b] text-white rounded-full shadow-lg hover:bg-[#234d6a] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-3"
+            title="View nearby tourist attractions"
+          >
+            <Compass size={20} strokeWidth={2.5} />
+            <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
+              Nearby Attractions
+            </span>
+          </button>
+
+          {/* Back to Location Button */}
+          <button
+            onClick={resetToUserLocation}
+            disabled={!userLocation}
+            className="bg-white text-[#2c638b] rounded-full shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-[48px] h-[48px]"
+            title="Back to my location"
+          >
+            <LocateFixed size={22} strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
 
         {/* Place Detail Sheet */}

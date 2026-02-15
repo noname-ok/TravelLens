@@ -159,3 +159,67 @@ export async function translateImageText(imageData: string, targetLang = 'Englis
         return JSON.parse(jsonMatch[0]);
     });
 }
+
+/**
+ * 4️⃣ Generate Place Insights (Text-based AI for tourist destinations)
+ */
+export interface PlaceInsights {
+  whyFamous: string;
+  cautions: string[];
+  considerations: string[];
+  bestTimeToVisit?: string;
+  estimatedDuration?: string;
+}
+
+export async function generatePlaceInsights(
+  placeName: string,
+  placeTypes: string[],
+  address?: string,
+  rating?: number
+): Promise<PlaceInsights> {
+  if (!genAI) throw new Error('Gemini API not initialized.');
+  if (!rateLimiter.canMakeRequest()) {
+    throw new Error('⏸️ Rate limit: Please wait before requesting AI insights.');
+  }
+
+  return withRetry(async () => {
+    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
+
+    const typeContext = placeTypes.join(', ');
+    const ratingText = rating ? `It has a rating of ${rating.toFixed(1)} stars.` : '';
+    const addressText = address ? `Located at: ${address}.` : '';
+
+    const prompt = `You are a knowledgeable local travel guide with expertise about "${placeName}".
+    
+Place Name: ${placeName}
+Place Type: ${typeContext}
+${addressText}
+${ratingText}
+
+IMPORTANT: Provide SPECIFIC and LOCATION-RELEVANT information about this exact place. Research this specific location's:
+- Local safety concerns (crime rates, scams, environmental hazards specific to this area)
+- Weather and terrain challenges particular to this location
+- Cultural sensitivities and local customs at THIS specific place
+- Real visitor experiences and common issues at this location
+- Current local conditions and neighborhood characteristics
+
+Return ONLY a JSON object with these exact keys:
+{
+  "whyFamous": "2-3 sentences explaining what makes THIS specific place famous, its unique history, cultural significance, or why travelers visit it",
+  "cautions": ["array", "of", "4-6", "SPECIFIC safety warnings, local scams, environmental hazards, or behavioral rules that apply to THIS exact location and its surrounding area - be very specific to this place, not generic travel advice"],
+  "considerations": ["array", "of", "4-6", "practical and location-specific tips for visiting THIS place - include best entry points, parking, accessibility, what to bring, local prices, crowds, booking requirements"],
+  "bestTimeToVisit": "optimal time to visit THIS specific location (time of day, day of week, season) with reasoning based on crowds, weather, or lighting",
+  "estimatedDuration": "realistic visit duration for THIS place (e.g., '1-2 hours', '30 minutes', 'half day')"
+}
+
+Make every answer location-specific. Avoid generic travel advice.`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) throw new Error('AI returned invalid format for place insights.');
+    
+    return JSON.parse(jsonMatch[0]) as PlaceInsights;
+  });
+}
