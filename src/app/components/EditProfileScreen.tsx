@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import backIcon from '@/assets/Back.svg';
-import { uploadAvatar } from '@/app/services/userProfileService';
 import { auth } from '@/app/config/firebase';
+import { toast } from 'sonner';
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -18,9 +18,9 @@ interface EditProfileScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
   onBack: () => void;
-  onSave: (data: { name: string; location: string; avatarUrl?: string }) => void;
+  onSave: (data: { name: string; bio: string; avatarUrl?: string }) => void;
   initialName?: string;
-  initialLocation?: string;
+  initialBio?: string;
   initialAvatarUrl?: string;
 }
 
@@ -30,45 +30,75 @@ export default function EditProfileScreen({
   onBack,
   onSave,
   initialName = 'John Doe',
-  initialLocation = 'Mars, Solar System',
+  initialBio = '',
   initialAvatarUrl,
 }: EditProfileScreenProps) {
   const [name, setName] = useState(initialName);
-  const [location, setLocation] = useState(initialLocation);
+  const [bio, setBio] = useState(initialBio);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(initialAvatarUrl);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handlePickAvatar = () => {
     fileInputRef.current?.click();
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !auth.currentUser) return;
 
-    setSelectedFile(file);
-    const nextUrl = URL.createObjectURL(file);
-    setAvatarUrl(nextUrl);
+    setUploading(true);
+    const uploadingToast = toast.loading('Processing photo...');
+
+    try {
+      // Convert image to base64
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const base64String = e.target?.result as string;
+        
+        // Save to localStorage
+        const storageKey = `avatar_${auth.currentUser?.uid}`;
+        localStorage.setItem(storageKey, base64String);
+        
+        setAvatarUrl(base64String);
+        toast.dismiss(uploadingToast);
+        toast.success('Photo updated!');
+        setUploading(false);
+      };
+
+      reader.onerror = () => {
+        toast.dismiss(uploadingToast);
+        toast.error('Failed to process photo');
+        setUploading(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error processing avatar:', error);
+      toast.dismiss(uploadingToast);
+      toast.error('Failed to process photo');
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
+    if (saving) return; // Prevent double-clicks
+    
     setSaving(true);
+    const loadingToast = toast.loading('Saving profile...');
+    
     try {
-      let finalAvatarUrl = avatarUrl;
-
-      // Upload avatar if a new file was selected
-      if (selectedFile && auth.currentUser) {
-        const uploadedUrl = await uploadAvatar(auth.currentUser.uid, selectedFile);
-        if (uploadedUrl) {
-          finalAvatarUrl = uploadedUrl;
-        }
-      }
-
-      onSave({ name, location, avatarUrl: finalAvatarUrl });
+      // Avatar is already uploaded to Firebase Storage
+      await onSave({ name, bio, avatarUrl });
+      
+      toast.dismiss(loadingToast);
+      toast.success('Profile saved successfully!');
     } catch (error) {
       console.error('Error saving profile:', error);
+      toast.dismiss(loadingToast);
+      toast.error(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
       setSaving(false);
     }
@@ -81,16 +111,9 @@ export default function EditProfileScreen({
           .no-scrollbar::-webkit-scrollbar { display: none; }
         `}</style>
       <div className="relative mx-auto w-full max-w-[390px] h-full">
-        <div className="absolute left-[27px] top-[62px] w-[341px] h-[23px] flex items-center justify-between">
+        <div className="absolute left-[27px] top-[62px] w-[341px] h-[23px] flex items-center">
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
             <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px]" />
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="font-['Poppins',sans-serif] text-[12px] text-black disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
 
@@ -98,7 +121,8 @@ export default function EditProfileScreen({
           <div className="flex flex-col items-center gap-4 mt-6">
             <button
               onClick={handlePickAvatar}
-              className="relative w-[96px] h-[96px] rounded-full bg-[#CDE5FF] flex items-center justify-center overflow-visible"
+              disabled={uploading}
+              className="relative w-[96px] h-[96px] rounded-full bg-[#CDE5FF] flex items-center justify-center overflow-visible disabled:opacity-50"
             >
               <div className="absolute inset-0 rounded-full overflow-hidden z-0">
                 {avatarUrl ? (
@@ -133,13 +157,22 @@ export default function EditProfileScreen({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="font-['Poppins',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)]">Location</label>
+              <label className="font-['Poppins',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)]">Bio</label>
               <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell us about yourself..."
                 className="border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[14px] font-['Poppins',sans-serif] text-[14px]"
               />
             </div>
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full bg-[#0fa3e2] text-white rounded-[15px] py-[14px] font-['Poppins',sans-serif] text-[14px] font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            >
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
           </div>
         </div>
 

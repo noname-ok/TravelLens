@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import privateAccountIcon from '@/assets/PrivateAccount.svg';
-import gpsIcon from '@/assets/GPS.svg';
 import languageIcon from '@/assets/Language.svg';
 import darkModeIcon from '@/assets/DarkMode.svg';
 import tncIcon from '@/assets/TnC.svg';
@@ -39,13 +39,11 @@ interface ProfileScreenProps {
   onOpenPrivacy?: () => void;
   onLogout?: () => void;
   userName?: string;
-  userLocation?: string;
+  userBio?: string;
   userAvatarUrl?: string;
   privateAccountEnabled?: boolean;
-  gpsEnabled?: boolean;
   darkModeEnabled?: boolean;
   onPrivateAccountToggle?: (enabled: boolean) => void;
-  onGpsToggle?: (enabled: boolean) => void;
   onDarkModeToggle?: (enabled: boolean) => void;
 }
 
@@ -58,15 +56,34 @@ export default function ProfileScreen({
   onOpenPrivacy,
   onLogout,
   userName = 'John Doe',
-  userLocation = 'Mars, Solar System',
+  userBio = '',
   userAvatarUrl,
   privateAccountEnabled = false,
-  gpsEnabled = false,
   darkModeEnabled = false,
   onPrivateAccountToggle,
-  onGpsToggle,
   onDarkModeToggle,
 }: ProfileScreenProps) {
+  // State for confirmation dialog
+  const [showPrivateDialog, setShowPrivateDialog] = useState(false);
+
+  // Handle Private Account toggle
+  const handlePrivateAccountToggle = () => {
+    if (privateAccountEnabled) {
+      // Turning OFF - show confirmation dialog
+      setShowPrivateDialog(true);
+    } else {
+      // Turning ON - enable immediately with toast
+      onPrivateAccountToggle?.(true);
+      toast.success('Your account become private now!');
+    }
+  };
+
+  // Confirm making account public
+  const confirmMakePublic = () => {
+    onPrivateAccountToggle?.(false);
+    toast.success('Your account is now public');
+    setShowPrivateDialog(false);
+  };
 
   return (
     <div className="bg-white relative size-full">
@@ -81,13 +98,15 @@ export default function ProfileScreen({
               <img src={userAvatarUrl} alt="profile" className="w-full h-full object-cover" />
             ) : null}
           </div>
-          <div className="flex flex-col justify-center gap-[10px]">
+          <div className="flex flex-col justify-center gap-[4px]">
             <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
               {userName}
             </p>
-            <p className="font-['Poppins',sans-serif] font-normal text-[12px] leading-[18px] tracking-[-0.165px] text-[rgba(0,0,0,0.6)]">
-              {userLocation}
-            </p>
+            {userBio && (
+              <p className="font-['Poppins',sans-serif] font-normal text-[11px] leading-[14px] tracking-[-0.165px] text-[rgba(0,0,0,0.45)]">
+                {userBio}
+              </p>
+            )}
           </div>
         </div>
 
@@ -108,7 +127,7 @@ export default function ProfileScreen({
                     </p>
                   </div>
                   <button
-                    onClick={() => onPrivateAccountToggle?.(!privateAccountEnabled)}
+                    onClick={handlePrivateAccountToggle}
                     className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
                       privateAccountEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
                     }`}
@@ -121,28 +140,6 @@ export default function ProfileScreen({
                     />
                   </button>
                 </div>
-
-                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
-                  <div className="flex items-center gap-[10px]">
-                    <img src={gpsIcon} alt="gps" className="w-[18px] h-[18px]" />
-                    <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
-                      Share GPS Data
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => onGpsToggle?.(!gpsEnabled)}
-                    className={`w-[65px] h-[25px] rounded-full relative transition-colors ${
-                      gpsEnabled ? 'bg-[#34C759]' : 'bg-[rgba(60,60,67,0.3)]'
-                    }`}
-                    aria-pressed={gpsEnabled}
-                  >
-                    <div
-                      className={`absolute top-[2px] w-[39px] h-[21px] rounded-full bg-white transition-transform ${
-                        gpsEnabled ? 'translate-x-[24px]' : 'translate-x-[2px]'
-                      }`}
-                    />
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -151,29 +148,25 @@ export default function ProfileScreen({
                 Account Settings
               </p>
               <div className="flex flex-col gap-[15px]">
-                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                <button onClick={onEditProfile} className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px] w-full hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-[10px]">
                     <User size={18} className="text-black" strokeWidth={2} />
                     <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
                       Edit Profile
                     </p>
                   </div>
-                  <button onClick={onEditProfile} className="flex items-center justify-center">
-                    <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
+                  <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
+                </button>
 
-                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                <button onClick={onChangeLanguage} className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px] w-full hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-[10px]">
                     <img src={languageIcon} alt="language" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
                       Change Language
                     </p>
                   </div>
-                  <button onClick={onChangeLanguage} className="flex items-center justify-center">
-                    <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
+                  <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
+                </button>
 
                 <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
                   <div className="flex items-center gap-[10px]">
@@ -204,28 +197,24 @@ export default function ProfileScreen({
                 Legal
               </p>
               <div className="flex flex-col gap-[15px]">
-                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                <button onClick={onOpenTerms} className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px] w-full hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-[10px]">
                     <img src={tncIcon} alt="terms" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
                       Terms and Condition
                     </p>
                   </div>
-                  <button onClick={onOpenTerms} className="flex items-center justify-center">
-                    <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
+                  <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
+                </button>
+                <button onClick={onOpenPrivacy} className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px] w-full hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-[10px]">
                     <img src={privacyIcon} alt="privacy" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
                       Privacy Policy
                     </p>
                   </div>
-                  <button onClick={onOpenPrivacy} className="flex items-center justify-center">
-                    <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
+                  <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
+                </button>
               </div>
             </div>
 
@@ -295,6 +284,22 @@ export default function ProfileScreen({
           <HomeIndicator className="absolute h-[34px] left-0 right-0 bottom-0" />
         </div>
       </div>
+
+      {/* Private Account Confirmation Dialog */}
+      <AlertDialog open={showPrivateDialog} onOpenChange={setShowPrivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Make Your Account Public?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your content will be visible by other users. Please be careful sharing personal details.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMakePublic}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
