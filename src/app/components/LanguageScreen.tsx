@@ -9,7 +9,7 @@ function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ''}>
       <div className="h-[34px] relative w-full">
-        <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
+        <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
   );
@@ -44,7 +44,7 @@ export default function LanguageScreen({ currentScreen, onNavigate, onBack }: La
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <style>{`
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -53,15 +53,15 @@ export default function LanguageScreen({ currentScreen, onNavigate, onBack }: La
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <div className="absolute left-[27px] top-[62px] w-[341px] h-[23px] flex items-center justify-between">
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
-            <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px]" />
+            <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px] dark:invert" />
           </button>
-          <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">{t('language.title')}</p>
+          <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black dark:text-white">{t('language.title')}</p>
           <div className="w-[10.09px] h-[15.63px]" />
         </div>
 
         <div className="absolute left-0 right-0 top-[96px] bottom-[90px] overflow-y-auto no-scrollbar px-[27px]">
-          <div className="mt-4 mb-4 p-3 bg-[#FFF9E6] border border-[#FFD54F] rounded-[10px]">
-            <p className="font-['Poppins',sans-serif] text-[12px] text-[#856404] leading-[16px]">
+          <div className="mt-4 mb-4 p-3 bg-[#FFF9E6] dark:bg-amber-900/20 border border-[#FFD54F] dark:border-amber-700 rounded-[10px]">
+            <p className="font-['Poppins',sans-serif] text-[12px] text-[#856404] dark:text-amber-400 leading-[16px]">
               ℹ️ Demo: Translation currently applies to Profile section only
             </p>
           </div>
@@ -70,14 +70,14 @@ export default function LanguageScreen({ currentScreen, onNavigate, onBack }: La
               <button
                 key={language}
                 onClick={() => handleLanguageSelect(language)}
-                className={`flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[16px] text-left ${
-                  selected === language ? 'bg-[#F5FAFB]' : 'bg-white'
+                className={`flex items-center justify-between border border-[rgba(0,0,0,0.1)] dark:border-gray-700 rounded-[15px] px-[15px] py-[16px] text-left ${
+                  selected === language ? 'bg-[#F5FAFB] dark:bg-gray-700' : 'bg-white dark:bg-gray-800'
                 }`}
               >
-                <span className="font-['Poppins',sans-serif] text-[14px] text-black">{language}</span>
+                <span className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white">{language}</span>
                 <div
                   className={`w-[14px] h-[14px] rounded-full border ${
-                    selected === language ? 'border-[#2C638B] bg-[#2C638B]' : 'border-[rgba(0,0,0,0.2)] bg-white'
+                    selected === language ? 'border-[#2C638B] bg-[#2C638B]' : 'border-[rgba(0,0,0,0.2)] dark:border-gray-500 bg-white dark:bg-gray-700'
                   }`}
                 />
               </button>

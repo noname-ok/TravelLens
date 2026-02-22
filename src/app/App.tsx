@@ -21,10 +21,12 @@ import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from './services/authService';
 import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
+import { useTranslation } from 'react-i18next';
 
 type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
 export default function App() {
+  const { t } = useTranslation();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,6 +128,15 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Apply dark mode to document
+  useEffect(() => {
+    if (userProfile?.preferences.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [userProfile?.preferences.darkMode]);
 
   const handleSignUp = async (data: SignUpFormData) => {
     const result = await signUpWithEmail(data);
@@ -362,6 +373,9 @@ export default function App() {
                 ...userProfile,
                 preferences: { ...userProfile.preferences, darkMode: enabled }
               });
+              
+              // Show toast
+              toast.success(enabled ? t('toast.darkModeEnabled') : t('toast.darkModeDisabled'));
               
               // Try to update Firebase
               const success = await updateUserProfile(user.uid, {
