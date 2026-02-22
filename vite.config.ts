@@ -7,7 +7,6 @@ export default defineConfig({
   server: {
     host: true, // This exposes the project on your local network
     port: 5174,  // You can specify a port if you like
-    https: {},
   },
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
