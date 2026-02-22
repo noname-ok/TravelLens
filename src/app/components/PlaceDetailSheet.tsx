@@ -1,87 +1,77 @@
 import { useState } from 'react';
-import { CULTURAL_TIPS_DB, DRESS_CODE_DB, PlaceDetails } from '@/app/types/places';
+import { PlaceDetails, PlaceInsights } from '@/app/types/places';
+import { generatePlaceInsights } from '@/app/services/geminiService';
 
 interface PlaceDetailSheetProps {
   place: PlaceDetails | null;
   onClose: () => void;
 }
 
-type TabType = 'overview' | 'reviews' | 'cultural' | 'alerts';
+type TabType = 'overview' | 'reviews' | 'aiinsights';
 
 export default function PlaceDetailSheet({ place, onClose }: PlaceDetailSheetProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [aiInsights, setAiInsights] = useState<PlaceInsights | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   if (!place) return null;
 
-  // Get cultural tips based on place type
-  const getCulturalTips = (): string[] => {
-    if (place.types.some(t => t.includes('temple') || t.includes('worship') || t.includes('church'))) {
-      return CULTURAL_TIPS_DB.temple;
-    }
-    if (place.types.some(t => t.includes('restaurant') || t.includes('cafe') || t.includes('food'))) {
-      return CULTURAL_TIPS_DB.restaurant;
-    }
-    if (place.types.some(t => t.includes('museum') || t.includes('art_gallery'))) {
-      return CULTURAL_TIPS_DB.museum;
-    }
-    if (place.types.some(t => t.includes('shopping') || t.includes('store'))) {
-      return CULTURAL_TIPS_DB.shopping;
-    }
-    if (place.types.some(t => t.includes('park'))) {
-      return CULTURAL_TIPS_DB.park;
-    }
-    return ['Respect local customs and traditions', 'Be mindful of cultural sensitivities', 'Ask locals if unsure about etiquette'];
-  };
-
-  // Get dress code based on place type
-  const getDressCode = (): string[] => {
-    if (place.types.some(t => t.includes('temple') || t.includes('worship') || t.includes('church'))) {
-      return DRESS_CODE_DB.temple;
-    }
-    if (place.types.some(t => t.includes('restaurant'))) {
-      return DRESS_CODE_DB.restaurant;
-    }
-    if (place.types.some(t => t.includes('museum') || t.includes('art_gallery'))) {
-      return DRESS_CODE_DB.museum;
-    }
-    if (place.types.some(t => t.includes('shopping') || t.includes('store'))) {
-      return DRESS_CODE_DB.shopping;
-    }
-    if (place.types.some(t => t.includes('park'))) {
-      return DRESS_CODE_DB.park;
-    }
-    return ['👕 No specific dress code', '✅ Dress comfortably and appropriately'];
-  };
-
-  const culturalTips = getCulturalTips();
-  const dressCode = getDressCode();
   const hasReviews = place.reviews && place.reviews.length > 0;
+
+  // Load AI insights when tab is clicked (lazy loading)
+  const handleAIInsightsTab = async () => {
+    setActiveTab('aiinsights');
+    
+    // Only fetch if not already loaded
+    if (!aiInsights && !loadingAI && !aiError) {
+      setLoadingAI(true);
+      setAiError(null);
+      
+      try {
+        const insights = await generatePlaceInsights(
+          place.name,
+          place.types,
+          place.formattedAddress || place.vicinity,
+          place.rating
+        );
+        setAiInsights(insights);
+      } catch (error: any) {
+        console.error('Failed to load AI insights:', error);
+        setAiError(error.message || 'Failed to generate AI insights. Please try again later.');
+      } finally {
+        setLoadingAI(false);
+      }
+    }
+  };
 
   return (
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        className="fixed inset-0 bg-black/50 z-40"
         onClick={onClose}
       />
       
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] shadow-xl z-50 max-h-[80vh] overflow-hidden animate-slide-up">
+      <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] shadow-xl z-50 max-h-[85vh] overflow-hidden animate-slide-up flex flex-col">
         {/* Drag Handle */}
-        <div className="flex justify-center pt-3 pb-2">
+        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
           <div className="w-[40px] h-[4px] bg-gray-300 rounded-full" />
         </div>
 
+        {/* Image */}
+        {place.photos && place.photos.length > 0 && (
+          <img 
+            src={place.photos[0].getUrl({ maxWidth: 400, maxHeight: 200 })}
+            alt={place.name}
+            className="w-full h-[160px] object-cover object-center flex-shrink-0"
+          />
+        )}
+
         {/* Header */}
-        <div className="px-6 pb-4 border-b border-gray-200">
-          {place.photos && place.photos.length > 0 && (
-            <img 
-              src={place.photos[0].getUrl({ maxWidth: 400, maxHeight: 200 })}
-              alt={place.name}
-              className="w-full h-[160px] object-cover rounded-lg mb-3 -mx-6 -mt-0 rounded-t-none"
-            />
-          )}
-          <div className="flex items-start justify-between">
+        <div className="px-6 pb-4 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-start justify-between pt-3">
             <div className="flex-1">
               <h2 className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black leading-[28px]">
                 {place.name}
@@ -109,7 +99,7 @@ export default function PlaceDetailSheet({ place, onClose }: PlaceDetailSheetPro
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex border-b border-gray-200 px-6 flex-shrink-0">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex-1 py-3 font-['Poppins',sans-serif] text-[14px] border-b-2 transition-colors ${
@@ -131,29 +121,20 @@ export default function PlaceDetailSheet({ place, onClose }: PlaceDetailSheetPro
             Reviews
           </button>
           <button
-            onClick={() => setActiveTab('cultural')}
+
+            onClick={handleAIInsightsTab}
             className={`flex-1 py-3 font-['Poppins',sans-serif] text-[14px] border-b-2 transition-colors ${
-              activeTab === 'cultural'
+              activeTab === 'aiinsights'
                 ? 'border-[#2c638b] text-[#2c638b] font-medium'
                 : 'border-transparent text-gray-500'
             }`}
           >
-            🧠 Tips
-          </button>
-          <button
-            onClick={() => setActiveTab('alerts')}
-            className={`flex-1 py-3 font-['Poppins',sans-serif] text-[14px] border-b-2 transition-colors ${
-              activeTab === 'alerts'
-                ? 'border-[#2c638b] text-[#2c638b] font-medium'
-                : 'border-transparent text-gray-500'
-            }`}
-          >
-            ⚠️ Dress
+            AI
           </button>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[50vh] px-6 py-4">
+        <div className="overflow-y-auto flex-1 px-6 py-4">
           {activeTab === 'overview' && (
             <div className="space-y-4">
               {place.vicinity && (
@@ -222,21 +203,8 @@ export default function PlaceDetailSheet({ place, onClose }: PlaceDetailSheetPro
               {hasReviews ? (
                 place.reviews!.map((review, idx) => (
                   <div key={idx} className="border-b border-gray-100 pb-4 last:border-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      {review.profilePhoto ? (
-                        <img 
-                          src={review.profilePhoto} 
-                          alt={review.authorName}
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-[#2c638b] flex items-center justify-center">
-                          <span className="font-['Poppins',sans-serif] text-white text-[12px] font-semibold">
-                            {review.authorName.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                      <div>
+                    <div className="mb-2">
+                      <div className="flex items-center justify-between">
                         <p className="font-['Poppins',sans-serif] font-medium text-[14px] text-black">
                           {review.authorName}
                         </p>
@@ -264,48 +232,124 @@ export default function PlaceDetailSheet({ place, onClose }: PlaceDetailSheetPro
             </div>
           )}
 
-          {activeTab === 'cultural' && (
-            <div className="space-y-3">
-              <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black mb-4">
-                Cultural Tips & Etiquette
-              </p>
-              {culturalTips.map((tip, idx) => (
-                <div key={idx} className="flex gap-3 bg-blue-50 p-3 rounded-lg">
-                  <span className="text-[18px] shrink-0">🧠</span>
-                  <p className="font-['Poppins',sans-serif] text-[14px] text-black leading-relaxed">
-                    {tip}
-                  </p>
+          {activeTab === 'aiinsights' && (
+            <div className="space-y-4">
+              {loadingAI && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c638b] mb-4"></div>
+                  <p className="font-['Poppins',sans-serif] text-[14px] text-gray-600">Generating AI insights...</p>
                 </div>
-              ))}
-            </div>
-          )}
+              )}
 
-          {activeTab === 'alerts' && (
-            <div className="space-y-3">
-              <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black mb-4">
-                Dress Code & Requirements
-              </p>
-              {dressCode.map((code, idx) => {
-                const isWarning = code.startsWith('⚠️');
-                const isRequired = code.startsWith('✅');
-                const isTip = code.startsWith('💡');
-                
-                return (
-                  <div 
-                    key={idx} 
-                    className={`flex gap-3 items-start p-3 rounded-lg ${
-                      isWarning ? 'bg-red-50 border border-red-200' :
-                      isRequired ? 'bg-green-50 border border-green-200' :
-                      isTip ? 'bg-yellow-50 border border-yellow-200' :
-                      'bg-gray-50'
-                    }`}
-                  >
-                    <p className="font-['Poppins',sans-serif] text-[14px] text-black leading-relaxed flex-1">
-                      {code}
+              {aiError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-[20px]">⚠️</span>
+                    <div className="flex-1">
+                      <p className="font-['Poppins',sans-serif] font-semibold text-[14px] text-red-800 mb-1">Unable to load AI insights</p>
+                      <p className="font-['Poppins',sans-serif] text-[12px] text-red-600">{aiError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {aiInsights && !loadingAI && (
+                <>
+                  {/* Why Famous Section */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[20px]">🌟</span>
+                      <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black">
+                        Why It's Famous
+                      </p>
+                    </div>
+                    <p className="font-['Poppins',sans-serif] text-[14px] text-gray-700 leading-relaxed pl-8">
+                      {aiInsights.whyFamous}
                     </p>
                   </div>
-                );
-              })}
+
+                  {/* Cautions Section */}
+                  {aiInsights.cautions && aiInsights.cautions.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[20px]">⚠️</span>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black">
+                          Safety & Cautions
+                        </p>
+                      </div>
+                      <div className="space-y-2 pl-8">
+                        {aiInsights.cautions.map((caution, idx) => (
+                          <div key={idx} className="flex gap-2 items-start">
+                            <span className="text-red-500 text-[14px] mt-1">•</span>
+                            <p className="font-['Poppins',sans-serif] text-[14px] text-gray-700 leading-relaxed flex-1">
+                              {caution}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Considerations Section */}
+                  {aiInsights.considerations && aiInsights.considerations.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[20px]">💡</span>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black">
+                          Visitor Tips
+                        </p>
+                      </div>
+                      <div className="space-y-2 pl-8">
+                        {aiInsights.considerations.map((tip, idx) => (
+                          <div key={idx} className="flex gap-2 items-start">
+                            <span className="text-[#2c638b] text-[14px] mt-1">•</span>
+                            <p className="font-['Poppins',sans-serif] text-[14px] text-gray-700 leading-relaxed flex-1">
+                              {tip}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Best Time & Duration */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {aiInsights.bestTimeToVisit && (
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[16px]">⏰</span>
+                          <p className="font-['Poppins',sans-serif] font-semibold text-[12px] text-gray-600">
+                            Best Time
+                          </p>
+                        </div>
+                        <p className="font-['Poppins',sans-serif] text-[14px] text-black">
+                          {aiInsights.bestTimeToVisit}
+                        </p>
+                      </div>
+                    )}
+                    {aiInsights.estimatedDuration && (
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[16px]">⌚</span>
+                          <p className="font-['Poppins',sans-serif] font-semibold text-[12px] text-gray-600">
+                            Duration
+                          </p>
+                        </div>
+                        <p className="font-['Poppins',sans-serif] text-[14px] text-black">
+                          {aiInsights.estimatedDuration}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Disclaimer */}
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <p className="font-['Poppins',sans-serif] text-[11px] text-gray-500 text-center">
+                      ✨ AI-generated insights by Gemini. Always verify important information locally.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

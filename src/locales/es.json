@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "Perfil",
+    "editProfile": "Editar Perfil",
+    "changeLanguage": "Cambiar Idioma",
+    "darkMode": "Modo Oscuro",
+    "accountSettings": "Configuración de Cuenta",
+    "legal": "Legal",
+    "termsAndConditions": "Términos y Condiciones",
+    "privacyPolicy": "Política de Privacidad",
+    "logout": "Cerrar Sesión",
+    "logoutConfirmTitle": "¿Cerrar sesión?",
+    "logoutConfirmDescription": "¿Estás seguro de que quieres cerrar sesión de tu cuenta?",
+    "confirmLogout": "Sí, cerrar sesión",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "journalPrivacy": "Privacidad del Diario",
+    "privateAccount": "Cuenta Privada",
+    "privateAccountDescription": "Cuando tu cuenta es pública, tu perfil y publicaciones pueden ser vistos por todos.",
+    "makePublicTitle": "¿Hacer tu Cuenta Pública?",
+    "makePublicDescription": "Tu contenido será visible para otros usuarios. Ten cuidado al compartir detalles personales."
+  },
+  "editProfile": {
+    "title": "Editar Perfil",
+    "username": "Nombre de Usuario",
+    "bio": "Biografía",
+    "bioPlaceholder": "Cuéntanos sobre ti...",
+    "save": "Guardar Perfil",
+    "saving": "Guardando..."
+  },
+  "language": {
+    "title": "Idioma",
+    "changed": "Idioma cambiado a"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "nearby": "Cerca",
+    "aiLens": "IA Lens",
+    "profile": "Perfil"
+  },
+  "toast": {
+    "profileUpdated": "Perfil actualizado exitosamente",
+    "profileSaved": "¡Perfil guardado exitosamente!",
+    "photoUpdated": "¡Foto actualizada!",
+    "uploadingPhoto": "Procesando foto...",
+    "savingProfile": "Guardando perfil...",
+    "failedToSave": "Error al guardar perfil",
+    "failedToProcess": "Error al procesar foto",
+    "privateAccountEnabled": "Cuenta privada activada",
+    "privateAccountDisabled": "Cuenta privada desactivada",
+    "darkModeEnabled": "Modo oscuro activado",
+    "darkModeDisabled": "Modo oscuro desactivado"
+  }
+}

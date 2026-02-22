@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "changeLanguage": "भाषा बदलें",
+    "darkMode": "डार्क मोड",
+    "accountSettings": "खाता सेटिंग्स",
+    "legal": "कानूनी",
+    "termsAndConditions": "नियम और शर्तें",
+    "privacyPolicy": "गोपनीयता नीति",
+    "logout": "लॉग आउट",
+    "logoutConfirmTitle": "लॉग आउट करें?",
+    "logoutConfirmDescription": "क्या आप वाकई अपने खाते से लॉग आउट करना चाहते हैं?",
+    "confirmLogout": "हां, लॉग आउट करें",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "journalPrivacy": "जर्नल गोपनीयता",
+    "privateAccount": "निजी खाता",
+    "privateAccountDescription": "जब आपका खाता सार्वजनिक होता है, तो आपकी प्रोफ़ाइल और पोस्ट सभी को दिखाई देते हैं।",
+    "makePublicTitle": "अपना खाता सार्वजनिक करें?",
+    "makePublicDescription": "आपकी सामग्री अन्य उपयोगकर्ताओं को दिखाई देगी। व्यक्तिगत विवरण साझा करते समय सावधान रहें।"
+  },
+  "editProfile": {
+    "title": "प्रोफ़ाइल संपादित करें",
+    "username": "उपयोगकर्ता नाम",
+    "bio": "जीवनी",
+    "bioPlaceholder": "अपने बारे में बताएं...",
+    "save": "प्रोफ़ाइल सहेजें",
+    "saving": "सहेजा जा रहा है..."
+  },
+  "language": {
+    "title": "भाषा",
+    "changed": "भाषा बदल दी गई"
+  },
+  "navigation": {
+    "home": "होम",
+    "nearby": "पास में",
+    "aiLens": "एआई लेंस",
+    "profile": "प्रोफ़ाइल"
+  },
+  "toast": {
+    "profileUpdated": "प्रोफ़ाइल अपडेट की गई",
+    "profileSaved": "प्रोफ़ाइल सफलतापूर्वक सहेजी गई!",
+    "photoUpdated": "फोटो अपडेट की गई!",
+    "uploadingPhoto": "फोटो प्रोसेस हो रही है...",
+    "savingProfile": "प्रोफ़ाइल सहेजी जा रही है...",
+    "failedToSave": "प्रोफ़ाइल सहेजने में विफल",
+    "failedToProcess": "फोटो प्रोसेस करने में विफल",
+    "privateAccountEnabled": "निजी खाता सक्षम किया गया",
+    "privateAccountDisabled": "निजी खाता अक्षम किया गया",
+    "darkModeEnabled": "डार्क मोड सक्षम किया गया",
+    "darkModeDisabled": "डार्क मोड अक्षम किया गया"
+  }
+}

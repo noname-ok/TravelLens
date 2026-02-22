@@ -44,14 +44,23 @@ export interface PlaceReview {
   profilePhoto?: string;
 }
 
+export interface PlaceInsights {
+  whyFamous: string;           // Main explanation
+  cautions: string[];          // Safety/behavioral warnings
+  considerations: string[];    // Tips for visiting
+  bestTimeToVisit?: string;    // Optimal visit time
+  estimatedDuration?: string;  // How long to spend
+}
+
 // Predefined place types for filtering
+// Using STRICT Google Places API types only - no keywords
 export const PLACE_FILTERS: PlaceType[] = [
-  { id: 'all', label: 'All', types: ['tourist_attraction'], icon: '' },
-  { id: 'temples', label: 'Temples', types: ['hindu_temple', 'place_of_worship', 'church'], icon: '' },
+  { id: 'all', label: 'All', types: ['tourist_attraction', 'museum', 'art_gallery', 'aquarium', 'zoo', 'amusement_park', 'park'], icon: '' },
+  { id: 'temples', label: 'Temples', types: ['hindu_temple', 'place_of_worship', 'church', 'mosque', 'synagogue'], icon: '' },
   { id: 'museums', label: 'Museums', types: ['museum', 'art_gallery'], icon: '' },
-  { id: 'food', label: 'Food', types: ['restaurant', 'cafe', 'food', 'meal_takeaway', 'bakery', 'bar'], icon: '' },
-  { id: 'shopping', label: 'Shopping', types: ['shopping_mall', 'store'], icon: '' },
-  { id: 'parks', label: 'Parks', types: ['park', 'natural_feature'], icon: '' },
+  { id: 'food', label: 'Food', types: ['restaurant', 'cafe', 'bakery', 'meal_takeaway'], icon: '' },
+  { id: 'shopping', label: 'Shopping', types: ['shopping_mall', 'department_store', 'store'], icon: '' },
+  { id: 'parks', label: 'Parks', types: ['park', 'natural_feature', 'campground'], icon: '' },
 ];
 
 // Cultural tips database (can be expanded or moved to backend)

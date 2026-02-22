@@ -1,4 +1,4 @@
-// Import the functions 
+// Import the functions
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
@@ -25,5 +25,9 @@ getAnalytics(app);
 
 // Initialize Firebase Authentication and export it
 export const auth = getAuth(app);
+
+// Initialize Firestore and export it
 export const db = getFirestore(app);
+
+// Initialize Firebase Storage and export it
 export const storage = getStorage(app);

@@ -19,12 +19,14 @@ import TermsScreen from '@/app/components/TermsScreen';
 import PrivacyScreen from '@/app/components/PrivacyScreen';
 import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
-import { signUpWithEmail, logOut } from '@/app/services/authService';
-import { getUserProfile, saveUserProfile } from '@/app/services/profileService';
+import { signUpWithEmail, logOut } from './services/authService';
+import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
+import { useTranslation } from 'react-i18next';
 
 type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
 export default function App() {
+  const { t } = useTranslation();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,9 +37,8 @@ export default function App() {
   const [journalInitialTab, setJournalInitialTab] = useState<JournalTab>('community');
   const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
   const [deletedJournalId, setDeletedJournalId] = useState<string | null>(null);
-  const [profileName, setProfileName] = useState('John Doe');
-  const [profileLocation, setProfileLocation] = useState('Mars, Solar System');
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | undefined>(undefined);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Listen to auth state changes
   useEffect(() => {
@@ -48,36 +49,94 @@ export default function App() {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      setLoading(false);
       if (user) {
+        // Load user profile from Firestore
+        setProfileLoading(true);
+        try {
+          let profile = await getUserProfile(user.uid);
+          
+          // If profile doesn't exist, create a basic one in Firebase
+          if (!profile) {
+            console.log('No profile found, creating basic profile...');
+            const basicProfile: UserProfile = {
+              uid: user.uid,
+              name: user.displayName || 'User',
+              bio: '',
+              preferences: {
+                privateAccount: false,
+                shareGpsData: false,
+                darkMode: false,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            
+            // Save to Firebase
+            await updateUserProfile(user.uid, {
+              name: basicProfile.name,
+              bio: basicProfile.bio,
+              preferences: basicProfile.preferences,
+            });
+            
+            profile = basicProfile;
+          }
+          
+          // Load avatar from localStorage
+          const storageKey = `avatar_${user.uid}`;
+          const localAvatar = localStorage.getItem(storageKey);
+          if (localAvatar) {
+            profile.avatarUrl = localAvatar;
+          }
+          
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+          // Create a basic profile if error occurs
+          const basicProfile: UserProfile = {
+            uid: user.uid,
+            name: user.displayName || 'User',
+            bio: '',
+            preferences: {
+              privateAccount: false,
+              shareGpsData: false,
+              darkMode: false,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          
+          // Load avatar from localStorage
+          const storageKey = `avatar_${user.uid}`;
+          const localAvatar = localStorage.getItem(storageKey);
+          if (localAvatar) {
+            basicProfile.avatarUrl = localAvatar;
+          }
+          
+          setUserProfile(basicProfile);
+        } finally {
+          setProfileLoading(false);
+        }
         setCurrentScreen('home');
       } else {
+        setUserProfile(null);
         setCurrentScreen('login');
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
+  // Apply dark mode to document
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!user) return;
-      const result = await getUserProfile(user.uid);
-      if (result.success && result.profile) {
-        setProfileName(result.profile.name || user.displayName || 'John Doe');
-        setProfileLocation(result.profile.location || '');
-        setProfileAvatarUrl(result.profile.avatarUrl);
-        return;
-      }
-      setProfileName(user.displayName || user.email || 'John Doe');
-      setProfileLocation('');
-      setProfileAvatarUrl(undefined);
-    };
-
-    loadProfile();
-  }, [user]);
+    if (userProfile?.preferences.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [userProfile?.preferences.darkMode]);
 
   const handleSignUp = async (data: SignUpFormData) => {
     const result = await signUpWithEmail(data);
@@ -271,7 +330,7 @@ export default function App() {
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
           />
         )}
-        {currentScreen === 'profile' && user && (
+        {currentScreen === 'profile' && user && userProfile && (
           <ProfileScreen
             currentScreen={currentScreen}
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
@@ -280,38 +339,110 @@ export default function App() {
             onOpenTerms={() => setCurrentScreen('terms')}
             onOpenPrivacy={() => setCurrentScreen('privacy')}
             onLogout={handleLogout}
-            userName={profileName || user.displayName || 'John Doe'}
-            userLocation={profileLocation}
-            userAvatarUrl={profileAvatarUrl}
+            userName={userProfile.name}
+            userBio={userProfile.bio}
+            userAvatarUrl={userProfile.avatarUrl}
+            privateAccountEnabled={userProfile.preferences.privateAccount}
+            darkModeEnabled={userProfile.preferences.darkMode}
+            onPrivateAccountToggle={async (enabled) => {
+              // Optimistic update - update UI immediately
+              const previousState = userProfile.preferences.privateAccount;
+              setUserProfile({
+                ...userProfile,
+                preferences: { ...userProfile.preferences, privateAccount: enabled }
+              });
+              
+              // Try to update Firebase
+              const success = await updateUserProfile(user.uid, {
+                preferences: { privateAccount: enabled }
+              });
+              
+              if (!success) {
+                // Revert on failure
+                setUserProfile({
+                  ...userProfile,
+                  preferences: { ...userProfile.preferences, privateAccount: previousState }
+                });
+                toast.error('Failed to update settings. Please try again.');
+              }
+            }}
+            onDarkModeToggle={async (enabled) => {
+              // Optimistic update - update UI immediately
+              const previousState = userProfile.preferences.darkMode;
+              setUserProfile({
+                ...userProfile,
+                preferences: { ...userProfile.preferences, darkMode: enabled }
+              });
+              
+              // Show toast
+              toast.success(enabled ? t('toast.darkModeEnabled') : t('toast.darkModeDisabled'));
+              
+              // Try to update Firebase
+              const success = await updateUserProfile(user.uid, {
+                preferences: { darkMode: enabled }
+              });
+              
+              if (!success) {
+                // Revert on failure
+                setUserProfile({
+                  ...userProfile,
+                  preferences: { ...userProfile.preferences, darkMode: previousState }
+                });
+                toast.error('Failed to update settings. Please try again.');
+              }
+            }}
           />
         )}
-        {currentScreen === 'editProfile' && user && (
+        {currentScreen === 'profile' && user && !userProfile && (
+          <div className="h-screen flex items-center justify-center bg-white">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2] mx-auto mb-4"></div>
+              <p className="font-['Poppins:Regular',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)]">
+                Setting up your profile...
+              </p>
+            </div>
+          </div>
+        )}
+        {currentScreen === 'profile' && !user && (
+          <div className="h-screen flex items-center justify-center bg-white">
+            <div className="text-center">
+              <p className="font-['Poppins:Regular',sans-serif] text-[16px] text-[rgba(0,0,0,0.6)]">Please log in to view your profile</p>
+              <button
+                onClick={() => setCurrentScreen('login')}
+                className="mt-4 px-4 py-2 bg-[#0fa3e2] text-white rounded-lg"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        )}
+        {currentScreen === 'editProfile' && user && userProfile && (
           <EditProfileScreen
             currentScreen="profile"
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
             onBack={() => setCurrentScreen('profile')}
-            initialName={profileName || user.displayName || 'John Doe'}
-            initialLocation={profileLocation}
-            initialAvatarUrl={profileAvatarUrl}
+            initialName={userProfile.name}
+            initialBio={userProfile.bio}
+            initialAvatarUrl={userProfile.avatarUrl}
             onSave={async (data) => {
-              const result = await saveUserProfile({
-                uid: user.uid,
+              // Don't save avatarUrl to Firebase (it's stored in localStorage)
+              const success = await updateUserProfile(user.uid, {
                 name: data.name,
-                location: data.location,
-                avatarFile: data.avatarFile,
-                avatarUrl: data.avatarUrl,
+                bio: data.bio,
               });
 
-              if (!result.success) {
-                toast.error(result.error || 'Failed to save profile');
-                return;
+              if (success) {
+                setUserProfile({
+                  ...userProfile,
+                  name: data.name,
+                  bio: data.bio,
+                  avatarUrl: data.avatarUrl, // Keep in local state
+                  updatedAt: new Date(),
+                });
+                setCurrentScreen('profile');
+              } else {
+                throw new Error('Failed to update profile');
               }
-
-              setProfileName(result.profile?.name || data.name);
-              setProfileLocation(result.profile?.location || data.location);
-              setProfileAvatarUrl(result.profile?.avatarUrl || data.avatarUrl);
-              toast.success('Profile updated');
-              setCurrentScreen('profile');
             }}
           />
         )}

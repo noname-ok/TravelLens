@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "Profil",
+    "editProfile": "Edit Profil",
+    "changeLanguage": "Tukar Bahasa",
+    "darkMode": "Mod Gelap",
+    "accountSettings": "Tetapan Akaun",
+    "legal": "Undang-undang",
+    "termsAndConditions": "Terma dan Syarat",
+    "privacyPolicy": "Dasar Privasi",
+    "logout": "Log Keluar",
+    "logoutConfirmTitle": "Log keluar?",
+    "logoutConfirmDescription": "Adakah anda pasti mahu log keluar dari akaun anda?",
+    "confirmLogout": "Ya, log keluar",
+    "cancel": "Batal",
+    "confirm": "Sahkan",
+    "journalPrivacy": "Privasi Jurnal",
+    "privateAccount": "Akaun Peribadi",
+    "privateAccountDescription": "Apabila akaun anda awam, profil dan siaran anda boleh dilihat oleh semua orang.",
+    "makePublicTitle": "Jadikan Akaun Anda Awam?",
+    "makePublicDescription": "Kandungan anda akan kelihatan kepada pengguna lain. Sila berhati-hati semasa berkongsi butiran peribadi."
+  },
+  "editProfile": {
+    "title": "Edit Profil",
+    "username": "Nama Pengguna",
+    "bio": "Bio",
+    "bioPlaceholder": "Beritahu kami tentang diri anda...",
+    "save": "Simpan Profil",
+    "saving": "Menyimpan..."
+  },
+  "language": {
+    "title": "Bahasa",
+    "changed": "Bahasa ditukar kepada"
+  },
+  "navigation": {
+    "home": "Utama",
+    "nearby": "Berdekatan",
+    "aiLens": "Kanta AI",
+    "profile": "Profil"
+  },
+  "toast": {
+    "profileUpdated": "Profil dikemaskini",
+    "profileSaved": "Profil berjaya disimpan!",
+    "photoUpdated": "Foto dikemaskini!",
+    "uploadingPhoto": "Memproses foto...",
+    "savingProfile": "Menyimpan profil...",
+    "failedToSave": "Gagal menyimpan profil",
+    "failedToProcess": "Gagal memproses foto",
+    "privateAccountEnabled": "Akaun peribadi diaktifkan",
+    "privateAccountDisabled": "Akaun peribadi dinyahaktifkan",
+    "darkModeEnabled": "Mod gelap diaktifkan",
+    "darkModeDisabled": "Mod gelap dinyahaktifkan"
+  }
+}
