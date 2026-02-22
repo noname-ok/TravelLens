@@ -3,7 +3,7 @@ import { Home, MapPin, Camera, User } from 'lucide-react';
 import backIcon from '@/assets/Back.svg';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage, getCurrentLanguageName } from '@/i18n';
+import { changeLanguage, getCurrentLanguageName, getLanguageCodeFromName } from '@/i18n';
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -19,6 +19,7 @@ interface LanguageScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
   onBack: () => void;
+  onLanguageChange?: (languageCode: string) => Promise<void> | void;
 }
 
 const LANGUAGES = [
@@ -33,13 +34,15 @@ const LANGUAGES = [
   'Bahasa Melayu',
 ];
 
-export default function LanguageScreen({ currentScreen, onNavigate, onBack }: LanguageScreenProps) {
+export default function LanguageScreen({ currentScreen, onNavigate, onBack, onLanguageChange }: LanguageScreenProps) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState(getCurrentLanguageName());
 
-  const handleLanguageSelect = (language: string) => {
+  const handleLanguageSelect = async (language: string) => {
     setSelected(language);
     changeLanguage(language);
+    const languageCode = getLanguageCodeFromName(language);
+    await onLanguageChange?.(languageCode);
     toast.success(`${t('language.changed')} ${language}`);
   };
 

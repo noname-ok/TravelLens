@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { Home, MapPin, Camera, User, Compass, LocateFixed } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
 
@@ -60,6 +61,7 @@ interface MapViewScreenProps {
 }
 
 export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScreenProps) {
+  const { t } = useTranslation();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [center, setCenter] = useState<PlaceLocation>({ lat: 11.5564, lng: 104.9282 }); // Phnom Penh default
   const [userLocation, setUserLocation] = useState<PlaceLocation | null>(null);
@@ -819,7 +821,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                 currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
-                Home
+                {t('navigation.home')}
               </p>
             </button>
 
@@ -836,7 +838,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                 currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
-                Nearby
+                {t('navigation.nearby')}
               </p>
             </button>
 
@@ -853,7 +855,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                 currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
-                AI Lens
+                {t('navigation.aiLens')}
               </p>
             </button>
 
@@ -870,7 +872,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                 currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
               }`}>
-                Profile
+                {t('navigation.profile')}
               </p>
             </button>
             </div>

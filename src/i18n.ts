@@ -24,6 +24,14 @@ export const LANGUAGE_MAP: Record<string, string> = {
   'Bahasa Melayu': 'ms',
 };
 
+export const getLanguageCodeFromName = (languageName: string): string => {
+  return LANGUAGE_MAP[languageName] || 'en';
+};
+
+export const getLanguageNameFromCode = (languageCode: string): string => {
+  return Object.keys(LANGUAGE_MAP).find((key) => LANGUAGE_MAP[key] === languageCode) || 'English';
+};
+
 const resources = {
   en: { translation: en },
   es: { translation: es },
@@ -52,7 +60,7 @@ i18n
 
 // Custom function to change language
 export const changeLanguage = (languageName: string) => {
-  const languageCode = LANGUAGE_MAP[languageName] || 'en';
+  const languageCode = getLanguageCodeFromName(languageName);
   localStorage.setItem('appLanguage', languageCode);
   i18n.changeLanguage(languageCode);
 };
@@ -60,7 +68,7 @@ export const changeLanguage = (languageName: string) => {
 // Get current language display name
 export const getCurrentLanguageName = (): string => {
   const currentCode = i18n.language || 'en';
-  return Object.keys(LANGUAGE_MAP).find(key => LANGUAGE_MAP[key] === currentCode) || 'English';
+  return getLanguageNameFromCode(currentCode);
 };
 
 export default i18n;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
 import LoginScreen from '@/app/components/LoginScreen';
@@ -21,7 +21,16 @@ import { Toaster } from '@/app/components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from './services/authService';
 import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
+import {
+  createJournal,
+  deleteJournal,
+  incrementJournalViews,
+  recordUserJournalInterest,
+  updateJournal,
+  uploadJournalImage,
+} from './services/journalService';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 
 type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
@@ -33,12 +42,18 @@ export default function App() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+855');
   const [selectedJournal, setSelectedJournal] = useState<JournalEntry | null>(null);
-  const [pendingJournal, setPendingJournal] = useState<JournalEntry | null>(null);
   const [journalInitialTab, setJournalInitialTab] = useState<JournalTab>('community');
   const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
-  const [deletedJournalId, setDeletedJournalId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const interestViewedJournalIds = useRef<Set<string>>(new Set());
+
+  const handleNavigate = (screen: Screen) => {
+    if (screen === 'home') {
+      setJournalInitialTab('community');
+    }
+    setCurrentScreen(screen);
+  };
 
   // Listen to auth state changes
   useEffect(() => {
@@ -68,6 +83,7 @@ export default function App() {
                 privateAccount: false,
                 shareGpsData: false,
                 darkMode: false,
+                language: 'en',
               },
               createdAt: new Date(),
               updatedAt: new Date(),
@@ -83,14 +99,10 @@ export default function App() {
             profile = basicProfile;
           }
           
-          // Load avatar from localStorage
-          const storageKey = `avatar_${user.uid}`;
-          const localAvatar = localStorage.getItem(storageKey);
-          if (localAvatar) {
-            profile.avatarUrl = localAvatar;
-          }
-          
           setUserProfile(profile);
+          const preferredLanguage = profile.preferences?.language || 'en';
+          localStorage.setItem('appLanguage', preferredLanguage);
+          i18n.changeLanguage(preferredLanguage);
         } catch (error) {
           console.error('Error loading user profile:', error);
           // Create a basic profile if error occurs
@@ -102,22 +114,17 @@ export default function App() {
               privateAccount: false,
               shareGpsData: false,
               darkMode: false,
+              language: 'en',
             },
             createdAt: new Date(),
             updatedAt: new Date(),
           };
           
-          // Load avatar from localStorage
-          const storageKey = `avatar_${user.uid}`;
-          const localAvatar = localStorage.getItem(storageKey);
-          if (localAvatar) {
-            basicProfile.avatarUrl = localAvatar;
-          }
-          
           setUserProfile(basicProfile);
         } finally {
           setProfileLoading(false);
         }
+        setJournalInitialTab('community');
         setCurrentScreen('home');
       } else {
         setUserProfile(null);
@@ -170,6 +177,37 @@ export default function App() {
     setCurrentScreen('createNewPassword');
   };
 
+  useEffect(() => {
+    if (!user || !selectedJournal || currentScreen !== 'journalDetail') {
+      return;
+    }
+
+    const key = `${user.uid}:${selectedJournal.id}`;
+    if (interestViewedJournalIds.current.has(key)) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      interestViewedJournalIds.current.add(key);
+
+      void recordUserJournalInterest(user.uid, selectedJournal.id, 'view').then((nextVector) => {
+        if (!nextVector) return;
+        setUserProfile((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            userInterestVector: nextVector,
+            updatedAt: new Date(),
+          };
+        });
+      });
+    }, 10_000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [currentScreen, selectedJournal, user]);
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
@@ -189,7 +227,10 @@ export default function App() {
           <LoginScreen 
             onCreateAccount={() => setCurrentScreen('signup')}
             onForgetPassword={() => setCurrentScreen('forgetPassword')}
-            onLoginSuccess={() => setCurrentScreen('home')}
+            onLoginSuccess={() => {
+              setJournalInitialTab('community');
+              setCurrentScreen('home');
+            }}
           />
         )}
         {currentScreen === 'signup' && (
@@ -230,31 +271,52 @@ export default function App() {
           <JournalScreen
             userName={user.displayName || ''}
             userEmail={user.email || ''}
+            userAvatarUrl={userProfile?.avatarUrl}
+            currentUserId={user.uid}
             onLogout={handleLogout}
             currentScreen={currentScreen}
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
             onCreateJournal={() => setCurrentScreen('createJournal')}
+            userInterestVector={userProfile?.userInterestVector}
+            onPositiveInteraction={(journalId, signal) => {
+              void recordUserJournalInterest(user.uid, journalId, signal).then((nextVector) => {
+                if (!nextVector) return;
+                setUserProfile((prev) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    userInterestVector: nextVector,
+                    updatedAt: new Date(),
+                  };
+                });
+              });
+            }}
             onEditJournal={(journal) => {
               setEditingJournal(journal);
               setJournalInitialTab('myJournal');
               setCurrentScreen('createJournal');
             }}
-            onOpenJournal={(journal) => {
-              setSelectedJournal(journal);
+            onOpenJournal={async (journal) => {
+              const success = await incrementJournalViews(journal.id);
+              const nextViews = (journal.views ?? 0) + (success ? 1 : 0);
+              setSelectedJournal({
+                ...journal,
+                views: nextViews,
+              });
               setCurrentScreen('journalDetail');
             }}
             initialTab={journalInitialTab}
-            pendingJournal={pendingJournal}
-            onConsumePendingJournal={() => setPendingJournal(null)}
-            deletedJournalId={deletedJournalId}
-            onConsumeDeletedJournal={() => setDeletedJournalId(null)}
           />
         )}
         {currentScreen === 'journalDetail' && user && selectedJournal && (
           <JournalDetailScreen
             onBack={() => setCurrentScreen('home')}
             currentScreen={currentScreen === 'journalDetail' ? 'home' : currentScreen}
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
+            journalId={selectedJournal.id}
+            currentUserId={user.uid}
+            currentUserName={userProfile?.name || user.displayName || user.email || 'User'}
+            currentUserAvatarUrl={userProfile?.avatarUrl}
             userInitial={(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
             title={selectedJournal.title}
             location={selectedJournal.location}
@@ -283,31 +345,60 @@ export default function App() {
                   }
                 : undefined
             }
-            onSubmit={(entry) => {
-              const author = user.displayName || user.email || 'User';
+            onSubmit={async (entry) => {
+              const author = userProfile?.name || user.displayName || user.email || 'User';
               const existing = editingJournal;
-              setPendingJournal({
-                id: existing ? existing.id : `my-${Date.now()}`,
-                timeAgo: existing ? existing.timeAgo : 'just now',
-                title: entry.title,
-                location: entry.location,
-                description: entry.description,
-                imageUrl: entry.imageUrl,
-                likes: existing ? existing.likes : 0,
-                bookmarks: existing ? existing.bookmarks : 0,
-                views: existing ? existing.views : 0,
-                isLiked: existing ? existing.isLiked : false,
-                isSaved: existing ? existing.isSaved : false,
-                author: existing ? existing.author || author : author,
-              });
+
+              let imageUrl = entry.imageUrl;
+              if (entry.imageFile) {
+                const uploaded = await uploadJournalImage(user.uid, entry.imageFile);
+                if (!uploaded) {
+                  toast.error('Failed to upload image. Check Firebase Storage bucket/rules, then try again.');
+                  return;
+                }
+                imageUrl = uploaded;
+              }
+
+              if (existing) {
+                const success = await updateJournal(existing.id, {
+                  title: entry.title,
+                  location: entry.location,
+                  description: entry.description,
+                  imageUrl,
+                });
+                if (!success) {
+                  toast.error('Failed to update journal');
+                  return;
+                }
+                toast.success('Journal updated successfully');
+              } else {
+                const createdId = await createJournal({
+                  title: entry.title,
+                  location: entry.location,
+                  description: entry.description,
+                  imageUrl,
+                  author,
+                  authorId: user.uid,
+                  authorAvatarUrl: userProfile?.avatarUrl,
+                });
+                if (!createdId) {
+                  toast.error('Failed to post journal');
+                  return;
+                }
+                toast.success('Journal posted successfully');
+              }
+
               setJournalInitialTab('myJournal');
-              toast.success(existing ? 'Journal updated successfully' : 'Journal posted successfully');
               setEditingJournal(null);
               setCurrentScreen('home');
             }}
-            onDelete={() => {
+            onDelete={async () => {
               if (editingJournal) {
-                setDeletedJournalId(editingJournal.id);
+                const success = await deleteJournal(editingJournal.id);
+                if (!success) {
+                  toast.error('Failed to delete journal');
+                  return;
+                }
                 toast.success('Journal deleted');
                 setEditingJournal(null);
               } else {
@@ -321,19 +412,19 @@ export default function App() {
         {currentScreen === 'mapview' && user && (
           <MapViewScreen
             currentScreen={currentScreen}
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
           />
         )}
         {currentScreen === 'ailens' && user && (
           <AILensScreen
             currentScreen={currentScreen}
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
           />
         )}
         {currentScreen === 'profile' && user && userProfile && (
           <ProfileScreen
             currentScreen={currentScreen}
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
             onEditProfile={() => setCurrentScreen('editProfile')}
             onChangeLanguage={() => setCurrentScreen('language')}
             onOpenTerms={() => setCurrentScreen('terms')}
@@ -419,16 +510,26 @@ export default function App() {
         {currentScreen === 'editProfile' && user && userProfile && (
           <EditProfileScreen
             currentScreen="profile"
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
             onBack={() => setCurrentScreen('profile')}
             initialName={userProfile.name}
             initialBio={userProfile.bio}
             initialAvatarUrl={userProfile.avatarUrl}
             onSave={async (data) => {
-              // Don't save avatarUrl to Firebase (it's stored in localStorage)
+              let nextAvatarUrl = userProfile.avatarUrl;
+
+              if (data.avatarFile) {
+                const uploadedAvatarUrl = await uploadAvatar(user.uid, data.avatarFile);
+                if (!uploadedAvatarUrl) {
+                  throw new Error('Failed to upload avatar');
+                }
+                nextAvatarUrl = uploadedAvatarUrl;
+              }
+
               const success = await updateUserProfile(user.uid, {
                 name: data.name,
                 bio: data.bio,
+                avatarUrl: nextAvatarUrl,
               });
 
               if (success) {
@@ -436,7 +537,7 @@ export default function App() {
                   ...userProfile,
                   name: data.name,
                   bio: data.bio,
-                  avatarUrl: data.avatarUrl, // Keep in local state
+                  avatarUrl: nextAvatarUrl,
                   updatedAt: new Date(),
                 });
                 setCurrentScreen('profile');
@@ -449,21 +550,37 @@ export default function App() {
         {currentScreen === 'language' && user && (
           <LanguageScreen
             currentScreen="profile"
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
             onBack={() => setCurrentScreen('profile')}
+            onLanguageChange={async (languageCode) => {
+              if (!userProfile) return;
+              const success = await updateUserProfile(user.uid, {
+                preferences: { language: languageCode },
+              });
+
+              if (success) {
+                setUserProfile({
+                  ...userProfile,
+                  preferences: {
+                    ...userProfile.preferences,
+                    language: languageCode,
+                  },
+                });
+              }
+            }}
           />
         )}
         {currentScreen === 'terms' && user && (
           <TermsScreen
             currentScreen="profile"
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
             onBack={() => setCurrentScreen('profile')}
           />
         )}
         {currentScreen === 'privacy' && user && (
           <PrivacyScreen
             currentScreen="profile"
-            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onNavigate={handleNavigate}
             onBack={() => setCurrentScreen('profile')}
           />
         )}

@@ -1,9 +1,11 @@
+import { memo } from 'react';
 import { Eye } from 'lucide-react';
 
 type JournalCardProps = {
   author?: string;
   timeAgo?: string;
   avatarLetter?: string;
+  avatarUrl?: string;
   title?: string;
   location?: string;
   description?: string;
@@ -20,10 +22,11 @@ type JournalCardProps = {
   onViewJournal?: () => void;
 };
 
-export default function JournalCard({
+function JournalCard({
   author = 'Teo Doe',
   timeAgo = '2 hours ago',
   avatarLetter = 'T',
+  avatarUrl,
   title = 'Kyoto Temple',
   location = 'Japan',
   description = 'Amazing experience exploring the historical sites...',
@@ -50,7 +53,11 @@ export default function JournalCard({
       {/* Header Area */}
         <div className="flex items-center p-4 gap-4">
         <div className="w-10 h-10 bg-[#DAECFF] rounded-full flex items-center justify-center text-[#2C638B] font-medium">
-          {avatarLetter}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="author" loading="lazy" decoding="async" className="w-full h-full rounded-full object-cover" />
+          ) : (
+            avatarLetter
+          )}
         </div>
         <div>
           <h3 className="font-['Poppins'] font-medium text-[16px] text-[#1D1B20]">{author}</h3>
@@ -61,7 +68,7 @@ export default function JournalCard({
       {/* Media / Image Area */}
       <div className="w-full h-[188px] bg-[#CDE5FF] flex items-center justify-center overflow-hidden">
         {imageUrl ? (
-          <img src={imageUrl} alt="Travel" className="w-full h-full object-cover" />
+          <img src={imageUrl} alt="Travel" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <span className="text-blue-400">Travel Photo</span>
         )}
@@ -124,3 +131,5 @@ export default function JournalCard({
     </div>
   );
 }
+
+export default memo(JournalCard);

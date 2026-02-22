@@ -211,6 +211,19 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
 
 ---
 
+### **7️⃣ AI For You Feed (Free-Tier Friendly)** 🎯
+- **What it does:** Personalizes journal recommendations based on each user's behavior
+- **Powered by:** Gemini `text-embedding-004` + Firestore + client-side cosine similarity
+- **How it works:**
+  - New/updated journals store an `embedding` vector
+  - User profile stores a `userInterestVector`
+  - Likes, saves, and 10s+ detail views update interest vector using weighted averaging
+  - `For You` tab ranks posts by semantic similarity to that interest vector
+- **Cold start behavior:** Falls back to engagement ranking (likes/saves/views/comments)
+- **Cost model:** No Firestore vector index required; works on Firebase free tier
+
+---
+
 ## 📱 Overview of Technologies Used
 
 ### **Google Technologies (Primary Stack)**
@@ -219,10 +232,11 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
 |-----------|---------|------------|
 | **Gemini 2.5 Flash** | AI image analysis + explanations | ⭐ Google's most powerful vision model; free tier; production-ready |
 | **Gemini Vision API** | Text extraction + translation | Same unified API; no separate service needed |
+| **Gemini Embeddings API** | Semantic vectors for recommendation | Free-tier friendly and low-latency |
 | **Google Maps API** | Location services & nearby searches | Most accurate, real-time, familiar to users |
 | **Google Places API** | Attraction discovery & details | Integrated with Maps; rich place data |
 | **Firebase Auth** | User authentication | Secure, scalable, multi-factor support |
-| **Firebase Realtime DB** | Store user profiles, journal entries | Real-time sync, built-in security rules |
+| **Firebase Firestore** | Store user profiles, journal entries, vectors | Real-time sync, built-in security rules |
 
 ### **Supporting Technologies**
 
@@ -465,7 +479,6 @@ VITE_GOOGLE_MAPS_KEY=your_maps_api_key_here
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 EOF
@@ -514,6 +527,30 @@ npm run build
 ```
 
 Output: `dist/` folder ready for deployment
+
+### **Step 7: Deploy Firestore Rules**
+
+```bash
+npm install -g firebase-tools
+firebase login
+firebase use <your-firebase-project-id>
+firebase deploy --only firestore:rules
+```
+
+Journals are stored in Firestore collection: `journals`.
+User profiles/preferences are stored in collection: `users`.
+Journal and profile images are stored as compressed Base64 data in Firestore fields.
+
+### **Step 8: Enable For You Recommendations (Free Tier)**
+
+1. Ensure `.env.local` has a valid `VITE_GEMINI_API_KEY`
+2. Keep using Firestore (no paid vector index required for current implementation)
+3. Use app normally:
+  - Create/edit journals to generate post embeddings
+  - Like/save/view posts to train user interest vector
+  - Open `For You` tab in Journal to see personalized ranking
+
+> Note: Current `For You` ranking runs client-side on already fetched posts to stay free-tier friendly. You can later upgrade to Firestore KNN/vector index when scaling.
 
 ---
 

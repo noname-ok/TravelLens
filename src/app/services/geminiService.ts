@@ -223,3 +223,73 @@ Make every answer location-specific. Avoid generic travel advice.`;
     return JSON.parse(jsonMatch[0]) as PlaceInsights;
   });
 }
+
+const TARGET_LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  zh: 'Chinese (Simplified)',
+  ja: 'Japanese',
+  ko: 'Korean',
+  hi: 'Hindi',
+  ar: 'Arabic',
+  ms: 'Bahasa Melayu',
+};
+
+export async function generateTextEmbedding(text: string): Promise<number[] | null> {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (!apiKey) return null;
+
+  const payload = {
+    model: 'models/text-embedding-004',
+    content: {
+      parts: [{ text: trimmed.slice(0, 8000) }],
+    },
+  };
+
+  return withRetry(async () => {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Embedding request failed (${response.status}): ${errorText}`);
+    }
+
+    const json = await response.json();
+    const values = json?.embedding?.values;
+    if (!Array.isArray(values) || values.length === 0) {
+      return null;
+    }
+
+    return values.map((value: unknown) => Number(value)).filter((value: number) => Number.isFinite(value));
+  });
+}
+
+export async function translatePlainText(text: string, targetLanguageCode: string): Promise<string> {
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+  if (targetLanguageCode === 'en') return text;
+  if (!genAI) return text;
+
+  const targetLanguage = TARGET_LANGUAGE_NAMES[targetLanguageCode] || 'English';
+
+  return withRetry(async () => {
+    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
+
+    const prompt = `Translate the following text to ${targetLanguage}. Keep meaning, tone, and punctuation naturally. Return only the translated text without quotes or explanations.\n\nText:\n${trimmed}`;
+
+    const result = await model.generateContent(prompt);
+    const translated = result.response.text().trim();
+    return translated || text;
+  });
+}
