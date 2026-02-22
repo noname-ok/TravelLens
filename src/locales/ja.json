@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "プロフィール",
+    "editProfile": "プロフィールを編集",
+    "changeLanguage": "言語を変更",
+    "darkMode": "ダークモード",
+    "accountSettings": "アカウント設定",
+    "legal": "法的事項",
+    "termsAndConditions": "利用規約",
+    "privacyPolicy": "プライバシーポリシー",
+    "logout": "ログアウト",
+    "logoutConfirmTitle": "ログアウトしますか？",
+    "logoutConfirmDescription": "本当にアカウントからログアウトしますか？",
+    "confirmLogout": "はい、ログアウト",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "journalPrivacy": "ジャーナルのプライバシー",
+    "privateAccount": "非公開アカウント",
+    "privateAccountDescription": "アカウントが公開されている場合、プロフィールと投稿は全員に表示されます。",
+    "makePublicTitle": "アカウントを公開しますか？",
+    "makePublicDescription": "コンテンツは他のユーザーに表示されます。個人情報の共有には注意してください。"
+  },
+  "editProfile": {
+    "title": "プロフィールを編集",
+    "username": "ユーザー名",
+    "bio": "自己紹介",
+    "bioPlaceholder": "自己紹介を入力してください...",
+    "save": "プロフィールを保存",
+    "saving": "保存中..."
+  },
+  "language": {
+    "title": "言語",
+    "changed": "言語が変更されました"
+  },
+  "navigation": {
+    "home": "ホーム",
+    "nearby": "近く",
+    "aiLens": "AIレンズ",
+    "profile": "プロフィール"
+  },
+  "toast": {
+    "profileUpdated": "プロフィールが更新されました",
+    "profileSaved": "プロフィールが保存されました！",
+    "photoUpdated": "写真が更新されました！",
+    "uploadingPhoto": "写真を処理中...",
+    "savingProfile": "プロフィールを保存中...",
+    "failedToSave": "プロフィールの保存に失敗しました",
+    "failedToProcess": "写真の処理に失敗しました",
+    "privateAccountEnabled": "非公開アカウントが有効になりました",
+    "privateAccountDisabled": "非公開アカウントが無効になりました",
+    "darkModeEnabled": "ダークモードが有効になりました",
+    "darkModeDisabled": "ダークモードが無効になりました"
+  }
+}

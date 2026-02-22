@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "Profil",
+    "editProfile": "Modifier le Profil",
+    "changeLanguage": "Changer la Langue",
+    "darkMode": "Mode Sombre",
+    "accountSettings": "Paramètres du Compte",
+    "legal": "Juridique",
+    "termsAndConditions": "Termes et Conditions",
+    "privacyPolicy": "Politique de Confidentialité",
+    "logout": "Déconnexion",
+    "logoutConfirmTitle": "Se déconnecter?",
+    "logoutConfirmDescription": "Êtes-vous sûr de vouloir vous déconnecter de votre compte?",
+    "confirmLogout": "Oui, se déconnecter",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "journalPrivacy": "Confidentialité du Journal",
+    "privateAccount": "Compte Privé",
+    "privateAccountDescription": "Lorsque votre compte est public, votre profil et vos publications peuvent être vus par tout le monde.",
+    "makePublicTitle": "Rendre Votre Compte Public?",
+    "makePublicDescription": "Votre contenu sera visible par d'autres utilisateurs. Faites attention lors du partage de détails personnels."
+  },
+  "editProfile": {
+    "title": "Modifier le Profil",
+    "username": "Nom d'utilisateur",
+    "bio": "Biographie",
+    "bioPlaceholder": "Parlez-nous de vous...",
+    "save": "Enregistrer le Profil",
+    "saving": "Enregistrement..."
+  },
+  "language": {
+    "title": "Langue",
+    "changed": "Langue changée en"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "nearby": "À Proximité",
+    "aiLens": "IA Lens",
+    "profile": "Profil"
+  },
+  "toast": {
+    "profileUpdated": "Profil mis à jour avec succès",
+    "profileSaved": "Profil enregistré avec succès!",
+    "photoUpdated": "Photo mise à jour!",
+    "uploadingPhoto": "Traitement de la photo...",
+    "savingProfile": "Enregistrement du profil...",
+    "failedToSave": "Échec de l'enregistrement du profil",
+    "failedToProcess": "Échec du traitement de la photo",
+    "privateAccountEnabled": "Compte privé activé",
+    "privateAccountDisabled": "Compte privé désactivé",
+    "darkModeEnabled": "Mode sombre activé",
+    "darkModeDisabled": "Mode sombre désactivé"
+  }
+}

@@ -21,10 +21,12 @@ import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from './services/authService';
 import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
+import { useTranslation } from 'react-i18next';
 
 type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
 
 export default function App() {
+  const { t } = useTranslation();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,15 +55,49 @@ export default function App() {
         // Load user profile from Firestore
         setProfileLoading(true);
         try {
-          const profile = await getUserProfile(user.uid);
+          let profile = await getUserProfile(user.uid);
+          
+          // If profile doesn't exist, create a basic one in Firebase
+          if (!profile) {
+            console.log('No profile found, creating basic profile...');
+            const basicProfile: UserProfile = {
+              uid: user.uid,
+              name: user.displayName || 'User',
+              bio: '',
+              preferences: {
+                privateAccount: false,
+                shareGpsData: false,
+                darkMode: false,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            
+            // Save to Firebase
+            await updateUserProfile(user.uid, {
+              name: basicProfile.name,
+              bio: basicProfile.bio,
+              preferences: basicProfile.preferences,
+            });
+            
+            profile = basicProfile;
+          }
+          
+          // Load avatar from localStorage
+          const storageKey = `avatar_${user.uid}`;
+          const localAvatar = localStorage.getItem(storageKey);
+          if (localAvatar) {
+            profile.avatarUrl = localAvatar;
+          }
+          
           setUserProfile(profile);
         } catch (error) {
           console.error('Error loading user profile:', error);
-          // Create a basic profile if none exists
+          // Create a basic profile if error occurs
           const basicProfile: UserProfile = {
             uid: user.uid,
             name: user.displayName || 'User',
-            location: '',
+            bio: '',
             preferences: {
               privateAccount: false,
               shareGpsData: false,
@@ -70,6 +106,14 @@ export default function App() {
             createdAt: new Date(),
             updatedAt: new Date(),
           };
+          
+          // Load avatar from localStorage
+          const storageKey = `avatar_${user.uid}`;
+          const localAvatar = localStorage.getItem(storageKey);
+          if (localAvatar) {
+            basicProfile.avatarUrl = localAvatar;
+          }
+          
           setUserProfile(basicProfile);
         } finally {
           setProfileLoading(false);
@@ -84,6 +128,15 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Apply dark mode to document
+  useEffect(() => {
+    if (userProfile?.preferences.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [userProfile?.preferences.darkMode]);
 
   const handleSignUp = async (data: SignUpFormData) => {
     const result = await signUpWithEmail(data);
@@ -287,42 +340,55 @@ export default function App() {
             onOpenPrivacy={() => setCurrentScreen('privacy')}
             onLogout={handleLogout}
             userName={userProfile.name}
-            userLocation={userProfile.location}
+            userBio={userProfile.bio}
             userAvatarUrl={userProfile.avatarUrl}
             privateAccountEnabled={userProfile.preferences.privateAccount}
-            gpsEnabled={userProfile.preferences.shareGpsData}
             darkModeEnabled={userProfile.preferences.darkMode}
             onPrivateAccountToggle={async (enabled) => {
+              // Optimistic update - update UI immediately
+              const previousState = userProfile.preferences.privateAccount;
+              setUserProfile({
+                ...userProfile,
+                preferences: { ...userProfile.preferences, privateAccount: enabled }
+              });
+              
+              // Try to update Firebase
               const success = await updateUserProfile(user.uid, {
                 preferences: { privateAccount: enabled }
               });
-              if (success && userProfile) {
+              
+              if (!success) {
+                // Revert on failure
                 setUserProfile({
                   ...userProfile,
-                  preferences: { ...userProfile.preferences, privateAccount: enabled }
+                  preferences: { ...userProfile.preferences, privateAccount: previousState }
                 });
-              }
-            }}
-            onGpsToggle={async (enabled) => {
-              const success = await updateUserProfile(user.uid, {
-                preferences: { shareGpsData: enabled }
-              });
-              if (success && userProfile) {
-                setUserProfile({
-                  ...userProfile,
-                  preferences: { ...userProfile.preferences, shareGpsData: enabled }
-                });
+                toast.error('Failed to update settings. Please try again.');
               }
             }}
             onDarkModeToggle={async (enabled) => {
+              // Optimistic update - update UI immediately
+              const previousState = userProfile.preferences.darkMode;
+              setUserProfile({
+                ...userProfile,
+                preferences: { ...userProfile.preferences, darkMode: enabled }
+              });
+              
+              // Show toast
+              toast.success(enabled ? t('toast.darkModeEnabled') : t('toast.darkModeDisabled'));
+              
+              // Try to update Firebase
               const success = await updateUserProfile(user.uid, {
                 preferences: { darkMode: enabled }
               });
-              if (success && userProfile) {
+              
+              if (!success) {
+                // Revert on failure
                 setUserProfile({
                   ...userProfile,
-                  preferences: { ...userProfile.preferences, darkMode: enabled }
+                  preferences: { ...userProfile.preferences, darkMode: previousState }
                 });
+                toast.error('Failed to update settings. Please try again.');
               }
             }}
           />
@@ -332,38 +398,8 @@ export default function App() {
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2] mx-auto mb-4"></div>
               <p className="font-['Poppins:Regular',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)]">
-                {profileLoading ? 'Loading profile...' : 'Setting up your profile...'}
+                Setting up your profile...
               </p>
-              {!profileLoading && (
-                <button
-                  onClick={async () => {
-                    // Try to create a basic profile if loading failed
-                    setProfileLoading(true);
-                    try {
-                      const basicProfile: UserProfile = {
-                        uid: user.uid,
-                        name: user.displayName || 'User',
-                        location: '',
-                        preferences: {
-                          privateAccount: false,
-                          shareGpsData: false,
-                          darkMode: false,
-                        },
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                      };
-                      setUserProfile(basicProfile);
-                    } catch (error) {
-                      console.error('Error creating basic profile:', error);
-                    } finally {
-                      setProfileLoading(false);
-                    }
-                  }}
-                  className="mt-4 px-4 py-2 bg-[#0fa3e2] text-white rounded-lg"
-                >
-                  Continue with Basic Profile
-                </button>
-              )}
             </div>
           </div>
         )}
@@ -386,29 +422,27 @@ export default function App() {
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
             onBack={() => setCurrentScreen('profile')}
             initialName={userProfile.name}
-            initialLocation={userProfile.location}
+            initialBio={userProfile.bio}
             initialAvatarUrl={userProfile.avatarUrl}
             onSave={async (data) => {
+              // Don't save avatarUrl to Firebase (it's stored in localStorage)
               const success = await updateUserProfile(user.uid, {
                 name: data.name,
-                location: data.location,
-                avatarUrl: data.avatarUrl,
+                bio: data.bio,
               });
 
               if (success) {
                 setUserProfile({
                   ...userProfile,
                   name: data.name,
-                  location: data.location,
-                  avatarUrl: data.avatarUrl,
+                  bio: data.bio,
+                  avatarUrl: data.avatarUrl, // Keep in local state
                   updatedAt: new Date(),
                 });
-                toast.success('Profile updated successfully');
+                setCurrentScreen('profile');
               } else {
-                toast.error('Failed to update profile');
+                throw new Error('Failed to update profile');
               }
-
-              setCurrentScreen('profile');
             }}
           />
         )}

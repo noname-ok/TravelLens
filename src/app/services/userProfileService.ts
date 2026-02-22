@@ -28,7 +28,7 @@ const isFirebaseInitialized = () => {
 export interface UserProfile {
   uid: string;
   name: string;
-  location: string;
+  bio: string;
   avatarUrl?: string;
   preferences: {
     privateAccount: boolean;
@@ -41,7 +41,7 @@ export interface UserProfile {
 
 export interface UserProfileUpdate {
   name?: string;
-  location?: string;
+  bio?: string;
   avatarUrl?: string;
   preferences?: {
     privateAccount?: boolean;
@@ -71,7 +71,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
       return {
         uid,
         name: data.name || 'User',
-        location: data.location || '',
+        bio: data.bio || '',
         avatarUrl: data.avatarUrl,
         preferences: {
           privateAccount: data.preferences?.privateAccount || false,
@@ -103,14 +103,16 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
     };
 
     if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.location !== undefined) updateData.location = updates.location;
+    if (updates.bio !== undefined) updateData.bio = updates.bio;
     if (updates.avatarUrl !== undefined) updateData.avatarUrl = updates.avatarUrl;
 
     if (updates.preferences) {
+      // Merge with existing preferences instead of replacing
+      const existingPreferences = docSnap.exists() ? docSnap.data()?.preferences || {} : {};
       updateData.preferences = {
-        privateAccount: updates.preferences.privateAccount ?? false,
-        shareGpsData: updates.preferences.shareGpsData ?? false,
-        darkMode: updates.preferences.darkMode ?? false,
+        privateAccount: updates.preferences.privateAccount ?? existingPreferences.privateAccount ?? false,
+        shareGpsData: updates.preferences.shareGpsData ?? existingPreferences.shareGpsData ?? false,
+        darkMode: updates.preferences.darkMode ?? existingPreferences.darkMode ?? false,
       };
     }
 
@@ -118,11 +120,10 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
       // Update existing document
       await updateDoc(docRef, updateData);
     } else {
-      // Create new document
-      const newProfile: Omit<UserProfile, 'uid'> = {
+      // Create new document - avoid undefined values
+      const newProfile: any = {
         name: updates.name || 'User',
-        location: updates.location || '',
-        avatarUrl: updates.avatarUrl,
+        bio: updates.bio || '',
         preferences: {
           privateAccount: updates.preferences?.privateAccount || false,
           shareGpsData: updates.preferences?.shareGpsData || false,
@@ -131,6 +132,12 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+      
+      // Only add avatarUrl if it's defined
+      if (updates.avatarUrl !== undefined) {
+        newProfile.avatarUrl = updates.avatarUrl;
+      }
+      
       await setDoc(docRef, newProfile);
     }
 
@@ -146,20 +153,38 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
  */
 export const uploadAvatar = async (uid: string, file: File): Promise<string | null> => {
   try {
+    console.log('Starting avatar upload for user:', uid);
+    
     // Create a unique filename
     const timestamp = Date.now();
     const filename = `avatars/${uid}/${timestamp}_${file.name}`;
+    console.log('Upload path:', filename);
+    
     const storageRef = ref(storage, filename);
 
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
+    // Upload the file with metadata
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        uploadedBy: uid
+      }
+    };
+
+    console.log('Uploading file...');
+    const snapshot = await uploadBytes(storageRef, file, metadata);
+    console.log('Upload successful:', snapshot);
 
     // Get the download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('Download URL:', downloadURL);
 
     return downloadURL;
   } catch (error) {
     console.error('Error uploading avatar:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error details:', error);
+    }
     return null;
   }
 };
