@@ -39,21 +39,12 @@ interface DetectedText {
 // HELPER COMPONENTS (Status Bar, Home Indicator)
 // ============================================================================
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
     <div className={className || ""}>
       <div className="h-[47px] relative w-full bg-white/10 backdrop-blur-md">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
         <div className="absolute left-[30px] top-[14px]">
             <p className="font-semibold text-[17px] text-black">9:41</p>
-        </div>
-        <div className="absolute right-[15px] top-[19px] w-[77px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
         </div>
       </div>
     </div>
@@ -133,11 +124,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
 
   const simulateOCRDetection = () => {
     // Mock OCR - in production, process video frame and detect text
-    const mockTexts: DetectedText[] = [
-      { id: '1', text: 'Sample Text', x: 20, y: 30, width: 80, height: 20 },
-      { id: '2', text: 'Another Sign', x: 200, y: 150, width: 100, height: 25 },
-    ];
-    setDetectedTexts(mockTexts);
+    setDetectedTexts([]);
   };
 
   const startCamera = async () => {
@@ -348,7 +335,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
               {viewMode === 'camera' && (
                 <button
                   onClick={handleTranslate}
-                  className="absolute bottom-20 left-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
+                  className="absolute bottom-[110px] left-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
                 >
                   <Languages size={32} className="text-white" />
                 </button>
@@ -359,7 +346,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
                 <button
                   onClick={handleAnalyze}
                   disabled={isLoading}
-                  className="absolute bottom-20 right-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 disabled:bg-white/15 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
+                  className="absolute bottom-[110px] right-6 z-20 w-16 h-16 bg-white/20 hover:bg-white/30 disabled:bg-white/15 backdrop-blur-xl border-2 border-white rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
                 >
                   {isLoading ? (
                     <Loader2 size={32} className="text-white animate-spin" />
