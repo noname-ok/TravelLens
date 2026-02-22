@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
+import { toast as sonnerToast } from 'sonner';
 import backIcon from '@/assets/Back.svg';
-import { auth } from '@/app/config/firebase';
-import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 function HomeIndicator({ className }: { className?: string }) {
@@ -19,7 +18,7 @@ interface EditProfileScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
   onBack: () => void;
-  onSave: (data: { name: string; bio: string; avatarUrl?: string }) => void;
+  onSave: (data: { name: string; bio: string; avatarUrl?: string; avatarFile?: File }) => void;
   initialName?: string;
   initialBio?: string;
   initialAvatarUrl?: string;
@@ -38,9 +37,19 @@ export default function EditProfileScreen({
   const [name, setName] = useState(initialName);
   const [bio, setBio] = useState(initialBio);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(initialAvatarUrl);
+  const [avatarFile, setAvatarFile] = useState<File | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setName(initialName);
+  }, [initialName]);
+
+  useEffect(() => {
+    setAvatarUrl(initialAvatarUrl);
+    setAvatarFile(undefined);
+  }, [initialAvatarUrl]);
 
   const handlePickAvatar = () => {
     fileInputRef.current?.click();
@@ -48,39 +57,22 @@ export default function EditProfileScreen({
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !auth.currentUser) return;
+    if (!file) return;
 
     setUploading(true);
-    const uploadingToast = toast.loading(t('toast.uploadingPhoto'));
+    const uploadingToast = sonnerToast.loading(t('toast.uploadingPhoto'));
 
     try {
-      // Convert image to base64
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        const base64String = e.target?.result as string;
-        
-        // Save to localStorage
-        const storageKey = `avatar_${auth.currentUser?.uid}`;
-        localStorage.setItem(storageKey, base64String);
-        
-        setAvatarUrl(base64String);
-        toast.dismiss(uploadingToast);
-        toast.success(t('toast.photoUpdated'));
-        setUploading(false);
-      };
-
-      reader.onerror = () => {
-        toast.dismiss(uploadingToast);
-        toast.error(t('toast.failedToProcess'));
-        setUploading(false);
-      };
-
-      reader.readAsDataURL(file);
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarFile(file);
+      setAvatarUrl(previewUrl);
+      sonnerToast.dismiss(uploadingToast);
+      sonnerToast.success(t('toast.photoUpdated'));
     } catch (error) {
       console.error('Error processing avatar:', error);
-      toast.dismiss(uploadingToast);
-      toast.error(t('toast.failedToProcess'));
+      sonnerToast.dismiss(uploadingToast);
+      sonnerToast.error(t('toast.failedToProcess'));
+    } finally {
       setUploading(false);
     }
   };
@@ -89,18 +81,17 @@ export default function EditProfileScreen({
     if (saving) return; // Prevent double-clicks
     
     setSaving(true);
-    const loadingToast = toast.loading(t('toast.savingProfile'));
+    const loadingToast = sonnerToast.loading(t('toast.savingProfile'));
     
     try {
-      // Avatar is already uploaded to Firebase Storage
-      await onSave({ name, bio, avatarUrl });
+      await onSave({ name, bio, avatarUrl, avatarFile });
       
-      toast.dismiss(loadingToast);
-      toast.success(t('toast.profileSaved'));
+      sonnerToast.dismiss(loadingToast);
+      sonnerToast.success(t('toast.profileSaved'));
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast.dismiss(loadingToast);
-      toast.error(error instanceof Error ? error.message : t('toast.failedToSave'));
+      sonnerToast.dismiss(loadingToast);
+      sonnerToast.error(error instanceof Error ? error.message : t('toast.failedToSave'));
     } finally {
       setSaving(false);
     }

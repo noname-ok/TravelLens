@@ -1,5 +1,6 @@
 import { Home, MapPin, Camera, User, Image, Mic, Send, Settings2, Volume2, Bot, Loader2, GripHorizontal, Languages } from 'lucide-react';
 import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AIChatSheet } from './AIChatSheet';
 import { TranslateModal } from './TranslateModal';
 // Fix: Use relative path if @ alias isn't fully working yet
@@ -71,6 +72,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   const [viewMode, setViewMode] = useState<ViewMode>('camera');
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState('');
+  const { t } = useTranslation();
   
   // Translation & Language
   // Removed toLang and fromLang as they're no longer needed with modal approach
@@ -394,10 +396,10 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
         {/* Bottom Navigation */}
         <div className="bg-white border-t border-gray-100 px-6 py-2 pb-8 z-30">
             <div className="flex justify-between items-center">
-                <NavButton icon={<Home />} label="Home" active={currentScreen === 'home'} onClick={() => onNavigate?.('home')} />
-                <NavButton icon={<MapPin />} label="Nearby" active={currentScreen === 'mapview'} onClick={() => onNavigate?.('mapview')} />
-                <NavButton icon={<Camera />} label="AI Lens" active={currentScreen === 'ailens'} onClick={() => { setViewMode('camera'); onNavigate?.('ailens'); }} />
-                <NavButton icon={<User />} label="Profile" active={currentScreen === 'profile'} onClick={() => onNavigate?.('profile')} />
+              <NavButton icon={<Home />} label={t('navigation.home')} active={currentScreen === 'home'} onClick={() => onNavigate?.('home')} />
+              <NavButton icon={<MapPin />} label={t('navigation.nearby')} active={currentScreen === 'mapview'} onClick={() => onNavigate?.('mapview')} />
+              <NavButton icon={<Camera />} label={t('navigation.aiLens')} active={currentScreen === 'ailens'} onClick={() => { setViewMode('camera'); onNavigate?.('ailens'); }} />
+              <NavButton icon={<User />} label={t('navigation.profile')} active={currentScreen === 'profile'} onClick={() => onNavigate?.('profile')} />
             </div>
             <HomeIndicator />
         </div>
