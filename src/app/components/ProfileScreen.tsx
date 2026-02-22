@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import privateAccountIcon from '@/assets/PrivateAccount.svg';
 import languageIcon from '@/assets/Language.svg';
@@ -63,6 +64,7 @@ export default function ProfileScreen({
   onPrivateAccountToggle,
   onDarkModeToggle,
 }: ProfileScreenProps) {
+  const { t } = useTranslation();
   // State for confirmation dialog
   const [showPrivateDialog, setShowPrivateDialog] = useState(false);
 
@@ -116,14 +118,14 @@ export default function ProfileScreen({
           <div className="flex flex-col gap-[40px]">
             <div className="flex flex-col gap-[20px]">
               <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
-                Journal Privacy
+                {t('profile.journalPrivacy')}
               </p>
               <div className="flex flex-col gap-[15px]">
                 <div className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px]">
                   <div className="flex items-center gap-[10px]">
                     <img src={privateAccountIcon} alt="private account" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
-                      Private Account
+                      {t('profile.privateAccount')}
                     </p>
                   </div>
                   <button
@@ -145,14 +147,14 @@ export default function ProfileScreen({
 
             <div className="flex flex-col gap-[20px]">
               <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
-                Account Settings
+                {t('profile.accountSettings')}
               </p>
               <div className="flex flex-col gap-[15px]">
                 <button onClick={onEditProfile} className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px] w-full hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-[10px]">
                     <User size={18} className="text-black" strokeWidth={2} />
                     <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
-                      Edit Profile
+                      {t('profile.editProfile')}
                     </p>
                   </div>
                   <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
@@ -162,7 +164,7 @@ export default function ProfileScreen({
                   <div className="flex items-center gap-[10px]">
                     <img src={languageIcon} alt="language" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
-                      Change Language
+                      {t('profile.changeLanguage')}
                     </p>
                   </div>
                   <img src={rightArrowIcon} alt="arrow" className="w-[15px] h-[15px]" />
@@ -172,7 +174,7 @@ export default function ProfileScreen({
                   <div className="flex items-center gap-[10px]">
                     <img src={darkModeIcon} alt="dark mode" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
-                      Dark Mode
+                      {t('profile.darkMode')}
                     </p>
                   </div>
                   <button
@@ -194,14 +196,14 @@ export default function ProfileScreen({
 
             <div className="flex flex-col gap-[20px]">
               <p className="font-['Poppins',sans-serif] font-semibold text-[18px] leading-[18px] tracking-[-0.165px] text-black">
-                Legal
+                {t('profile.legal')}
               </p>
               <div className="flex flex-col gap-[15px]">
                 <button onClick={onOpenTerms} className="flex items-center justify-between border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[20px] w-full hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-[10px]">
                     <img src={tncIcon} alt="terms" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[15px] leading-[18px] tracking-[-0.165px] text-black">
-                      Terms and Condition
+                      {t('profile.termsAndConditions')}
                     </p>
                   </div>
                   <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
@@ -210,7 +212,7 @@ export default function ProfileScreen({
                   <div className="flex items-center gap-[10px]">
                     <img src={privacyIcon} alt="privacy" className="w-[18px] h-[18px]" />
                     <p className="font-['Poppins',sans-serif] font-normal text-[14px] leading-[18px] tracking-[-0.165px] text-black">
-                      Privacy Policy
+                      {t('profile.privacyPolicy')}
                     </p>
                   </div>
                   <img src={openNewTabIcon} alt="open" className="w-[15px] h-[15px]" />
@@ -223,20 +225,20 @@ export default function ProfileScreen({
                 <AlertDialogTrigger asChild>
                   <button className="w-full flex flex-col items-center justify-center border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[10px] py-[20px] bg-[#FFDAD6] text-center">
                     <span className="font-['Poppins',sans-serif] font-medium text-[15px] leading-[18px] tracking-[-0.165px] text-black underline">
-                      Logout
+                      {t('profile.logout')}
                     </span>
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Log out?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('profile.logoutConfirmTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to log out of your account?
+                      {t('profile.logoutConfirmDescription')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onLogout}>Yes, log out</AlertDialogAction>
+                    <AlertDialogCancel>{t('profile.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={onLogout}>{t('profile.confirmLogout')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -254,28 +256,28 @@ export default function ProfileScreen({
               <button onClick={() => onNavigate?.('home')} className="flex-1 flex flex-col items-center">
                 <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-                  Home
+                  {t('navigation.home')}
                 </p>
               </button>
 
               <button onClick={() => onNavigate?.('mapview')} className="flex-1 flex flex-col items-center">
                 <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-                  Nearby
+                  {t('navigation.nearby')}
                 </p>
               </button>
 
               <button onClick={() => onNavigate?.('ailens')} className="flex-1 flex flex-col items-center">
                 <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-                  AI Lens
+                  {t('navigation.aiLens')}
                 </p>
               </button>
 
               <button onClick={() => onNavigate?.('profile')} className="flex-1 flex flex-col items-center">
                 <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-                  Profile
+                  {t('navigation.profile')}
                 </p>
               </button>
             </div>
@@ -289,14 +291,14 @@ export default function ProfileScreen({
       <AlertDialog open={showPrivateDialog} onOpenChange={setShowPrivateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Make Your Account Public?</AlertDialogTitle>
+            <AlertDialogTitle>{t('profile.makePublicTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Your content will be visible by other users. Please be careful sharing personal details.
+              {t('profile.makePublicDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMakePublic}>Confirm</AlertDialogAction>
+            <AlertDialogCancel>{t('profile.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMakePublic}>{t('profile.confirm')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "프로필",
+    "editProfile": "프로필 편집",
+    "changeLanguage": "언어 변경",
+    "darkMode": "다크 모드",
+    "accountSettings": "계정 설정",
+    "legal": "법률",
+    "termsAndConditions": "이용 약관",
+    "privacyPolicy": "개인정보 처리방침",
+    "logout": "로그아웃",
+    "logoutConfirmTitle": "로그아웃하시겠습니까?",
+    "logoutConfirmDescription": "정말로 계정에서 로그아웃하시겠습니까?",
+    "confirmLogout": "예, 로그아웃",
+    "cancel": "취소",
+    "confirm": "확인",
+    "journalPrivacy": "저널 프라이버시",
+    "privateAccount": "비공개 계정",
+    "privateAccountDescription": "계정이 공개되면 프로필과 게시물을 모든 사람이 볼 수 있습니다.",
+    "makePublicTitle": "계정을 공개하시겠습니까?",
+    "makePublicDescription": "콘텐츠가 다른 사용자에게 표시됩니다. 개인 정보 공유에 주의하세요."
+  },
+  "editProfile": {
+    "title": "프로필 편집",
+    "username": "사용자 이름",
+    "bio": "소개",
+    "bioPlaceholder": "자신에 대해 알려주세요...",
+    "save": "프로필 저장",
+    "saving": "저장 중..."
+  },
+  "language": {
+    "title": "언어",
+    "changed": "언어가 변경되었습니다"
+  },
+  "navigation": {
+    "home": "홈",
+    "nearby": "주변",
+    "aiLens": "AI 렌즈",
+    "profile": "프로필"
+  },
+  "toast": {
+    "profileUpdated": "프로필이 업데이트되었습니다",
+    "profileSaved": "프로필이 저장되었습니다!",
+    "photoUpdated": "사진이 업데이트되었습니다!",
+    "uploadingPhoto": "사진 처리 중...",
+    "savingProfile": "프로필 저장 중...",
+    "failedToSave": "프로필 저장 실패",
+    "failedToProcess": "사진 처리 실패",
+    "privateAccountEnabled": "비공개 계정이 활성화되었습니다",
+    "privateAccountDisabled": "비공개 계정이 비활성화되었습니다",
+    "darkModeEnabled": "다크 모드가 활성화되었습니다",
+    "darkModeDisabled": "다크 모드가 비활성화되었습니다"
+  }
+}

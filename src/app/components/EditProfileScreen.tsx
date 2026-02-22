@@ -3,6 +3,7 @@ import { Home, MapPin, Camera, User } from 'lucide-react';
 import backIcon from '@/assets/Back.svg';
 import { auth } from '@/app/config/firebase';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -33,6 +34,7 @@ export default function EditProfileScreen({
   initialBio = '',
   initialAvatarUrl,
 }: EditProfileScreenProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState(initialName);
   const [bio, setBio] = useState(initialBio);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(initialAvatarUrl);
@@ -49,7 +51,7 @@ export default function EditProfileScreen({
     if (!file || !auth.currentUser) return;
 
     setUploading(true);
-    const uploadingToast = toast.loading('Processing photo...');
+    const uploadingToast = toast.loading(t('toast.uploadingPhoto'));
 
     try {
       // Convert image to base64
@@ -64,13 +66,13 @@ export default function EditProfileScreen({
         
         setAvatarUrl(base64String);
         toast.dismiss(uploadingToast);
-        toast.success('Photo updated!');
+        toast.success(t('toast.photoUpdated'));
         setUploading(false);
       };
 
       reader.onerror = () => {
         toast.dismiss(uploadingToast);
-        toast.error('Failed to process photo');
+        toast.error(t('toast.failedToProcess'));
         setUploading(false);
       };
 
@@ -78,7 +80,7 @@ export default function EditProfileScreen({
     } catch (error) {
       console.error('Error processing avatar:', error);
       toast.dismiss(uploadingToast);
-      toast.error('Failed to process photo');
+      toast.error(t('toast.failedToProcess'));
       setUploading(false);
     }
   };
@@ -87,18 +89,18 @@ export default function EditProfileScreen({
     if (saving) return; // Prevent double-clicks
     
     setSaving(true);
-    const loadingToast = toast.loading('Saving profile...');
+    const loadingToast = toast.loading(t('toast.savingProfile'));
     
     try {
       // Avatar is already uploaded to Firebase Storage
       await onSave({ name, bio, avatarUrl });
       
       toast.dismiss(loadingToast);
-      toast.success('Profile saved successfully!');
+      toast.success(t('toast.profileSaved'));
     } catch (error) {
       console.error('Error saving profile:', error);
       toast.dismiss(loadingToast);
-      toast.error(error instanceof Error ? error.message : 'Failed to save profile');
+      toast.error(error instanceof Error ? error.message : t('toast.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -148,7 +150,7 @@ export default function EditProfileScreen({
 
           <div className="mt-8 flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <label className="font-['Poppins',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)]">Username</label>
+              <label className="font-['Poppins',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)]">{t('editProfile.username')}</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -157,11 +159,11 @@ export default function EditProfileScreen({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="font-['Poppins',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)]">Bio</label>
+              <label className="font-['Poppins',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)]">{t('editProfile.bio')}</label>
               <input
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell us about yourself..."
+                placeholder={t('editProfile.bioPlaceholder')}
                 className="border border-[rgba(0,0,0,0.1)] rounded-[15px] px-[15px] py-[14px] font-['Poppins',sans-serif] text-[14px]"
               />
             </div>
@@ -171,7 +173,7 @@ export default function EditProfileScreen({
               disabled={saving}
               className="w-full bg-[#0fa3e2] text-white rounded-[15px] py-[14px] font-['Poppins',sans-serif] text-[14px] font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
-              {saving ? 'Saving...' : 'Save Profile'}
+              {saving ? t('editProfile.saving') : t('editProfile.save')}
             </button>
           </div>
         </div>
@@ -185,7 +187,7 @@ export default function EditProfileScreen({
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                   currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
                 }`}>
-                  Home
+                  {t('navigation.home')}
                 </p>
               </button>
 
@@ -194,7 +196,7 @@ export default function EditProfileScreen({
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                   currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
                 }`}>
-                  Nearby
+                  {t('navigation.nearby')}
                 </p>
               </button>
 
@@ -203,7 +205,7 @@ export default function EditProfileScreen({
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                   currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
                 }`}>
-                  AI Lens
+                  {t('navigation.aiLens')}
                 </p>
               </button>
 
@@ -212,7 +214,7 @@ export default function EditProfileScreen({
                 <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
                   currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
                 }`}>
-                  Profile
+                  {t('navigation.profile')}
                 </p>
               </button>
             </div>

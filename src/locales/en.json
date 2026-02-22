@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile",
+    "changeLanguage": "Change Language",
+    "darkMode": "Dark Mode",
+    "accountSettings": "Account Settings",
+    "legal": "Legal",
+    "termsAndConditions": "Terms and Condition",
+    "privacyPolicy": "Privacy Policy",
+    "logout": "Logout",
+    "logoutConfirmTitle": "Log out?",
+    "logoutConfirmDescription": "Are you sure you want to log out of your account?",
+    "confirmLogout": "Yes, log out",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "journalPrivacy": "Journal Privacy",
+    "privateAccount": "Private Account",
+    "privateAccountDescription": "When your account is public, your profile and posts can be seen by everyone.",
+    "makePublicTitle": "Make Your Account Public?",
+    "makePublicDescription": "Your content will be visible by other users. Please be careful sharing personal details."
+  },
+  "editProfile": {
+    "title": "Edit Profile",
+    "username": "Username",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "save": "Save Profile",
+    "saving": "Saving..."
+  },
+  "language": {
+    "title": "Language",
+    "changed": "Language changed to"
+  },
+  "navigation": {
+    "home": "Home",
+    "nearby": "Nearby",
+    "aiLens": "AI Lens",
+    "profile": "Profile"
+  },
+  "toast": {
+    "profileUpdated": "Profile updated successfully",
+    "profileSaved": "Profile saved successfully!",
+    "photoUpdated": "Photo updated!",
+    "uploadingPhoto": "Processing photo...",
+    "savingProfile": "Saving profile...",
+    "failedToSave": "Failed to save profile",
+    "failedToProcess": "Failed to process photo",
+    "privateAccountEnabled": "Private account enabled",
+    "privateAccountDisabled": "Private account disabled",
+    "darkModeEnabled": "Dark mode enabled",
+    "darkModeDisabled": "Dark mode disabled"
+  }
+}
