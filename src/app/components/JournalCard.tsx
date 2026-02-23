@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { Eye } from 'lucide-react';
+import { memo, useState } from 'react';
+import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type JournalCardProps = {
   author?: string;
@@ -10,6 +10,7 @@ type JournalCardProps = {
   location?: string;
   description?: string;
   imageUrl?: string;
+  imageUrls?: string[]; // Support multiple images
   likes?: number;
   bookmarks?: number;
   views?: number;
@@ -31,6 +32,7 @@ function JournalCard({
   location = 'Japan',
   description = 'Amazing experience exploring the historical sites...',
   imageUrl,
+  imageUrls,
   likes = 1200,
   bookmarks = 234,
   views = 0,
@@ -42,10 +44,26 @@ function JournalCard({
   onToggleSave,
   onViewJournal,
 }: JournalCardProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Use imageUrls if available, otherwise fall back to single imageUrl
+  const images = imageUrls && imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [];
+  const hasMultipleImages = images.length > 1;
+
   const formatLikes = (n: number) => {
     if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
     if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
     return String(n);
+  };
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
   return (
@@ -66,9 +84,58 @@ function JournalCard({
       </div>
 
       {/* Media / Image Area */}
-      <div className="w-full h-[188px] bg-[#CDE5FF] flex items-center justify-center overflow-hidden">
-        {imageUrl ? (
-          <img src={imageUrl} alt="Travel" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+      <div className="w-full h-[188px] bg-[#CDE5FF] flex items-center justify-center overflow-hidden relative group">
+        {images.length > 0 ? (
+          <>
+            <img 
+              src={images[currentImageIndex]} 
+              alt="Travel" 
+              loading="lazy" 
+              decoding="async" 
+              className="w-full h-full object-cover" 
+            />
+            
+            {/* Navigation Arrows - only show if multiple images */}
+            {hasMultipleImages && (
+              <>
+                <button
+                  onClick={handlePrevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  onClick={handleNextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+            
+            {/* Dots Indicator - only show if multiple images */}
+            {hasMultipleImages && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {images.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(index);
+                    }}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                      index === currentImageIndex
+                        ? 'bg-white w-4'
+                        : 'bg-white/50 hover:bg-white/75'
+                    }`}
+                    aria-label={`Go to image ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <span className="text-blue-400">Travel Photo</span>
         )}
