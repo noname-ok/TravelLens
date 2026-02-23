@@ -49,8 +49,22 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
   }
 }
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const rawApiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+const hasUsableApiKey = Boolean(
+  rawApiKey
+    && !rawApiKey.toLowerCase().startsWith('your_')
+    && !rawApiKey.toLowerCase().startsWith('api_key_for_')
+    && !rawApiKey.toLowerCase().includes('your_api_key_here'),
+);
+const apiKey = hasUsableApiKey ? rawApiKey : '';
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+
+export const GEMINI_NOT_CONFIGURED_MESSAGE =
+  'Gemini API not initialized. Add VITE_GEMINI_API_KEY in .env and restart the dev server.';
+
+export function isGeminiConfigured(): boolean {
+  return Boolean(genAI);
+}
 
 // MODEL STRINGS (Stable for Feb 2026)
 const VISION_MODEL = 'gemini-2.5-flash'; 
@@ -68,7 +82,7 @@ export interface AIExplanationResult {
  * 1️⃣ Photo → AI Explanation
  */
 export async function getImageExplanation(imageData: string): Promise<AIExplanationResult> {
-  if (!genAI) throw new Error('Gemini API not initialized.');
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
   if (!rateLimiter.canMakeRequest()) {
     throw new Error('⏸️ Rate limit: Please wait a few seconds before the next capture.');
   }
@@ -101,20 +115,24 @@ export async function askAIQuestion(
   question: string,
   imageData: string,
   currentExplanation: AIExplanationResult,
-  location?: string
+  location?: string,
+  targetLanguageCode = 'en',
 ): Promise<string> {
-  if (!genAI) throw new Error('Gemini API not initialized.');
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
 
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: VISION_MODEL });
     const base64Data = imageData.split(',')[1];
     const mimeType = imageData.match(/:(.*?);/)?.[1] || 'image/jpeg';
 
+    const targetLanguage = getGeminiTargetLanguageName(targetLanguageCode);
+
     const context = `
       User is looking at: ${currentExplanation.title} (${currentExplanation.category})
       Description: ${currentExplanation.description}
       Location Context: ${location || 'Unknown'}
       Question: "${question}"
+      Respond in ${targetLanguage}.
       Provide a helpful, traveler-focused answer in 2-3 sentences.
     `;
 
@@ -131,7 +149,7 @@ export async function askAIQuestion(
  * 3️⃣ Text Translation + Traveler's Tip
  */
 export async function translateImageText(imageData: string, targetLang = 'English'): Promise<any> {
-    if (!genAI) throw new Error('Gemini API not initialized.');
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
     
     return withRetry(async () => {
         const model = genAI.getGenerativeModel({ model: VISION_MODEL });
@@ -177,7 +195,7 @@ export async function generatePlaceInsights(
   address?: string,
   rating?: number
 ): Promise<PlaceInsights> {
-  if (!genAI) throw new Error('Gemini API not initialized.');
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
   if (!rateLimiter.canMakeRequest()) {
     throw new Error('⏸️ Rate limit: Please wait before requesting AI insights.');
   }
@@ -234,6 +252,11 @@ const TARGET_LANGUAGE_NAMES: Record<string, string> = {
   hi: 'Hindi',
   ar: 'Arabic',
   ms: 'Bahasa Melayu',
+};
+
+export const getGeminiTargetLanguageName = (languageCode?: string): string => {
+  if (!languageCode) return 'English';
+  return TARGET_LANGUAGE_NAMES[languageCode] || 'English';
 };
 
 export async function generateTextEmbedding(text: string): Promise<number[] | null> {
