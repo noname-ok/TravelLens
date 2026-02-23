@@ -5,9 +5,6 @@ import { useTranslation } from 'react-i18next';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-
 const libraries: ("places")[] = ["places"];
 
 const mapContainerStyle = {
@@ -22,28 +19,6 @@ const mapOptions: google.maps.MapOptions = {
   mapTypeControl: false,
   fullscreenControl: false,
 };
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""}>
-      <div className="h-[47px] relative w-full">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -344,15 +319,16 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
     const currentLoc = userLocation || center;
     const request: google.maps.places.AutocompletionRequest = {
       input: value,
-      location: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
-      radius: 20000, // 20km radius (matches MAX_DISTANCE_KM filter)
-      componentRestrictions: { country: 'my' } // Restrict to Malaysia
+      locationBias: {
+        radius: 5000, // 5km radius - prioritize very nearby places
+        center: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
+      },
     };
 
     autocompleteServiceRef.current.getPlacePredictions(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         // Fetch details for each prediction to get coordinates and calculate distance
-        const detailsPromises = results.slice(0, 10).map((prediction) => {
+        const detailsPromises = results.map((prediction) => {
           return new Promise<{prediction: google.maps.places.AutocompletePrediction, distance: number}>((resolve) => {
             // Initialize placesService if needed
             if (!placesServiceRef.current && map) {
@@ -384,10 +360,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         });
 
         Promise.all(detailsPromises).then((predictionsWithDistance) => {
-          // Filter out results beyond 20km and sort by distance
-          const MAX_DISTANCE_KM = 20;
+          // Sort by distance (closest first) but show all results
           const sorted = predictionsWithDistance
-            .filter(item => item.distance <= MAX_DISTANCE_KM)
             .sort((a, b) => a.distance - b.distance)
             .map(item => item.prediction);
           setPredictions(sorted);
@@ -497,11 +471,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   return (
     <div className="bg-white dark:bg-gray-900 relative size-full">
       <div className="relative mx-auto w-full max-w-[390px] h-full">
-        {/* Status Bar */}
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
-
         {/* Header */}
-        <div className="absolute left-[24px] top-[52px]">
+        <div className="absolute left-[24px] top-[25px]">
           <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black dark:text-white leading-[32px]">
             Map View
           </h1>
@@ -510,7 +481,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
-          className="absolute left-0 right-0 top-[160px] bottom-[90px]"
+          className="absolute left-0 right-0 top-[120px] bottom-[90px]"
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
@@ -522,15 +493,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             }}
           >
             {/* Search Bar - Must be inside LoadScript for Autocomplete to work */}
-            <div className="absolute left-[24px] top-[-60px] right-[24px] z-10">
-              <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
-                {/* Menu Icon */}
-                <button className="shrink-0">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b" className="dark:fill-blue-400"/>
-                  </svg>
-                </button>
-
+            <div className="absolute left-[20px] top-[-55px] right-[23px] z-10">
+              <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[35px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
                 {/* Autocomplete Search Input */}
                 <div className="flex-1 relative">
                   <input
