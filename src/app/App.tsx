@@ -419,6 +419,7 @@ export default function App() {
           <AILensScreen
             currentScreen={currentScreen}
             onNavigate={handleNavigate}
+            preferredLanguageCode={userProfile?.preferences.language}
           />
         )}
         {currentScreen === 'profile' && user && userProfile && (

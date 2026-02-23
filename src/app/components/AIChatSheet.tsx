@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Loader2, Mic, Square, Image, Bot } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -13,6 +14,7 @@ import {
 import {
   askAIQuestion,
   AIExplanationResult,
+  GEMINI_NOT_CONFIGURED_MESSAGE,
 } from '../services/geminiService'
 import { toast } from 'sonner';
 
@@ -29,6 +31,7 @@ interface AIChatProps {
   imageData: string;
   explanation: AIExplanationResult;
   location?: string;
+  preferredLanguageCode?: string;
 }
 
 export function AIChatSheet({
@@ -37,7 +40,10 @@ export function AIChatSheet({
   imageData,
   explanation,
   location,
+  preferredLanguageCode,
 }: AIChatProps) {
+  const { i18n } = useTranslation();
+  const targetLanguageCode = preferredLanguageCode || i18n.language || 'en';
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '0',
@@ -122,7 +128,8 @@ export function AIChatSheet({
       input, 
       imageData,      // The base64 string from your camera
       explanation,    // The initial analysis 
-      location        // Optional GPS string
+      location,       // Optional GPS string
+      targetLanguageCode,
     );
 
     const assistantMessage: ChatMessage = {
@@ -134,7 +141,8 @@ export function AIChatSheet({
 
     setMessages(prev => [...prev, assistantMessage]);
   } catch (error) {
-    toast.error("Gemini is currently unavailable. Check your API key.");
+    const message = error instanceof Error ? error.message : GEMINI_NOT_CONFIGURED_MESSAGE;
+    toast.error(message);
   } finally {
     setIsLoading(false);
   }
