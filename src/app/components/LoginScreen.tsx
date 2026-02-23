@@ -17,7 +17,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
         </div>
         <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]" data-name="Left Side" data-node-id="1:68">
           <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]" data-name="_StatusBar-time" data-node-id="1:69">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap" data-node-id="I1:69;839:7100">
+            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap" data-node-id="I1:69;839:7100">
               9:41
             </p>
           </div>
@@ -85,9 +85,9 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
   };
 
   return (
-    <div className="bg-white relative size-full" data-name="Login" data-node-id="1:2487">
+    <div className="bg-white dark:bg-gray-900 relative size-full" data-name="Login" data-node-id="1:2487">
       {loading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-white dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2]"></div>
         </div>
       )}
@@ -101,10 +101,10 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
           <div className="content-stretch flex flex-col gap-[30px] items-center relative shrink-0 w-full" data-node-id="1:2493">
             <div className="content-stretch flex flex-col items-center relative shrink-0" data-node-id="1:2494">
               <div className="content-stretch flex flex-col items-center justify-center leading-[normal] not-italic relative shrink-0 text-center" data-node-id="1:2495">
-                <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[22px] text-black" data-node-id="1:2496">
+                <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[22px] text-black dark:text-white" data-node-id="1:2496">
                   Welcome to TravelLens
                 </p>
-                <p className="font-['Poppins:Regular',sans-serif] relative shrink-0 text-[12px] text-[rgba(0,0,0,0.8)]" data-node-id="1:2497">
+                <p className="font-['Poppins:Regular',sans-serif] relative shrink-0 text-[12px] text-[rgba(0,0,0,0.8)] dark:text-gray-400" data-node-id="1:2497">
                   Please choose your login option below
                 </p>
               </div>
@@ -113,7 +113,7 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
               <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0" data-node-id="1:2499">
                 <div className="content-stretch flex flex-col gap-[14px] items-start relative shrink-0" data-node-id="1:2500">
                   <div className="content-stretch flex flex-col gap-[2px] items-start relative shrink-0" data-name="email" data-node-id="1:2501">
-                    <label className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)]" data-node-id="1:2502">
+                    <label className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400" data-node-id="1:2502">
                       Email
                     </label>
                     <input
@@ -121,27 +121,27 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email address"
-                      className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex h-[52px] items-center pl-[15px] py-[10px] relative rounded-[15px] shrink-0 w-[323px] font-['Poppins:Regular',sans-serif] text-[10px] text-black outline-none focus:border-[#0fa3e2]"
+                      className="border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid content-stretch flex h-[52px] items-center pl-[15px] py-[10px] relative rounded-[15px] shrink-0 w-[323px] font-['Poppins:Regular',sans-serif] text-[10px] text-black dark:text-white dark:bg-gray-800 outline-none focus:border-[#0fa3e2]"
                       data-node-id="1:2503"
                     />
                   </div>
                   <div className="content-stretch flex flex-col gap-[2px] items-start relative shrink-0" data-name="password" data-node-id="1:2505">
-                    <label className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)]" data-node-id="1:2506">
+                    <label className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400" data-node-id="1:2506">
                       Password
                     </label>
-                    <div className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex h-[52px] items-center px-[15px] py-[10px] relative rounded-[15px] shrink-0 w-[323px]" data-node-id="1:2507">
+                    <div className="border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid content-stretch flex h-[52px] items-center px-[15px] py-[10px] relative rounded-[15px] shrink-0 w-[323px] dark:bg-gray-800" data-node-id="1:2507">
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
-                        className="content-stretch flex-[1_0_0] font-['Poppins:Regular',sans-serif] text-[10px] text-black outline-none bg-transparent"
+                        className="content-stretch flex-[1_0_0] font-['Poppins:Regular',sans-serif] text-[10px] text-black dark:text-white outline-none bg-transparent"
                         data-node-id="1:2509"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="relative shrink-0 size-[19px] cursor-pointer"
+                        className="relative shrink-0 size-[19px] cursor-pointer dark:invert"
                         data-name="eye"
                         data-node-id="1:2510"
                       >
@@ -172,32 +172,32 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
                 </button>
               </div>
               <div className="content-stretch flex items-center justify-center relative shrink-0 w-full" data-node-id="1:2514">
-                <div className="bg-[rgba(0,0,0,0.1)] flex-[1_0_0] h-px min-h-px min-w-px" data-node-id="1:2515" />
-                <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] text-center w-[103px] whitespace-pre-wrap" data-node-id="1:2516">
+                <div className="bg-[rgba(0,0,0,0.1)] dark:bg-gray-700 flex-[1_0_0] h-px min-h-px min-w-px" data-node-id="1:2515" />
+                <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400 text-center w-[103px] whitespace-pre-wrap" data-node-id="1:2516">
                   Or login with
                 </p>
-                <div className="bg-[rgba(0,0,0,0.1)] flex-[1_0_0] h-px min-h-px min-w-px" data-node-id="1:2517" />
+                <div className="bg-[rgba(0,0,0,0.1)] dark:bg-gray-700 flex-[1_0_0] h-px min-h-px min-w-px" data-node-id="1:2517" />
               </div>
               <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="1:2518">
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="bg-white border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex flex-row h-[52px] items-center justify-center gap-[12px] px-[20px] py-[10px] relative rounded-[15px] shrink-0 w-full cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid content-stretch flex flex-row h-[52px] items-center justify-center gap-[12px] px-[20px] py-[10px] relative rounded-[15px] shrink-0 w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   data-name="login method"
                 >
                   <div className="relative shrink-0 size-[24px]">
                     <img alt="Gmail" className="block max-w-none size-full" src={imgGmail} />
                   </div>
-                  <span className="font-['Poppins:Medium',sans-serif] text-[14px] text-black">
+                  <span className="font-['Poppins:Medium',sans-serif] text-[14px] text-black dark:text-white">
                     Gmail
                   </span>
                 </button>
                 <div className="content-stretch flex items-center justify-center relative shrink-0 w-full mt-4">
-                  <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic text-[12px] text-[rgba(0,0,0,0.6)] text-center">
+                  <p className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400 text-center">
                     Doesn't have account yet?{' '}
                     <button 
                       onClick={onCreateAccount}
-                      className="font-['Poppins:SemiBold',sans-serif] text-[12px] text-black cursor-pointer hover:underline"
+                      className="font-['Poppins:SemiBold',sans-serif] text-[12px] text-black dark:text-white cursor-pointer hover:underline"
                     >
                       Create Account
                     </button>

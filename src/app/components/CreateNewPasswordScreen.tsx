@@ -18,7 +18,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
         </div>
         <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
           <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
+            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
               9:41
             </p>
           </div>
@@ -90,14 +90,14 @@ export default function CreateNewPasswordScreen({ onBack, onPasswordCreated }: C
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         {/* Back Button */}
         <button
           onClick={onBack}
           className="absolute h-[46px] left-[24px] top-[53px] w-[25px] cursor-pointer"
         >
-          <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
+          <img alt="Back" className="block max-w-none size-full dark:invert" src={imgAngleLeft} />
         </button>
 
         {/* Main Content */}
@@ -113,10 +113,10 @@ export default function CreateNewPasswordScreen({ onBack, onPasswordCreated }: C
 
             {/* Title and Subtitle */}
             <div className="flex flex-col gap-[5px] items-start leading-[normal] not-italic relative tracking-[-0.165px] w-[323px]">
-              <p className="font-['Poppins',sans-serif] font-semibold relative text-[18px] text-black">
+              <p className="font-['Poppins',sans-serif] font-semibold relative text-[18px] text-black dark:text-white">
                 Create new password
               </p>
-              <p className="font-['Poppins',sans-serif] min-w-full relative text-[12px] text-[rgba(0,0,0,0.6)] w-[min-content] whitespace-pre-wrap">
+              <p className="font-['Poppins',sans-serif] min-w-full relative text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400 w-[min-content] whitespace-pre-wrap">
                 Keep your account secure by creating a strong password
               </p>
             </div>
@@ -127,13 +127,13 @@ export default function CreateNewPasswordScreen({ onBack, onPasswordCreated }: C
             <div className="flex flex-col gap-[15px] items-start relative w-[323px]">
               <div className="flex flex-col gap-[10px] items-start relative w-full">
                 {/* Password Input with Eye Toggle */}
-                <div className="border border-[rgba(0,0,0,0.1)] border-solid flex h-[52px] items-center justify-between px-[15px] py-[10px] relative rounded-[15px] w-full">
+                <div className="border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid flex h-[52px] items-center justify-between px-[15px] py-[10px] relative rounded-[15px] w-full dark:bg-gray-800">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter new password"
-                    className="flex-1 outline-none font-['Poppins',sans-serif] text-[14px] text-black placeholder:text-[rgba(0,0,0,0.3)]"
+                    className="flex-1 outline-none font-['Poppins',sans-serif] text-[14px] text-black dark:text-white placeholder:text-[rgba(0,0,0,0.3)] dark:placeholder:text-gray-500 bg-transparent"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleCreatePassword();
@@ -145,12 +145,12 @@ export default function CreateNewPasswordScreen({ onBack, onPasswordCreated }: C
                     onClick={() => setShowPassword(!showPassword)}
                     className="relative size-[19px] cursor-pointer flex-shrink-0"
                   >
-                    <img alt={showPassword ? "Hide password" : "Show password"} className="block max-w-none size-full" src={imgEye} />
+                    <img alt={showPassword ? "Hide password" : "Show password"} className="block max-w-none size-full dark:invert" src={imgEye} />
                   </button>
                 </div>
 
                 {/* Password Requirement Text */}
-                <p className="font-['Poppins',sans-serif] leading-[normal] not-italic relative text-[10px] text-[rgba(0,0,0,0.4)]">
+                <p className="font-['Poppins',sans-serif] leading-[normal] not-italic relative text-[10px] text-[rgba(0,0,0,0.4)] dark:text-gray-500">
                   Your password should be at least contain upper character
                 </p>
               </div>

@@ -17,7 +17,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
         </div>
         <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]" data-name="Left Side">
           <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]" data-name="_StatusBar-time">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
+            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
               9:41
             </p>
           </div>
@@ -112,9 +112,9 @@ export default function PhoneVerificationScreen({
   };
 
   return (
-    <div className="bg-white relative size-full" data-name="Phone Verification">
+    <div className="bg-white dark:bg-gray-900 relative size-full" data-name="Phone Verification">
       {loading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-white dark:bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2]"></div>
         </div>
       )}
@@ -125,7 +125,7 @@ export default function PhoneVerificationScreen({
           className="absolute cursor-pointer h-[46px] left-[24px] top-[53px] w-[25px] z-10" 
           data-name="angle-left"
         >
-          <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
+          <img alt="Back" className="block max-w-none size-full dark:invert" src={imgAngleLeft} />
         </button>
         
         <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]">
@@ -136,10 +136,10 @@ export default function PhoneVerificationScreen({
             </div>
           </div>
           <div className="content-stretch flex flex-col gap-[5px] items-start leading-[normal] not-italic relative shrink-0 tracking-[-0.165px] w-[323px]">
-            <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[18px] text-black">
+            <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[18px] text-black dark:text-white">
               Verify Phone Number
             </p>
-            <p className="font-['Poppins:Regular',sans-serif] min-w-full relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] w-[min-content] whitespace-pre-wrap">
+            <p className="font-['Poppins:Regular',sans-serif] min-w-full relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400 w-[min-content] whitespace-pre-wrap">
               {!codeSent 
                 ? `We'll send a verification code to ${countryCode} ${phoneNumber}`
                 : `Enter the 6-digit code sent to ${countryCode} ${phoneNumber}`
@@ -165,7 +165,7 @@ export default function PhoneVerificationScreen({
             <>
               {/* Verification Code Input */}
               <div className="content-stretch flex flex-col gap-[2px] items-start relative shrink-0 w-full">
-                <label className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)]">
+                <label className="font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400">
                   Verification Code
                 </label>
                 <input
@@ -174,7 +174,7 @@ export default function PhoneVerificationScreen({
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="Enter 6-digit code"
                   maxLength={6}
-                  className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex h-[52px] items-center pl-[15px] py-[10px] relative rounded-[15px] shrink-0 w-full font-['Poppins:Regular',sans-serif] text-[14px] text-black outline-none focus:border-[#0fa3e2] tracking-[0.5em] text-center"
+                  className="border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid content-stretch flex h-[52px] items-center pl-[15px] py-[10px] relative rounded-[15px] shrink-0 w-full font-['Poppins:Regular',sans-serif] text-[14px] text-black dark:bg-gray-800 dark:text-white outline-none focus:border-[#0fa3e2] tracking-[0.5em] text-center"
                 />
               </div>
 

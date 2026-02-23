@@ -18,7 +18,7 @@ function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ''}>
       <div className="h-[34px] relative w-full">
-        <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
+        <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
   );
@@ -273,15 +273,14 @@ export default function JournalDetailScreen({
           )}
         </div>
         <div className="flex-1">
-          <p className="font-['Inter'] font-light text-[10px] leading-[20px] text-black">{comment.author}</p>
-          <div className="bg-[#F5FAFB] p-3 rounded-[8px]">
-            <p className="font-['Poppins'] font-light text-[9px] leading-[22px] text-justify text-black">{translatedCommentText[comment.id] || comment.text}</p>
-          </div>
+          <p className="font-['Inter'] font-light text-[10px] leading-[20px] text-black dark:text-white">{comment.author}</p>
+          <div className="bg-[#F5FAFB] dark:bg-gray-800 p-3 rounded-[8px]">
+            <p className="font-['Poppins'] font-light text-[9px] leading-[22px] text-justify text-black dark:text-gray-300">{translatedCommentText[comment.id] || comment.text}</p>          </div>
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => toggleCommentLike(comment.id)}
-                className={`flex items-center gap-1 ${likedByCurrentUser ? 'text-red-500' : 'text-[#8b8b8b]'}`}
+                className={`flex items-center gap-1 ${likedByCurrentUser ? 'text-red-500' : 'text-[#8b8b8b] dark:text-gray-400'}`}
               >
                 <img
                   src="https://www.figma.com/api/mcp/asset/5948b008-a6f4-49fc-b5e9-69df2d30ebb7"
@@ -289,18 +288,18 @@ export default function JournalDetailScreen({
                   className="w-4 h-4"
                   style={{ filter: likedByCurrentUser ? 'invert(34%) sepia(87%) saturate(4123%) hue-rotate(340deg) brightness(95%) contrast(98%)' : 'none' }}
                 />
-                <span className={`text-[10px] leading-[22px] tracking-[-0.408px] ${likedByCurrentUser ? 'text-red-500' : 'text-[#8b8b8b]'}`}>
+                <span className={`text-[10px] leading-[22px] tracking-[-0.408px] ${likedByCurrentUser ? 'text-red-500' : 'text-[#8b8b8b] dark:text-gray-400'}`}>
                   {comment.likes}
                 </span>
               </button>
               <button
                 onClick={() => setReplyTargetId((prev) => (prev === comment.id ? null : comment.id))}
-                className="font-['Inter'] font-light text-[10px] leading-[22px] tracking-[-0.408px] text-black"
+                className="font-['Inter'] font-light text-[10px] leading-[22px] tracking-[-0.408px] text-black dark:text-white"
               >
                 Reply
               </button>
             </div>
-            <span className="font-['Inter'] font-extralight text-[10px] leading-[22px] tracking-[-0.408px] text-black">{formatCommentTime(comment.createdAt)}</span>
+            <span className="font-['Inter'] font-extralight text-[10px] leading-[22px] tracking-[-0.408px] text-black dark:text-gray-400">{formatCommentTime(comment.createdAt)}</span>
           </div>
           {childComments.length > 0 && (
             <div className="mt-3 space-y-3">
@@ -313,7 +312,7 @@ export default function JournalDetailScreen({
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <style>{`
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -322,10 +321,10 @@ export default function JournalDetailScreen({
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <div className="absolute left-[27px] top-[62px] w-[341px] h-[23px] flex items-center justify-between">
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
-            <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px]" />
+            <img src={backIcon} alt="back" className="w-[10.09px] h-[15.63px] dark:invert" />
           </button>
           <button onClick={handleShare} className="w-[17px] h-[23px] flex items-center justify-center">
-            <img src={shareIcon} alt="share" className="w-[17px] h-[23px]" />
+            <img src={shareIcon} alt="share" className="w-[17px] h-[23px] dark:invert" />
           </button>
         </div>
 
@@ -349,16 +348,16 @@ export default function JournalDetailScreen({
               {(userInitial || author.charAt(0)).toUpperCase()}
             </div>
             <div className="flex-1">
-              <p className="font-['Inter'] font-extrabold text-[14px] text-[#49454F]">{author}</p>
-              <p className="font-['Inter'] font-medium text-[10px] text-[#B3B3B3]">{t('journal.verifiedTraveler')}</p>
+              <p className="font-['Inter'] font-extrabold text-[14px] text-[#49454F] dark:text-white">{author}</p>
+              <p className="font-['Inter'] font-medium text-[10px] text-[#B3B3B3] dark:text-gray-400">{t('journal.verifiedTraveler')}</p>
             </div>
-            <p className="font-['Inter'] font-bold text-[11px] text-[#888888]">{timeAgo}</p>
+            <p className="font-['Inter'] font-bold text-[11px] text-[#888888] dark:text-gray-400">{timeAgo}</p>
           </div>
 
-          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] mx-6" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] dark:bg-gray-700 mx-6" />
 
           <div className="px-[26px] py-[20px]">
-            <p className="font-['Inter'] font-light text-[12px] leading-[20px] text-justify text-black">
+            <p className="font-['Inter'] font-light text-[12px] leading-[20px] text-justify text-black dark:text-gray-300">
               {displayDescription}
             </p>
           </div>
@@ -391,54 +390,54 @@ export default function JournalDetailScreen({
             </button>
           </div>
 
-          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] mx-6" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] dark:bg-gray-700 mx-6" />
 
           <div className="px-[28px] py-6 space-y-4">
-            <h3 className="font-['Poppins'] font-semibold text-[16px]">{t('journal.comments')}</h3>
+            <h3 className="font-['Poppins'] font-semibold text-[16px] dark:text-white">{t('journal.comments')}</h3>
 
             {comments.filter((comment) => !comment.parentId).map((comment) => renderComment(comment))}
 
-            <div className="mt-4 flex items-center bg-[rgba(217,217,217,0.3)] rounded-full px-4 py-2">
+            <div className="mt-4 flex items-center bg-[rgba(217,217,217,0.3)] dark:bg-gray-800 rounded-full px-4 py-2">
               <input
                 type="text"
                 placeholder={t('journal.writeComment')}
-                className="bg-transparent border-none outline-none text-[10px] flex-1 font-['Poppins'] font-light"
+                className="bg-transparent border-none outline-none text-[10px] flex-1 font-['Poppins'] font-light dark:text-white"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
               />
-              <button onClick={submitComment} className="text-[#2C638B] text-[10px] font-semibold ml-2">{t('journal.post')}</button>
+              <button onClick={submitComment} className="text-[#2C638B] dark:text-blue-400 text-[10px] font-semibold ml-2">{t('journal.post')}</button>
             </div>
           </div>
         </div>
 
         <div className="absolute left-0 right-0 bottom-0 h-[90px]">
-          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)] dark:bg-gray-700" />
           <div className="flex flex-col h-[78px] p-[10px]">
             <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
               <button onClick={() => onNavigate('home')} className="flex-1 flex flex-col items-center">
-                <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>
                   {t('navigation.home')}
                 </p>
               </button>
 
               <button onClick={() => onNavigate('mapview')} className="flex-1 flex flex-col items-center">
-                <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>
                   {t('navigation.nearby')}
                 </p>
               </button>
 
               <button onClick={() => onNavigate('ailens')} className="flex-1 flex flex-col items-center">
-                <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>
                   {t('navigation.aiLens')}
                 </p>
               </button>
 
               <button onClick={() => onNavigate('profile')} className="flex-1 flex flex-col items-center">
-                <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>
+                <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>
                   {t('navigation.profile')}
                 </p>
               </button>
