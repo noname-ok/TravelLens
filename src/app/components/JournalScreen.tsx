@@ -455,10 +455,9 @@ export default function JournalScreen({
           ))}
 
           <div
-            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] dark:bg-blue-600 rounded-tl-[100px] rounded-tr-[100px]"
+            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] dark:bg-blue-600 rounded-tl-[100px] rounded-tr-[100px] transition-all duration-200"
             style={{
-              left: `calc((100% / ${tabs.length} - 56px) / 2)`,
-              transform: `translateX(calc(${activeTabIndex} * (100% / ${tabs.length})))`,
+              left: `calc(${(activeTabIndex + 0.5) * (100 / tabs.length)}% - 28px)`,
             }}
           />
         </div>
