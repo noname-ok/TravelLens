@@ -282,6 +282,8 @@ export default function JournalScreen({
     { key: 'favourites', label: t('journal.favourites') },
   ];
 
+  const activeTabIndex = tabs.findIndex(tab => tab.key === activeTab);
+
   const toggleLike = (id: string) => {
     if (!currentUserId) {
       toast.error('Please log in to like posts');

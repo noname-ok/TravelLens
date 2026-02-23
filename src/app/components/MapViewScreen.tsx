@@ -5,9 +5,6 @@ import { useTranslation } from 'react-i18next';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-
 const libraries: ("places")[] = ["places"];
 
 const mapContainerStyle = {
@@ -22,28 +19,6 @@ const mapOptions: google.maps.MapOptions = {
   mapTypeControl: false,
   fullscreenControl: false,
 };
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""}>
-      <div className="h-[47px] relative w-full">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -344,15 +319,16 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
     const currentLoc = userLocation || center;
     const request: google.maps.places.AutocompletionRequest = {
       input: value,
-      location: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
-      radius: 20000, // 20km radius (matches MAX_DISTANCE_KM filter)
-      componentRestrictions: { country: 'my' } // Restrict to Malaysia
+      locationBias: {
+        radius: 5000, // 5km radius - prioritize very nearby places
+        center: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
+      },
     };
 
     autocompleteServiceRef.current.getPlacePredictions(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         // Fetch details for each prediction to get coordinates and calculate distance
-        const detailsPromises = results.slice(0, 10).map((prediction) => {
+        const detailsPromises = results.map((prediction) => {
           return new Promise<{prediction: google.maps.places.AutocompletePrediction, distance: number}>((resolve) => {
             // Initialize placesService if needed
             if (!placesServiceRef.current && map) {
@@ -384,10 +360,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         });
 
         Promise.all(detailsPromises).then((predictionsWithDistance) => {
-          // Filter out results beyond 20km and sort by distance
-          const MAX_DISTANCE_KM = 20;
+          // Sort by distance (closest first) but show all results
           const sorted = predictionsWithDistance
-            .filter(item => item.distance <= MAX_DISTANCE_KM)
             .sort((a, b) => a.distance - b.distance)
             .map(item => item.prediction);
           setPredictions(sorted);
@@ -497,13 +471,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   return (
     <div className="bg-white dark:bg-gray-900 relative size-full">
       <div className="relative mx-auto w-full max-w-[390px] h-full">
-        {/* Status Bar */}
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
-
         {/* Header */}
-        <div className="absolute left-[24px] top-[52px]">
-          <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
-            {t('mapView.title')}
+        <div className="absolute left-[24px] top-[25px]">
           <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black dark:text-white leading-[32px]">
             Map View
           </h1>
@@ -512,7 +481,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
-          className="absolute left-0 right-0 top-[160px] bottom-[90px]"
+          className="absolute left-0 right-0 top-[120px] bottom-[90px]"
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
@@ -524,15 +493,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             }}
           >
             {/* Search Bar - Must be inside LoadScript for Autocomplete to work */}
-            <div className="absolute left-[24px] top-[-60px] right-[24px] z-10">
-              <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
-                {/* Menu Icon */}
-                <button className="shrink-0">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b" className="dark:fill-blue-400"/>
-                  </svg>
-                </button>
-
+            <div className="absolute left-[20px] top-[-55px] right-[23px] z-10">
+              <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[35px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
                 {/* Autocomplete Search Input */}
                 <div className="flex-1 relative">
                   <input
@@ -547,8 +509,6 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                       // Delay to allow click on prediction
                       setTimeout(() => setShowPredictions(false), 200);
                     }}
-                    placeholder={t('mapView.searchPlaceholder')}
-                    className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] placeholder:text-[#2c638b] placeholder:opacity-70"
                     placeholder="Search here..."
                     className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] dark:text-white placeholder:text-[#2c638b] dark:placeholder:text-gray-400 placeholder:opacity-70"
                     onClick={(e) => {
@@ -604,19 +564,19 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                   </svg>
                 </div>
                 <p className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black mb-[8px]">
-                  {t('mapView.loadErrorTitle')}
+                  Map Load Error
                 </p>
                 <p className="font-['Poppins',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)] text-center px-[40px] mb-[16px]">
                   {loadError}
                 </p>
                 <div className="bg-white p-4 rounded-lg shadow-lg mx-[24px] text-left">
                   <p className="font-['Poppins',sans-serif] font-semibold text-[14px] text-black mb-2">
-                    {t('mapView.fixStepsTitle')}
+                    🔧 Fix Steps:
                   </p>
                   <ol className="font-['Poppins',sans-serif] text-[12px] text-gray-700 space-y-1 list-decimal list-inside">
-                    <li>{t('mapView.fixStep1')}</li>
-                    <li>{t('mapView.fixStep2')}</li>
-                    <li>{t('mapView.fixStep3')}</li>
+                    <li>Go to Google Cloud Console</li>
+                    <li>Find your API key</li>
+                    <li>Remove referrer restrictions OR add:</li>
                   </ol>
                   <div className="bg-gray-100 p-2 rounded mt-2 font-mono text-[10px]">
                     http://localhost:*/*<br/>
@@ -626,7 +586,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                     onClick={() => window.location.reload()}
                     className="mt-3 w-full bg-[#2c638b] text-white px-4 py-2 rounded-lg text-[12px] font-['Poppins',sans-serif] hover:bg-[#234d6a] transition"
                   >
-                    {t('mapView.retryAfterFix')}
+                    Retry After Fixing
                   </button>
                 </div>
               </div>
@@ -650,7 +610,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                     strokeColor: 'white',
                     strokeWeight: 3,
                   }}
-                  title={t('mapView.yourLocation')}
+                  title="Your Location"
                 />
               )}
 
@@ -726,7 +686,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                       onClick={() => fetchPlaceDetails(selectedAttraction.placeId, selectedAttraction)}
                       className="bg-[#2c638b] text-white px-3 py-1 rounded-lg text-[12px] font-['Poppins',sans-serif] hover:bg-[#234d6a] transition w-full"
                     >
-                      {t('mapView.viewDetails')}
+                      View Details
                     </button>
                   </div>
                 </InfoWindow>
@@ -747,10 +707,10 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               </svg>
             </div>
             <p className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black mb-[8px]">
-              {t('mapView.apiKeyRequiredTitle')}
+              Google Maps API Key Required
             </p>
             <p className="font-['Poppins',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)] text-center px-[40px]">
-              {t('mapView.apiKeyRequiredDesc')}
+              Add VITE_GOOGLE_MAPS_API_KEY to your .env file
             </p>
           </div>
         )}
@@ -759,8 +719,6 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         {loading && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg z-20">
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2c638b]"></div>
-              <span className="font-['Poppins',sans-serif] text-[14px] text-black">{t('mapView.loading')}</span>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2c638b] dark:border-blue-400"></div>
               <span className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white">Loading...</span>
             </div>
@@ -774,11 +732,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             onClick={searchTouristDestinations}
             disabled={!map || loading}
             className="bg-[#2c638b] text-white rounded-full shadow-lg hover:bg-[#234d6a] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-3"
-            title={t('mapView.viewNearbyTitle')}
+            title="View nearby tourist attractions"
           >
             <Compass size={20} strokeWidth={2.5} />
             <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
-              {t('mapView.nearbyAttractions')}
+              Nearby Attractions
             </span>
           </button>
 
@@ -787,7 +745,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             onClick={resetToUserLocation}
             disabled={!userLocation}
             className="bg-white text-[#2c638b] rounded-full shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-[48px] h-[48px]"
-            title={t('mapView.backToLocationTitle')}
+            title="Back to my location"
           >
             <LocateFixed size={22} strokeWidth={2.5} />
           </button>
