@@ -18,6 +18,7 @@ interface TranslateModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageData: string;
+  defaultTargetLanguage?: string;
   onTranslateComplete?: (translation: {
     originalText: string;
     translatedText: string;
@@ -42,7 +43,7 @@ const SUPPORTED_LANGUAGES = [
   { code: 'Vietnamese', label: 'Vietnamese (Tiếng Việt)' },
 ];
 
-export function TranslateModal({ isOpen, onClose, imageData, onTranslateComplete }: TranslateModalProps) {
+export function TranslateModal({ isOpen, onClose, imageData, defaultTargetLanguage, onTranslateComplete }: TranslateModalProps) {
   const [targetLanguage, setTargetLanguage] = useState('English');
   const [translation, setTranslation] = useState<{
     originalText: string;
@@ -55,11 +56,12 @@ export function TranslateModal({ isOpen, onClose, imageData, onTranslateComplete
 
   // Load default language on component mount
   useEffect(() => {
-    const defaultLang = localStorage.getItem('travelLens_defaultLanguage');
-    if (defaultLang) {
-      setTargetLanguage(defaultLang);
-    }
-  }, []);
+    if (!isOpen) return;
+
+    const defaultLang = defaultTargetLanguage || localStorage.getItem('travelLens_defaultLanguage') || 'English';
+    const isSupported = SUPPORTED_LANGUAGES.some((language) => language.code === defaultLang);
+    setTargetLanguage(isSupported ? defaultLang : 'English');
+  }, [defaultTargetLanguage, isOpen]);
 
   // Save default language when checkbox is checked and translation completes
   const saveDefaultLanguage = (language: string) => {

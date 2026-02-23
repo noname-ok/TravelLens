@@ -503,7 +503,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         {/* Header */}
         <div className="absolute left-[24px] top-[52px]">
           <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black leading-[32px]">
-            Map View
+            {t('mapView.title')}
           </h1>
         </div>
 
@@ -545,7 +545,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                       // Delay to allow click on prediction
                       setTimeout(() => setShowPredictions(false), 200);
                     }}
-                    placeholder="Search here..."
+                    placeholder={t('mapView.searchPlaceholder')}
                     className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] placeholder:text-[#2c638b] placeholder:opacity-70"
                     onClick={(e) => {
                       // Select all text on click if there's content
@@ -601,19 +601,19 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                   </svg>
                 </div>
                 <p className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black mb-[8px]">
-                  Map Load Error
+                  {t('mapView.loadErrorTitle')}
                 </p>
                 <p className="font-['Poppins',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)] text-center px-[40px] mb-[16px]">
                   {loadError}
                 </p>
                 <div className="bg-white p-4 rounded-lg shadow-lg mx-[24px] text-left">
                   <p className="font-['Poppins',sans-serif] font-semibold text-[14px] text-black mb-2">
-                    🔧 Fix Steps:
+                    {t('mapView.fixStepsTitle')}
                   </p>
                   <ol className="font-['Poppins',sans-serif] text-[12px] text-gray-700 space-y-1 list-decimal list-inside">
-                    <li>Go to Google Cloud Console</li>
-                    <li>Find your API key</li>
-                    <li>Remove referrer restrictions OR add:</li>
+                    <li>{t('mapView.fixStep1')}</li>
+                    <li>{t('mapView.fixStep2')}</li>
+                    <li>{t('mapView.fixStep3')}</li>
                   </ol>
                   <div className="bg-gray-100 p-2 rounded mt-2 font-mono text-[10px]">
                     http://localhost:*/*<br/>
@@ -623,7 +623,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                     onClick={() => window.location.reload()}
                     className="mt-3 w-full bg-[#2c638b] text-white px-4 py-2 rounded-lg text-[12px] font-['Poppins',sans-serif] hover:bg-[#234d6a] transition"
                   >
-                    Retry After Fixing
+                    {t('mapView.retryAfterFix')}
                   </button>
                 </div>
               </div>
@@ -647,7 +647,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                     strokeColor: 'white',
                     strokeWeight: 3,
                   }}
-                  title="Your Location"
+                  title={t('mapView.yourLocation')}
                 />
               )}
 
@@ -723,7 +723,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                       onClick={() => fetchPlaceDetails(selectedAttraction.placeId, selectedAttraction)}
                       className="bg-[#2c638b] text-white px-3 py-1 rounded-lg text-[12px] font-['Poppins',sans-serif] hover:bg-[#234d6a] transition w-full"
                     >
-                      View Details
+                      {t('mapView.viewDetails')}
                     </button>
                   </div>
                 </InfoWindow>
@@ -744,10 +744,10 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               </svg>
             </div>
             <p className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black mb-[8px]">
-              Google Maps API Key Required
+              {t('mapView.apiKeyRequiredTitle')}
             </p>
             <p className="font-['Poppins',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)] text-center px-[40px]">
-              Add VITE_GOOGLE_MAPS_API_KEY to your .env file
+              {t('mapView.apiKeyRequiredDesc')}
             </p>
           </div>
         )}
@@ -757,7 +757,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg z-20">
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2c638b]"></div>
-              <span className="font-['Poppins',sans-serif] text-[14px] text-black">Loading...</span>
+              <span className="font-['Poppins',sans-serif] text-[14px] text-black">{t('mapView.loading')}</span>
             </div>
           </div>
         )}
@@ -769,11 +769,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             onClick={searchTouristDestinations}
             disabled={!map || loading}
             className="bg-[#2c638b] text-white rounded-full shadow-lg hover:bg-[#234d6a] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-3"
-            title="View nearby tourist attractions"
+            title={t('mapView.viewNearbyTitle')}
           >
             <Compass size={20} strokeWidth={2.5} />
             <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
-              Nearby Attractions
+              {t('mapView.nearbyAttractions')}
             </span>
           </button>
 
@@ -782,7 +782,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             onClick={resetToUserLocation}
             disabled={!userLocation}
             className="bg-white text-[#2c638b] rounded-full shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-[48px] h-[48px]"
-            title="Back to my location"
+            title={t('mapView.backToLocationTitle')}
           >
             <LocateFixed size={22} strokeWidth={2.5} />
           </button>

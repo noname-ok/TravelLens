@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   Languages,
@@ -12,7 +13,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { TranslateModal } from './TranslateModal';
 import { AIChatSheet } from './AIChatSheet';
-import type { AIExplanationResult } from '../services/geminiService';
+import { getGeminiTargetLanguageName, type AIExplanationResult } from '../services/geminiService';
 
 interface AIExplanationScreenProps {
   image: string;
@@ -20,6 +21,7 @@ interface AIExplanationScreenProps {
   onBack: () => void;
   onViewAttractions: () => void;
   onSaveToJournal: () => void;
+  preferredLanguageCode?: string;
 }
 
 export function AIExplanationScreen({
@@ -28,7 +30,11 @@ export function AIExplanationScreen({
   onBack,
   onViewAttractions,
   onSaveToJournal,
+  preferredLanguageCode,
 }: AIExplanationScreenProps) {
+  const { i18n } = useTranslation();
+  const activeLanguageCode = preferredLanguageCode || i18n.language || 'en';
+  const activeTargetLanguage = getGeminiTargetLanguageName(activeLanguageCode);
   const [isTranslateOpen, setIsTranslateOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
 
@@ -157,6 +163,7 @@ export function AIExplanationScreen({
         isOpen={isTranslateOpen}
         onClose={() => setIsTranslateOpen(false)}
         imageData={image}
+        defaultTargetLanguage={activeTargetLanguage}
       />
 
       {/* AI Chat Sheet */}
@@ -165,6 +172,7 @@ export function AIExplanationScreen({
         onClose={() => setIsAIChatOpen(false)}
         imageData={image}
         explanation={explanation}
+        preferredLanguageCode={activeLanguageCode}
       />
     </>
   );

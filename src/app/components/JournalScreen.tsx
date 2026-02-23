@@ -100,7 +100,7 @@ export interface JournalEntry {
   isSaved?: boolean;
 }
 
-export type JournalTab = 'community' | 'myJournal' | 'favourites' | 'forYou';
+export type JournalTab = 'community' | 'myJournal' | 'favourites';
 type Tab = JournalTab;
 
 export default function JournalScreen({
@@ -150,11 +150,8 @@ export default function JournalScreen({
     return (entry.likes || 0) * 1.3 + (entry.bookmarks || 0) * 1.5 + (entry.views || 0) * 0.15 + (entry.comments || 0) * 2;
   };
 
-  const communityPosts = journals;
-  const myJournalPosts = journals.filter((post) => post.authorId === currentUserId);
-  const favorites = journals.filter((post) => post.isSaved);
-  const forYouPosts = (() => {
-    const base = journals.filter((post) => post.authorId !== currentUserId);
+  const communityPosts = (() => {
+    const base = journals;
     if (!userInterestVector || userInterestVector.length === 0) {
       return [...base].sort((left, right) => engagementScore(right) - engagementScore(left));
     }
@@ -166,6 +163,8 @@ export default function JournalScreen({
       return engagementScore(right) - engagementScore(left);
     });
   })();
+  const myJournalPosts = journals.filter((post) => post.authorId === currentUserId);
+  const favorites = journals.filter((post) => post.isSaved);
   const likes = myJournalPosts.reduce((sum, entry) => sum + (entry.likes ?? 0), 0);
   const totalViews = myJournalPosts.reduce((sum, entry) => sum + (entry.views ?? 0), 0);
   const countries = new Set(
@@ -276,15 +275,12 @@ export default function JournalScreen({
   const filteredCommunity = filterEntries(communityPosts);
   const filteredMyJournal = filterEntries(myJournalPosts);
   const filteredFavorites = filterEntries(favorites);
-  const filteredForYou = filterEntries(forYouPosts);
 
   const tabs: Array<{ key: Tab; label: string }> = [
     { key: 'community', label: t('journal.community') },
     { key: 'myJournal', label: t('journal.myJournal') },
     { key: 'favourites', label: t('journal.favourites') },
-    { key: 'forYou', label: t('journal.forYou') },
   ];
-  const activeTabIndex = Math.max(0, tabs.findIndex((tab) => tab.key === activeTab));
 
   const toggleLike = (id: string) => {
     if (!currentUserId) {
@@ -450,19 +446,11 @@ export default function JournalScreen({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 h-[40px] flex items-center justify-center bg-[#F7F9FF] ${activeTab === tab.key ? 'text-[#094B72]' : 'text-[rgba(0,0,0,0.4)]'}`}
+              className={`flex-1 h-[40px] flex items-center justify-center bg-[#F7F9FF] border-b-[3px] ${activeTab === tab.key ? 'text-[#094B72] border-[#094B72]' : 'text-[rgba(0,0,0,0.4)] border-transparent'}`}
             >
               <span className="font-['Roboto',sans-serif] font-medium text-[14px] leading-[20px] tracking-[0.1px]">{tab.label}</span>
             </button>
           ))}
-
-          <div
-            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] rounded-tl-[100px] rounded-tr-[100px]"
-            style={{
-              left: `calc((100% / ${tabs.length} - 56px) / 2)`,
-              transform: `translateX(calc(${activeTabIndex} * (100% / ${tabs.length})))`,
-            }}
-          />
         </div>
           <div className="h-px w-full bg-[rgba(0,0,0,0.05)] mt-[0px]" />
         </div>
@@ -572,31 +560,6 @@ export default function JournalScreen({
           </div>
         )}
 
-        {activeTab === 'forYou' && (
-          <div className="space-y-6">
-            {filteredForYou.map((p) => (
-              <JournalCard
-                key={p.id}
-                author={p.author}
-                avatarLetter={userInitial}
-                avatarUrl={p.authorAvatarUrl}
-                timeAgo={p.timeAgo}
-                title={p.title}
-                location={p.location}
-                description={p.description}
-                imageUrl={p.imageUrl}
-                likes={p.likes}
-                bookmarks={p.bookmarks}
-                views={p.views}
-                isLiked={p.isLiked}
-                isSaved={p.isSaved}
-                onToggleLike={() => toggleLike(p.id)}
-                onToggleSave={() => toggleSave(p.id)}
-                onViewJournal={() => onOpenJournal?.(p)}
-              />
-            ))}
-          </div>
-        )}
         </div>
 
         {activeTab === 'myJournal' && (
