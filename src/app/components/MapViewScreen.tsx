@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { Home, MapPin, Camera, User, Compass, LocateFixed } from 'lucide-react';
+import { Home, MapPin, Camera, User, Compass, LocateFixed, Car, PersonStanding, Bike, Bus, ChevronDown, Plus, X, GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
@@ -37,9 +37,16 @@ interface MapViewScreenProps {
 
 export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScreenProps) {
   const { t } = useTranslation();
+  
+  // Tab Management
+  const [activeTab, setActiveTab] = useState<'nearby' | 'route'>('nearby');
+  
+  // Shared Map State
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [center, setCenter] = useState<PlaceLocation>({ lat: 11.5564, lng: 104.9282 }); // Phnom Penh default
   const [userLocation, setUserLocation] = useState<PlaceLocation | null>(null);
+  
+  // Nearby Tab State
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceDetails | null>(null);
@@ -53,6 +60,36 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Route Tab State
+  const [routeOrigin, setRouteOrigin] = useState<PlaceLocation | null>(null);
+  const [routeDestination, setRouteDestination] = useState<PlaceLocation | null>(null);
+  const [travelMode, setTravelMode] = useState<'DRIVING' | 'WALKING' | 'BICYCLING' | 'TRANSIT'>('DRIVING');
+  const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState<string>('');
+  const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
+  const [routeOriginInput, setRouteOriginInput] = useState('');
+  const [routeDestinationInput, setRouteDestinationInput] = useState('');
+  const [routeOriginPredictions, setRouteOriginPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [routeDestinationPredictions, setRouteDestinationPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showOriginPredictions, setShowOriginPredictions] = useState(false);
+  const [showDestinationPredictions, setShowDestinationPredictions] = useState(false);
+  const [isRoutePanelCollapsed, setIsRoutePanelCollapsed] = useState(false);
+  
+  // Waypoints state
+  interface Waypoint {
+    location: PlaceLocation | null;
+    input: string;
+    predictions: google.maps.places.AutocompletePrediction[];
+    showPredictions: boolean;
+  }
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState<{ type: 'origin' | 'waypoint' | 'destination', index?: number } | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<{ type: 'origin' | 'waypoint' | 'destination', index?: number } | null>(null);
 
   // Get user location on mount
   useEffect(() => {
@@ -240,6 +277,22 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
     if (!placesServiceRef.current) {
       placesServiceRef.current = new google.maps.places.PlacesService(map);
     }
+    
+    // Initialize directions services for route planning
+    if (!directionsServiceRef.current) {
+      directionsServiceRef.current = new google.maps.DirectionsService();
+    }
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new google.maps.DirectionsRenderer({
+        map: null, // Don't bind to map yet, will bind when route tab is active
+        suppressMarkers: false,
+        polylineOptions: {
+          strokeColor: '#2c638b',
+          strokeWeight: 5,
+          strokeOpacity: 0.8,
+        }
+      });
+    }
 
     // Add listener for clicks on Google Maps POI markers
     map.addListener('click', (e: any) => {
@@ -412,6 +465,338 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
     );
   }, [map]);
 
+  // Route input handlers with autocomplete
+  const handleRouteOriginInput = useCallback((value: string) => {
+    setRouteOriginInput(value);
+    
+    if (!autocompleteServiceRef.current || value.trim().length < 2) {
+      setRouteOriginPredictions([]);
+      setShowOriginPredictions(false);
+      return;
+    }
+
+    const currentLoc = userLocation || center;
+    const request: google.maps.places.AutocompletionRequest = {
+      input: value,
+      locationBias: {
+        radius: 5000,
+        center: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
+      },
+    };
+
+    autocompleteServiceRef.current.getPlacePredictions(
+      request,
+      (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setRouteOriginPredictions(predictions);
+          setShowOriginPredictions(true);
+        } else {
+          setRouteOriginPredictions([]);
+          setShowOriginPredictions(false);
+        }
+      }
+    );
+  }, [userLocation, center]);
+
+  const handleRouteDestinationInput = useCallback((value: string) => {
+    setRouteDestinationInput(value);
+    
+    if (!autocompleteServiceRef.current || value.trim().length < 2) {
+      setRouteDestinationPredictions([]);
+      setShowDestinationPredictions(false);
+      return;
+    }
+
+    const currentLoc = userLocation || center;
+    const request: google.maps.places.AutocompletionRequest = {
+      input: value,
+      locationBias: {
+        radius: 5000,
+        center: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
+      },
+    };
+
+    autocompleteServiceRef.current.getPlacePredictions(
+      request,
+      (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setRouteDestinationPredictions(predictions);
+          setShowDestinationPredictions(true);
+        } else {
+          setRouteDestinationPredictions([]);
+          setShowDestinationPredictions(false);
+        }
+      }
+    );
+  }, [userLocation, center]);
+
+  const handleRouteOriginSelect = useCallback((prediction: google.maps.places.AutocompletePrediction) => {
+    if (!placesServiceRef.current) return;
+    
+    setRouteOriginInput(prediction.description);
+    setShowOriginPredictions(false);
+    setRouteOriginPredictions([]);
+    
+    placesServiceRef.current.getDetails(
+      { placeId: prediction.place_id, fields: ['geometry'] },
+      (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+          setRouteOrigin({
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          });
+        }
+      }
+    );
+  }, []);
+
+  const handleRouteDestinationSelect = useCallback((prediction: google.maps.places.AutocompletePrediction) => {
+    if (!placesServiceRef.current) return;
+    
+    setRouteDestinationInput(prediction.description);
+    setShowDestinationPredictions(false);
+    setRouteDestinationPredictions([]);
+    
+    placesServiceRef.current.getDetails(
+      { placeId: prediction.place_id, fields: ['geometry'] },
+      (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+          setRouteDestination({
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          });
+        }
+      }
+    );
+  }, []);
+
+  // Waypoint handlers
+  const addWaypoint = useCallback(() => {
+    setWaypoints(prev => [...prev, {
+      location: null,
+      input: '',
+      predictions: [],
+      showPredictions: false
+    }]);
+  }, []);
+
+  const removeWaypoint = useCallback((index: number) => {
+    setWaypoints(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleWaypointInput = useCallback((index: number, value: string) => {
+    setWaypoints(prev => {
+      const updated = [...prev];
+      updated[index].input = value;
+      return updated;
+    });
+
+    if (!autocompleteServiceRef.current || value.trim().length < 2) {
+      setWaypoints(prev => {
+        const updated = [...prev];
+        updated[index].predictions = [];
+        updated[index].showPredictions = false;
+        return updated;
+      });
+      return;
+    }
+
+    const currentLoc = userLocation || center;
+    const request: google.maps.places.AutocompletionRequest = {
+      input: value,
+      locationBias: {
+        radius: 5000,
+        center: new google.maps.LatLng(currentLoc.lat, currentLoc.lng),
+      },
+    };
+
+    autocompleteServiceRef.current.getPlacePredictions(
+      request,
+      (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setWaypoints(prev => {
+            const updated = [...prev];
+            updated[index].predictions = predictions;
+            updated[index].showPredictions = true;
+            return updated;
+          });
+        }
+      }
+    );
+  }, [userLocation, center]);
+
+  const handleWaypointSelect = useCallback((index: number, prediction: google.maps.places.AutocompletePrediction) => {
+    if (!placesServiceRef.current) return;
+
+    setWaypoints(prev => {
+      const updated = [...prev];
+      updated[index].input = prediction.description;
+      updated[index].showPredictions = false;
+      updated[index].predictions = [];
+      return updated;
+    });
+
+    placesServiceRef.current.getDetails(
+      { placeId: prediction.place_id, fields: ['geometry'] },
+      (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+          const location = place.geometry.location;
+          setWaypoints(prev => {
+            const updated = [...prev];
+            updated[index].location = {
+              lat: location.lat(),
+              lng: location.lng(),
+            };
+            return updated;
+          });
+        }
+      }
+    );
+  }, []);
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, type: 'origin' | 'waypoint' | 'destination', index?: number) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type, index }));
+    setDraggedItem({ type, index });
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, type: 'origin' | 'waypoint' | 'destination', index?: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverItem({ type, index });
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedItem(null);
+    setDragOverItem(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, dropType: 'origin' | 'waypoint' | 'destination', dropIndex?: number) => {
+    e.preventDefault();
+    
+    if (!draggedItem) return;
+
+    const { type: dragType, index: dragIndex } = draggedItem;
+
+    // If dropping on the same position, do nothing
+    if (dragType === dropType && dragIndex === dropIndex) {
+      setDraggedItem(null);
+      setDragOverItem(null);
+      return;
+    }
+
+    // Get the dragged item's data
+    let draggedData: { location: PlaceLocation | null; input: string } | null = null;
+    
+    if (dragType === 'origin') {
+      draggedData = { location: routeOrigin, input: routeOriginInput };
+    } else if (dragType === 'destination') {
+      draggedData = { location: routeDestination, input: routeDestinationInput };
+    } else if (dragType === 'waypoint' && dragIndex !== undefined) {
+      const waypoint = waypoints[dragIndex];
+      draggedData = { location: waypoint.location, input: waypoint.input };
+    }
+
+    if (!draggedData) {
+      setDraggedItem(null);
+      setDragOverItem(null);
+      return;
+    }
+
+    // Handle different drop scenarios
+    if (dropType === 'origin') {
+      // Something is being dropped on origin position
+      const currentOrigin = { location: routeOrigin, input: routeOriginInput };
+      
+      setRouteOrigin(draggedData.location);
+      setRouteOriginInput(draggedData.input);
+
+      if (dragType === 'destination') {
+        // Swap origin and destination
+        setRouteDestination(currentOrigin.location);
+        setRouteDestinationInput(currentOrigin.input);
+      } else if (dragType === 'waypoint' && dragIndex !== undefined) {
+        // Move waypoint to origin, push current origin to waypoints
+        const newWaypoints = [...waypoints];
+        newWaypoints.splice(dragIndex, 1);
+        newWaypoints.unshift({
+          location: currentOrigin.location,
+          input: currentOrigin.input,
+          predictions: [],
+          showPredictions: false,
+        });
+        setWaypoints(newWaypoints);
+      }
+    } else if (dropType === 'destination') {
+      // Something is being dropped on destination position
+      const currentDestination = { location: routeDestination, input: routeDestinationInput };
+      
+      setRouteDestination(draggedData.location);
+      setRouteDestinationInput(draggedData.input);
+
+      if (dragType === 'origin') {
+        // Swap origin and destination
+        setRouteOrigin(currentDestination.location);
+        setRouteOriginInput(currentDestination.input);
+      } else if (dragType === 'waypoint' && dragIndex !== undefined) {
+        // Move waypoint to destination, push current destination to waypoints
+        const newWaypoints = [...waypoints];
+        newWaypoints.splice(dragIndex, 1);
+        newWaypoints.push({
+          location: currentDestination.location,
+          input: currentDestination.input,
+          predictions: [],
+          showPredictions: false,
+        });
+        setWaypoints(newWaypoints);
+      }
+    } else if (dropType === 'waypoint' && dropIndex !== undefined) {
+      // Something is being dropped on a waypoint position
+      const newWaypoints = [...waypoints];
+      
+      if (dragType === 'waypoint' && dragIndex !== undefined) {
+        // Reorder waypoints
+        const [removed] = newWaypoints.splice(dragIndex, 1);
+        newWaypoints.splice(dropIndex, 0, removed);
+      } else if (dragType === 'origin') {
+        // Move origin to waypoint position
+        const currentOrigin = newWaypoints[0] || { location: null, input: '', predictions: [], showPredictions: false };
+        setRouteOrigin(currentOrigin.location);
+        setRouteOriginInput(currentOrigin.input);
+        
+        newWaypoints.splice(0, 1);
+        newWaypoints.splice(dropIndex, 0, {
+          location: draggedData.location,
+          input: draggedData.input,
+          predictions: [],
+          showPredictions: false,
+        });
+      } else if (dragType === 'destination') {
+        // Move destination to waypoint position
+        newWaypoints.splice(dropIndex, 0, {
+          location: draggedData.location,
+          input: draggedData.input,
+          predictions: [],
+          showPredictions: false,
+        });
+        
+        // Set the last waypoint as the new destination
+        const lastWaypoint = newWaypoints[newWaypoints.length - 1];
+        if (lastWaypoint) {
+          setRouteDestination(lastWaypoint.location);
+          setRouteDestinationInput(lastWaypoint.input);
+          newWaypoints.pop();
+        }
+      }
+      
+      setWaypoints(newWaypoints);
+    }
+
+    setDraggedItem(null);
+    setDragOverItem(null);
+  }, [draggedItem, routeOrigin, routeOriginInput, routeDestination, routeDestinationInput, waypoints]);
+
   // Search for tourist destinations (triggered by floating button)
   const searchTouristDestinations = useCallback(() => {
     if (!map) return;
@@ -468,20 +853,117 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
     onNavigate(screen);
   };
 
+  // Set user location as default origin for route planning
+  useEffect(() => {
+    if (activeTab === 'route' && userLocation && !routeOrigin) {
+      setRouteOrigin(userLocation);
+      setRouteOriginInput(t('mapView.myLocation'));
+    }
+  }, [activeTab, userLocation, routeOrigin, t]);
+
+  // Bind/unbind DirectionsRenderer based on active tab
+  useEffect(() => {
+    if (!map || !directionsRendererRef.current) return;
+    
+    if (activeTab === 'route') {
+      // Bind renderer to map for route tab
+      directionsRendererRef.current.setMap(map);
+    } else {
+      // Unbind renderer when in nearby tab
+      directionsRendererRef.current.setMap(null);
+      // Clear directions result
+      setDirectionsResult(null);
+    }
+  }, [activeTab, map]);
+
+  // Calculate route when inputs change
+  useEffect(() => {
+    if (activeTab !== 'route' || !routeOrigin || !routeDestination || !directionsServiceRef.current || !directionsRendererRef.current) {
+      return;
+    }
+
+    setRouteLoading(true);
+    setRouteError('');
+
+    // Build waypoints array from valid waypoint locations
+    const waypointsForRequest: google.maps.DirectionsWaypoint[] = waypoints
+      .filter(wp => wp.location !== null)
+      .map(wp => ({
+        location: new google.maps.LatLng(wp.location!.lat, wp.location!.lng),
+        stopover: true
+      }));
+
+    const request: google.maps.DirectionsRequest = {
+      origin: new google.maps.LatLng(routeOrigin.lat, routeOrigin.lng),
+      destination: new google.maps.LatLng(routeDestination.lat, routeDestination.lng),
+      waypoints: waypointsForRequest.length > 0 ? waypointsForRequest : undefined,
+      travelMode: travelMode as google.maps.TravelMode,
+    };
+
+    directionsServiceRef.current.route(request, (result, status) => {
+      setRouteLoading(false);
+      
+      if (status === google.maps.DirectionsStatus.OK && result) {
+        setDirectionsResult(result);
+        if (directionsRendererRef.current) {
+          directionsRendererRef.current.setDirections(result);
+        }
+      } else {
+        console.error('Directions request failed:', status);
+        setRouteError(t('mapView.noRouteFound'));
+        setDirectionsResult(null);
+      }
+    });
+  }, [activeTab, routeOrigin, routeDestination, waypoints, travelMode, t]);
+
   return (
     <div className="bg-white dark:bg-gray-900 relative size-full">
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         {/* Header */}
         <div className="absolute left-[24px] top-[25px]">
           <h1 className="font-['Poppins',sans-serif] font-semibold text-[24px] text-black dark:text-white leading-[32px]">
-            Map View
+            {t('mapView.title')}
           </h1>
+        </div>
+
+        {/* Tabs */}
+        <div className="absolute left-[24px] right-[24px] top-[65px]">
+          <div className="relative flex gap-2">
+            <button
+              onClick={() => setActiveTab('nearby')}
+              className={`flex-1 py-2 text-center font-['Poppins',sans-serif] text-[14px] font-medium transition-all ${
+                activeTab === 'nearby'
+                  ? 'text-[#2c638b] dark:text-blue-400'
+                  : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              {t('mapView.nearby')}
+            </button>
+            <button
+              onClick={() => setActiveTab('route')}
+              className={`flex-1 py-2 text-center font-['Poppins',sans-serif] text-[14px] font-medium transition-all ${
+                activeTab === 'route'
+                  ? 'text-[#2c638b] dark:text-blue-400'
+                  : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              {t('mapView.route')}
+            </button>
+          </div>
+          {/* Tab Indicator */}
+          <div
+            className="h-[3px] bg-[#2c638b] dark:bg-blue-400 rounded-full transition-all duration-200"
+            style={{
+              width: '50%',
+              transform: `translateX(${activeTab === 'route' ? '100%' : '0'})`
+            }}
+          />
         </div>
 
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
-          className="absolute left-0 right-0 top-[120px] bottom-[90px]"
+          className="absolute left-0 right-0 top-[105px] bottom-[90px]"
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
@@ -492,69 +974,428 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
               setLoadError('Failed to load Google Maps. Check API key restrictions.');
             }}
           >
-            {/* Search Bar - Must be inside LoadScript for Autocomplete to work */}
-            <div className="absolute left-[20px] top-[-55px] right-[23px] z-10">
-              <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[35px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
-                {/* Autocomplete Search Input */}
-                <div className="flex-1 relative">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => handleSearchInput(e.target.value)}
-                    onFocus={() => {
-                      if (predictions.length > 0) setShowPredictions(true);
-                    }}
-                    onBlur={() => {
-                      // Delay to allow click on prediction
-                      setTimeout(() => setShowPredictions(false), 200);
-                    }}
-                    placeholder="Search here..."
-                    className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] dark:text-white placeholder:text-[#2c638b] dark:placeholder:text-gray-400 placeholder:opacity-70"
-                    onClick={(e) => {
-                      // Select all text on click if there's content
-                      const input = e.currentTarget;
-                      if (input.value) {
-                        setTimeout(() => input.select(), 0);
-                      }
-                    }}
-                  />
+            {/* Nearby Tab - Search Bar */}
+            {activeTab === 'nearby' && (
+              <div className="absolute left-[20px] top-[10px] right-[23px] z-10">
+                <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[40px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
+                  {/* Autocomplete Search Input */}
+                  <div className="flex-1 relative">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => handleSearchInput(e.target.value)}
+                      onFocus={() => {
+                        if (predictions.length > 0) setShowPredictions(true);
+                      }}
+                      onBlur={() => {
+                        // Delay to allow click on prediction
+                        setTimeout(() => setShowPredictions(false), 200);
+                      }}
+                      placeholder="Search here..."
+                      className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] dark:text-white placeholder:text-[#2c638b] dark:placeholder:text-gray-400 placeholder:opacity-70"
+                      onClick={(e) => {
+                        // Select all text on click if there's content
+                        const input = e.currentTarget;
+                        if (input.value) {
+                          setTimeout(() => input.select(), 0);
+                        }
+                      }}
+                    />
+                    
+                    {/* Custom Dropdown for Predictions */}
+                    {showPredictions && predictions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
+                        {predictions.map((prediction) => (
+                          <button
+                            key={prediction.place_id}
+                            onClick={() => handlePredictionSelect(prediction)}
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition">
+                            <div className="flex items-start gap-2">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b" className="dark:fill-blue-400"/>
+                              </svg>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white font-medium truncate">
+                                  {prediction.structured_formatting.main_text}
+                                </p>
+                                <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 dark:text-gray-400 truncate">
+                                  {prediction.structured_formatting.secondary_text}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Search Icon */}
+                  <button className="shrink-0">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Route Tab - Control Panel */}
+            {activeTab === 'route' && (
+              <div className="absolute left-[20px] top-[10px] right-[23px] z-10">
+                <div className={`bg-white dark:bg-gray-800 rounded-[16px] shadow-lg transition-all duration-300 ${
+                  isRoutePanelCollapsed ? 'p-2' : 'p-4'
+                } ${
+                  isRoutePanelCollapsed ? '' : 'max-h-[calc(100vh-235px)] overflow-y-auto'
+                }`}>
                   
-                  {/* Custom Dropdown for Predictions */}
-                  {showPredictions && predictions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
-                      {predictions.map((prediction) => (
+                  {/* Collapsed State - Compact Header */}
+                  {isRoutePanelCollapsed && directionsResult && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-[12px] font-['Poppins',sans-serif]">
+                            <span className="font-semibold text-[#2c638b] dark:text-blue-400">
+                              {directionsResult.routes[0].legs[0].distance?.text}
+                            </span>
+                            <span className="text-gray-400">•</span>
+                            <span className="font-semibold text-[#2c638b] dark:text-blue-400">
+                              {directionsResult.routes[0].legs[0].duration?.text}
+                            </span>
+                          </div>
+                        </div>
                         <button
-                          key={prediction.place_id}
-                          onClick={() => handlePredictionSelect(prediction)}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition">
-                          <div className="flex items-start gap-2">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b" className="dark:fill-blue-400"/>
-                            </svg>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white font-medium truncate">
+                          onClick={() => setIsRoutePanelCollapsed(false)}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                          title="Expand panel"
+                        >
+                          <ChevronDown size={20} className="text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expanded State - Full Panel */}
+                  {!isRoutePanelCollapsed && (
+                    <div className="space-y-3">
+                  {/* Origin Input */}
+                  <div className="space-y-1 relative">
+                    <label className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
+                      {t('mapView.origin')}
+                    </label>
+                    <div 
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, 'origin')}
+                      onDragOver={(e) => handleDragOver(e, 'origin')}
+                      onDrop={(e) => handleDrop(e, 'origin')}
+                      onDragEnd={handleDragEnd}
+                      className={`bg-[#f5f5f5] dark:bg-gray-700 rounded-[12px] px-3 py-2 flex items-center gap-2 transition-all cursor-grab active:cursor-grabbing ${
+                        draggedItem?.type === 'origin' ? 'opacity-50' : ''
+                      } ${
+                        dragOverItem?.type === 'origin' && draggedItem?.type !== 'origin' 
+                          ? 'border-2 border-blue-500' 
+                          : ''
+                      }`}
+                    >
+                      <GripVertical size={16} className="text-gray-400 cursor-move" />
+                      <MapPin size={16} className="text-[#2c638b] dark:text-blue-400" />
+                      <input
+                        type="text"
+                        value={routeOriginInput}
+                        onChange={(e) => handleRouteOriginInput(e.target.value)}
+                        onFocus={() => {
+                          if (routeOriginPredictions.length > 0) setShowOriginPredictions(true);
+                        }}
+                        onBlur={() => setTimeout(() => setShowOriginPredictions(false), 200)}
+                        placeholder={t('mapView.myLocation')}
+                        className="flex-1 bg-transparent outline-none text-[14px] font-['Poppins',sans-serif] text-black dark:text-white placeholder:text-gray-400 cursor-text"
+                        draggable={false}
+                      />
+                    </div>
+                    
+                    {/* Origin Predictions Dropdown */}
+                    {showOriginPredictions && routeOriginPredictions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-50">
+                        {routeOriginPredictions.map((prediction) => (
+                          <button
+                            key={prediction.place_id}
+                            onClick={() => handleRouteOriginSelect(prediction)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                          >
+                            <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
+                              {prediction.structured_formatting.main_text}
+                            </p>
+                            <p className="font-['Poppins',sans-serif] text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                              {prediction.structured_formatting.secondary_text}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Waypoints */}
+                  {waypoints.map((waypoint, index) => (
+                    <div key={index} className="space-y-1 relative">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
+                          {t('mapView.waypoint')} {index + 1}
+                        </label>
+                        <button
+                          onClick={() => removeWaypoint(index)}
+                          className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition"
+                          title={t('mapView.removeStop')}
+                        >
+                          <X size={14} className="text-red-500" />
+                        </button>
+                      </div>
+                      <div 
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, 'waypoint', index)}
+                        onDragOver={(e) => handleDragOver(e, 'waypoint', index)}
+                        onDrop={(e) => handleDrop(e, 'waypoint', index)}
+                        onDragEnd={handleDragEnd}
+                        className={`bg-[#f5f5f5] dark:bg-gray-700 rounded-[12px] px-3 py-2 flex items-center gap-2 transition-all cursor-grab active:cursor-grabbing ${
+                          draggedItem?.type === 'waypoint' && draggedItem?.index === index ? 'opacity-50' : ''
+                        } ${
+                          dragOverItem?.type === 'waypoint' && dragOverItem?.index === index && 
+                          !(draggedItem?.type === 'waypoint' && draggedItem?.index === index)
+                            ? 'border-2 border-blue-500' 
+                            : ''
+                        }`}
+                      >
+                        <GripVertical size={16} className="text-gray-400 cursor-move" />
+                        <MapPin size={16} className="text-orange-500" />
+                        <input
+                          type="text"
+                          value={waypoint.input}
+                          onChange={(e) => handleWaypointInput(index, e.target.value)}
+                          onFocus={() => {
+                            if (waypoint.predictions.length > 0) {
+                              setWaypoints(prev => {
+                                const updated = [...prev];
+                                updated[index].showPredictions = true;
+                                return updated;
+                              });
+                            }
+                          }}
+                          onBlur={() => setTimeout(() => {
+                            setWaypoints(prev => {
+                              const updated = [...prev];
+                              updated[index].showPredictions = false;
+                              return updated;
+                            });
+                          }, 200)}
+                          placeholder={`${t('mapView.waypoint')} ${index + 1}`}
+                          className="flex-1 bg-transparent outline-none text-[14px] font-['Poppins',sans-serif] text-black dark:text-white placeholder:text-gray-400 cursor-text"
+                          draggable={false}
+                        />
+                      </div>
+                      
+                      {/* Waypoint Predictions Dropdown */}
+                      {waypoint.showPredictions && waypoint.predictions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-50">
+                          {waypoint.predictions.map((prediction) => (
+                            <button
+                              key={prediction.place_id}
+                              onClick={() => handleWaypointSelect(index, prediction)}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                            >
+                              <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
                                 {prediction.structured_formatting.main_text}
                               </p>
-                              <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 dark:text-gray-400 truncate">
+                              <p className="font-['Poppins',sans-serif] text-[11px] text-gray-500 dark:text-gray-400 truncate">
                                 {prediction.structured_formatting.secondary_text}
                               </p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Destination Input */}
+                  <div className="space-y-1 relative">
+                    <label className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
+                      {t('mapView.destination')}
+                    </label>
+                    <div 
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, 'destination')}
+                      onDragOver={(e) => handleDragOver(e, 'destination')}
+                      onDrop={(e) => handleDrop(e, 'destination')}
+                      onDragEnd={handleDragEnd}
+                      className={`bg-[#f5f5f5] dark:bg-gray-700 rounded-[12px] px-3 py-2 flex items-center gap-2 transition-all cursor-grab active:cursor-grabbing ${
+                        draggedItem?.type === 'destination' ? 'opacity-50' : ''
+                      } ${
+                        dragOverItem?.type === 'destination' && draggedItem?.type !== 'destination' 
+                          ? 'border-2 border-blue-500' 
+                          : ''
+                      }`}
+                    >
+                      <GripVertical size={16} className="text-gray-400 cursor-move" />
+                      <MapPin size={16} className="text-red-500" />
+                      <input
+                        type="text"
+                        value={routeDestinationInput}
+                        onChange={(e) => handleRouteDestinationInput(e.target.value)}
+                        onFocus={() => {
+                          if (routeDestinationPredictions.length > 0) setShowDestinationPredictions(true);
+                        }}
+                        onBlur={() => setTimeout(() => setShowDestinationPredictions(false), 200)}
+                        placeholder={t('mapView.selectDestination')}
+                        className="flex-1 bg-transparent outline-none text-[14px] font-['Poppins',sans-serif] text-black dark:text-white placeholder:text-gray-400 cursor-text"
+                        draggable={false}
+                      />
+                    </div>
+                    
+                    {/* Destination Predictions Dropdown */}
+                    {showDestinationPredictions && routeDestinationPredictions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-50">
+                        {routeDestinationPredictions.map((prediction) => (
+                          <button
+                            key={prediction.place_id}
+                            onClick={() => handleRouteDestinationSelect(prediction)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                          >
+                            <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
+                              {prediction.structured_formatting.main_text}
+                            </p>
+                            <p className="font-['Poppins',sans-serif] text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                              {prediction.structured_formatting.secondary_text}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add Stop Button */}
+                  <button
+                    onClick={addWaypoint}
+                    className="w-full py-2 px-3 bg-blue-50 dark:bg-blue-900/20 text-[#2c638b] dark:text-blue-400 rounded-[12px] text-[13px] font-['Poppins',sans-serif] font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} />
+                    {t('mapView.addStop')}
+                  </button>
+
+                  {/* Travel Mode Selector */}
+                  <div className="space-y-2">
+                    <label className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
+                      Travel Mode
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <button
+                        onClick={() => setTravelMode('DRIVING')}
+                        className={`p-2 rounded-[10px] flex flex-col items-center gap-1 transition ${
+                          travelMode === 'DRIVING'
+                            ? 'bg-[#2c638b] dark:bg-blue-600 text-white'
+                            : 'bg-[#f5f5f5] dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        <Car size={20} />
+                        <span className="text-[10px] font-['Poppins',sans-serif]">{t('mapView.travelModeDriving')}</span>
+                      </button>
+                      <button
+                        onClick={() => setTravelMode('WALKING')}
+                        className={`p-2 rounded-[10px] flex flex-col items-center gap-1 transition ${
+                          travelMode === 'WALKING'
+                            ? 'bg-[#2c638b] dark:bg-blue-600 text-white'
+                            : 'bg-[#f5f5f5] dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        <PersonStanding size={20} />
+                        <span className="text-[10px] font-['Poppins',sans-serif]">{t('mapView.travelModeWalking')}</span>
+                      </button>
+                      <button
+                        onClick={() => setTravelMode('BICYCLING')}
+                        className={`p-2 rounded-[10px] flex flex-col items-center gap-1 transition ${
+                          travelMode === 'BICYCLING'
+                            ? 'bg-[#2c638b] dark:bg-blue-600 text-white'
+                            : 'bg-[#f5f5f5] dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        <Bike size={20} />
+                        <span className="text-[10px] font-['Poppins',sans-serif]">{t('mapView.travelModeCycling')}</span>
+                      </button>
+                      <button
+                        onClick={() => setTravelMode('TRANSIT')}
+                        className={`p-2 rounded-[10px] flex flex-col items-center gap-1 transition ${
+                          travelMode === 'TRANSIT'
+                            ? 'bg-[#2c638b] dark:bg-blue-600 text-white'
+                            : 'bg-[#f5f5f5] dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        <Bus size={20} />
+                        <span className="text-[10px] font-['Poppins',sans-serif]">{t('mapView.travelModeTransit')}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Route Summary */}
+                  {directionsResult && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-[12px] p-3 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
+                          {t('mapView.totalDistance')}
+                        </span>
+                        <span className="text-[14px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400">
+                          {directionsResult.routes[0].legs[0].distance?.text}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
+                          {t('mapView.duration')}
+                        </span>
+                        <span className="text-[14px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400">
+                          {directionsResult.routes[0].legs[0].duration?.text}
+                        </span>
+                      </div>
+                      
+                      {/* Plan the Route Button */}
+                      <button
+                        onClick={() => setIsRoutePanelCollapsed(true)}
+                        className="w-full bg-[#2c638b] dark:bg-blue-600 text-white py-2 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-medium hover:bg-[#235070] dark:hover:bg-blue-700 transition"
+                      >
+                        Plan the Route
+                      </button>
+                      
+                      {/* Open in Google Maps */}
+                      <button
+                        onClick={() => {
+                          if (routeOrigin && routeDestination) {
+                            const url = `https://www.google.com/maps/dir/?api=1&origin=${routeOrigin.lat},${routeOrigin.lng}&destination=${routeDestination.lat},${routeDestination.lng}&travelmode=${travelMode.toLowerCase()}`;
+                            window.open(url, '_blank');
+                          }
+                        }}
+                        className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                      >
+                        {t('mapView.openInGoogleMaps')}
+                      </button>
+                    </div>
+                  )}
+
+                  {routeLoading && (
+                    <div className="text-center py-2">
+                      <p className="text-[12px] font-['Poppins',sans-serif] text-gray-500 dark:text-gray-400">
+                        {t('mapView.calculating')}
+                      </p>
+                    </div>
+                  )}
+
+                  {routeError && (
+                    <div className="text-center py-2">
+                      <p className="text-[12px] font-['Poppins',sans-serif] text-red-500">
+                        {routeError}
+                      </p>
+                    </div>
+                  )}
                     </div>
                   )}
                 </div>
-
-                {/* Search Icon */}
-                <button className="shrink-0">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
-                  </svg>
-                </button>
               </div>
-            </div>
+            )}
+            
             {loadError ? (
               <div className="flex flex-col items-center justify-center h-full bg-gradient-to-b from-[#ffe8e8] to-[#ffd0d0]">
                 <div className="mb-[24px]">
@@ -598,62 +1439,65 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                 options={mapOptions}
                 onLoad={onLoad}
               >
-              {/* User Location Marker */}
-              {userLocation && (
-                <Marker
-                  position={userLocation}
-                  icon={{
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 10,
-                    fillColor: '#2c638b',
-                    fillOpacity: 1,
-                    strokeColor: 'white',
-                    strokeWeight: 3,
-                  }}
-                  title="Your Location"
-                />
-              )}
+              {/* Nearby Tab - Markers and InfoWindows */}
+              {activeTab === 'nearby' && (
+                <>
+                  {/* User Location Marker */}
+                  {userLocation && (
+                    <Marker
+                      position={userLocation}
+                      icon={{
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: '#2c638b',
+                        fillOpacity: 1,
+                        strokeColor: 'white',
+                        strokeWeight: 3,
+                      }}
+                      title="Your Location"
+                    />
+                  )}
 
-              {/* Attraction Markers */}
-              {(() => {
-                console.log(`Rendering ${attractions.length} tourist markers`);
-                return attractions.map((attraction) => (
-                  <Marker
-                    key={attraction.placeId}
-                    position={attraction.position}
-                    onClick={() => handleMarkerClick(attraction)}
-                    icon={{
-                      url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                      scaledSize: new google.maps.Size(40, 40)
-                    }}
-                    title={attraction.name}
-                  />
-                ));
-              })()}
+                  {/* Attraction Markers */}
+                  {(() => {
+                    console.log(`Rendering ${attractions.length} tourist markers`);
+                    return attractions.map((attraction) => (
+                      <Marker
+                        key={attraction.placeId}
+                        position={attraction.position}
+                        onClick={() => handleMarkerClick(attraction)}
+                        icon={{
+                          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                          scaledSize: new google.maps.Size(40, 40)
+                        }}
+                        title={attraction.name}
+                      />
+                    ));
+                  })()}
 
-              {/* Searched Place Marker (Different Color) */}
-              {searchedPlace && (
-                <Marker
-                  position={searchedPlace.position}
-                  onClick={() => {
-                    handleMarkerClick(searchedPlace);
-                    fetchPlaceDetails(searchedPlace.placeId, searchedPlace);
-                  }}
-                  icon={{
-                    url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                    scaledSize: new google.maps.Size(40, 40)
-                  }}
-                  title={searchedPlace.name}
-                />
-              )}
+                  {/* Searched Place Marker (Different Color) */}
+                  {searchedPlace && (
+                    <Marker
+                      position={searchedPlace.position}
+                      onClick={() => {
+                        handleMarkerClick(searchedPlace);
+                        fetchPlaceDetails(searchedPlace.placeId, searchedPlace);
+                      }}
+                      icon={{
+                        url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                        scaledSize: new google.maps.Size(40, 40)
+                      }}
+                      title={searchedPlace.name}
+                    />
+                  )}
 
-              {/* Info Window */}
-              {selectedAttraction && (
-                <InfoWindow
-                  position={selectedAttraction.position}
-                  onCloseClick={() => setSelectedAttraction(null)}
-                >
-                  <div className="p-2 min-w-[200px] max-w-[250px]">
+                  {/* Info Window */}
+                  {selectedAttraction && (
+                    <InfoWindow
+                      position={selectedAttraction.position}
+                      onCloseClick={() => setSelectedAttraction(null)}
+                    >
+                      <div className="p-2 min-w-[200px] max-w-[250px]">
                     {selectedAttraction.photos && selectedAttraction.photos.length > 0 && (
                       <img 
                         src={selectedAttraction.photos[0].getUrl({ maxWidth: 250, maxHeight: 150 })}
@@ -691,6 +1535,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                   </div>
                 </InfoWindow>
               )}
+                </>
+              )}
             </GoogleMap>
             )}
           </LoadScript>
@@ -725,35 +1571,37 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
           </div>
         )}
 
-        {/* Floating Action Buttons */}
-        <div className="absolute bottom-[30px] left-[24px] z-20 flex gap-3">
-          {/* View Nearby Button */}
-          <button
-            onClick={searchTouristDestinations}
-            disabled={!map || loading}
-            className="bg-[#2c638b] text-white rounded-full shadow-lg hover:bg-[#234d6a] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-3"
-            title="View nearby tourist attractions"
-          >
-            <Compass size={20} strokeWidth={2.5} />
-            <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
-              Nearby Attractions
-            </span>
-          </button>
+        {/* Floating Action Buttons - Nearby Tab Only */}
+        {activeTab === 'nearby' && (
+          <div className="absolute bottom-[30px] left-[24px] z-20 flex gap-3">
+            {/* View Nearby Button */}
+            <button
+              onClick={searchTouristDestinations}
+              disabled={!map || loading}
+              className="bg-[#2c638b] text-white rounded-full shadow-lg hover:bg-[#234d6a] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-3"
+              title="View nearby tourist attractions"
+            >
+              <Compass size={20} strokeWidth={2.5} />
+              <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
+                {t('mapView.nearbyAttractions')}
+              </span>
+            </button>
 
-          {/* Back to Location Button */}
-          <button
-            onClick={resetToUserLocation}
-            disabled={!userLocation}
-            className="bg-white text-[#2c638b] rounded-full shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-[48px] h-[48px]"
-            title="Back to my location"
-          >
-            <LocateFixed size={22} strokeWidth={2.5} />
-          </button>
-        </div>
+            {/* Back to Location Button */}
+            <button
+              onClick={resetToUserLocation}
+              disabled={!userLocation}
+              className="bg-white text-[#2c638b] rounded-full shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-[48px] h-[48px]"
+              title="Back to my location"
+            >
+              <LocateFixed size={22} strokeWidth={2.5} />
+            </button>
+          </div>
+        )}
       </div>
 
-        {/* Place Detail Sheet */}
-        {selectedPlace && (
+        {/* Place Detail Sheet - Nearby Tab Only */}
+        {activeTab === 'nearby' && selectedPlace && (
           <PlaceDetailSheet
             place={selectedPlace}
             onClose={() => {
