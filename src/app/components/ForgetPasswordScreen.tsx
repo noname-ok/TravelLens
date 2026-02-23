@@ -31,7 +31,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
         </div>
         <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]" data-name="Left Side" data-node-id="1:68">
           <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]" data-name="_StatusBar-time" data-node-id="1:69">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap" data-node-id="I1:69;839:7100">
+            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap" data-node-id="I1:69;839:7100">
               9:41
             </p>
           </div>
@@ -133,9 +133,9 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
   };
 
   return (
-    <div className="bg-white relative size-full" data-name="Forgot password- Reset password" data-node-id="1:2523">
+    <div className="bg-white dark:bg-gray-900 relative size-full" data-name="Forgot password- Reset password" data-node-id="1:2523">
       {loading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-white dark:bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0fa3e2]"></div>
         </div>
       )}
@@ -146,7 +146,7 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
           data-name="angle-left" 
           data-node-id="1:2525"
         >
-          <img alt="Back" className="block max-w-none size-full" src={imgAngleLeft} />
+          <img alt="Back" className="block max-w-none size-full dark:invert" src={imgAngleLeft} />
         </button>
         
         <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]" data-node-id="1:2527">
@@ -157,10 +157,10 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
             </div>
           </div>
           <div className="content-stretch flex flex-col gap-[5px] items-start leading-[normal] not-italic relative shrink-0 tracking-[-0.165px] w-[323px]" data-node-id="1:2530">
-            <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[18px] text-black" data-node-id="1:2531">
+            <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[18px] text-black dark:text-white" data-node-id="1:2531">
               Forget password
             </p>
-            <p className="font-['Poppins:Regular',sans-serif] min-w-full relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] w-[min-content] whitespace-pre-wrap" data-node-id="1:2532">
+            <p className="font-['Poppins:Regular',sans-serif] min-w-full relative shrink-0 text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400 w-[min-content] whitespace-pre-wrap" data-node-id="1:2532">
               Enter your email or phone we will send the verification code to reset your password
             </p>
           </div>
@@ -175,12 +175,12 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex h-[52px] items-center pl-[15px] py-[10px] relative rounded-[15px] shrink-0 w-full font-['Poppins:Regular',sans-serif] text-[12px] text-black outline-none focus:border-[#0fa3e2]"
+                  className="border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid content-stretch flex h-[52px] items-center pl-[15px] py-[10px] relative rounded-[15px] shrink-0 w-full font-['Poppins:Regular',sans-serif] text-[12px] text-black dark:bg-gray-800 dark:text-white outline-none focus:border-[#0fa3e2]"
                   data-node-id="1:2537"
                 />
               ) : (
                 <div className="relative w-full">
-                  <div className="border border-[rgba(0,0,0,0.1)] border-solid content-stretch flex h-[52px] items-center relative rounded-[15px] shrink-0 w-full" data-node-id="1:2537">
+                  <div className="border border-[rgba(0,0,0,0.1)] dark:border-gray-700 border-solid content-stretch flex h-[52px] items-center relative rounded-[15px] shrink-0 w-full dark:bg-gray-800" data-node-id="1:2537">
                     {/* Country Code Dropdown */}
                     <div className="relative">
                       <button
@@ -189,18 +189,18 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
                           e.stopPropagation();
                           setShowCountryDropdown(!showCountryDropdown);
                         }}
-                        className="flex items-center gap-2 pl-3 pr-2 h-full border-r border-[rgba(0,0,0,0.1)] hover:bg-gray-50 transition-colors min-w-[110px]"
+                        className="flex items-center gap-2 pl-3 pr-2 h-full border-r border-[rgba(0,0,0,0.1)] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-w-[110px]"
                       >
-                        <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black">
+                        <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black dark:text-white">
                           {COUNTRY_CODES.find(c => c.code === countryCode)?.country}
                         </span>
-                        <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black">{countryCode}</span>
+                        <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black dark:text-white">{countryCode}</span>
                         <span className="text-[10px] text-gray-500 ml-auto">▼</span>
                       </button>
                       
                       {/* Dropdown Menu */}
                       {showCountryDropdown && (
-                        <div className="absolute top-[calc(100%+4px)] left-0 bg-white border border-[rgba(0,0,0,0.1)] rounded-[10px] shadow-lg z-50 w-[180px] max-h-[250px] overflow-y-auto">
+                        <div className="absolute top-[calc(100%+4px)] left-0 bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.1)] dark:border-gray-700 rounded-[10px] shadow-lg z-50 w-[180px] max-h-[250px] overflow-y-auto">
                           {COUNTRY_CODES.map((item) => (
                             <button
                               key={item.code}
@@ -209,13 +209,13 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
                                 setCountryCode(item.code);
                                 setShowCountryDropdown(false);
                               }}
-                              className={`w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left ${
-                                countryCode === item.code ? 'bg-blue-50' : ''
+                              className={`w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left ${
+                                countryCode === item.code ? 'bg-blue-50 dark:bg-blue-900' : ''
                               }`}
                             >
                               <span className="text-[16px]">{item.flag}</span>
-                              <span className="font-['Poppins:Medium',sans-serif] text-[12px] text-black flex-1">{item.code}</span>
-                              <span className="font-['Poppins:Regular',sans-serif] text-[10px] text-gray-500">{item.country}</span>
+                              <span className="font-['Poppins:Medium',sans-serif] text-[12px] text-black dark:text-white flex-1">{item.code}</span>
+                              <span className="font-['Poppins:Regular',sans-serif] text-[10px] text-gray-500 dark:text-gray-400">{item.country}</span>
                             </button>
                           ))}
                         </div>
@@ -228,7 +228,7 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                       placeholder="123 456 789"
-                      className="flex-1 h-full px-3 font-['Poppins:Regular',sans-serif] text-[12px] text-black outline-none bg-transparent"
+                      className="flex-1 h-full px-3 font-['Poppins:Regular',sans-serif] text-[12px] text-black dark:text-white outline-none bg-transparent"
                     />
                   </div>
                 </div>

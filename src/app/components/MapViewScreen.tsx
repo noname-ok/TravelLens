@@ -32,7 +32,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
         </div>
         <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
           <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
+            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
               9:41
             </p>
           </div>
@@ -49,7 +49,7 @@ function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ""}>
       <div className="h-[34px] relative w-full">
-        <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
+        <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
   );
@@ -495,7 +495,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         {/* Status Bar */}
         <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
@@ -523,11 +523,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
           >
             {/* Search Bar - Must be inside LoadScript for Autocomplete to work */}
             <div className="absolute left-[24px] top-[-60px] right-[24px] z-10">
-              <div className="bg-[#f5f5f5] flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
+              <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[48px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
                 {/* Menu Icon */}
                 <button className="shrink-0">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b"/>
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#2c638b" className="dark:fill-blue-400"/>
                   </svg>
                 </button>
 
@@ -558,22 +558,21 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                   
                   {/* Custom Dropdown for Predictions */}
                   {showPredictions && predictions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
                       {predictions.map((prediction) => (
                         <button
                           key={prediction.place_id}
                           onClick={() => handlePredictionSelect(prediction)}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition"
-                        >
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition">
                           <div className="flex items-start gap-2">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b"/>
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b" className="dark:fill-blue-400"/>
                             </svg>
                             <div className="flex-1 min-w-0">
-                              <p className="font-['Poppins',sans-serif] text-[14px] text-black font-medium truncate">
+                              <p className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white font-medium truncate">
                                 {prediction.structured_formatting.main_text}
                               </p>
-                              <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 truncate">
+                              <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 dark:text-gray-400 truncate">
                                 {prediction.structured_formatting.secondary_text}
                               </p>
                             </div>
@@ -754,7 +753,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
 
         {/* Loading indicator */}
         {loading && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg z-20">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg z-20">
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2c638b]"></div>
               <span className="font-['Poppins',sans-serif] text-[14px] text-black">{t('mapView.loading')}</span>
@@ -803,7 +802,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         {/* Bottom Navigation */}
         <div className="absolute left-0 right-0 bottom-0 h-[90px]">
           {/* Divider */}
-          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)] dark:bg-gray-700" />
           
           {/* Nav Bar */}
           <div className="flex flex-col h-[78px] p-[10px]">
@@ -815,11 +814,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             >
               <Home 
                 size={28}
-                className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
                 strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
               }`}>
                 {t('navigation.home')}
               </p>
@@ -832,11 +831,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             >
               <MapPin 
                 size={28}
-                className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
                 strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
               }`}>
                 {t('navigation.nearby')}
               </p>
@@ -849,11 +848,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             >
               <Camera 
                 size={28}
-                className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
                 strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
               }`}>
                 {t('navigation.aiLens')}
               </p>
@@ -866,11 +865,11 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             >
               <User 
                 size={28}
-                className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}
+                className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
                 strokeWidth={2}
               />
               <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
-                currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'
+                currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
               }`}>
                 {t('navigation.profile')}
               </p>

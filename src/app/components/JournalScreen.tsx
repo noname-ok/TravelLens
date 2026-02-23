@@ -56,7 +56,7 @@ function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ''}>
       <div className="h-[34px] relative w-full">
-        <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
+        <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
   );
@@ -387,7 +387,7 @@ export default function JournalScreen({
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <style>{`
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -400,7 +400,7 @@ export default function JournalScreen({
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
 
-        <div className="absolute bg-white h-[109px] left-0 right-0 top-[-2px]" />
+        <div className="absolute bg-white dark:bg-gray-900 h-[109px] left-0 right-0 top-[-2px]" />
 
         <div className="absolute left-0 right-0 top-[52px] px-[20px] flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -416,10 +416,10 @@ export default function JournalScreen({
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder={t('journal.searchPlaceholder')}
-                className="w-[210px] h-[32px] rounded-[10px] border border-[rgba(0,0,0,0.1)] px-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b]"
+                className="w-[210px] h-[32px] rounded-[10px] border border-[rgba(0,0,0,0.1)] dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b]"
               />
             ) : (
-              <p className="font-['Inter',sans-serif] font-medium leading-[22px] text-[20px] text-black tracking-[-0.408px]">{t('journal.screenTitle')}</p>
+              <p className="font-['Inter',sans-serif] font-medium leading-[22px] text-[20px] text-black dark:text-white tracking-[-0.408px]">{t('journal.screenTitle')}</p>
             )}
           </div>
           <button
@@ -446,13 +446,21 @@ export default function JournalScreen({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 h-[40px] flex items-center justify-center bg-[#F7F9FF] border-b-[3px] ${activeTab === tab.key ? 'text-[#094B72] border-[#094B72]' : 'text-[rgba(0,0,0,0.4)] border-transparent'}`}
+              className={`flex-1 h-[40px] flex items-center justify-center bg-[#F7F9FF] dark:bg-gray-800 ${activeTab === tab.key ? 'text-[#094B72] dark:text-blue-400' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}
             >
               <span className="font-['Roboto',sans-serif] font-medium text-[14px] leading-[20px] tracking-[0.1px]">{tab.label}</span>
             </button>
           ))}
+
+          <div
+            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] dark:bg-blue-600 rounded-tl-[100px] rounded-tr-[100px]"
+            style={{
+              left: `calc((100% / ${tabs.length} - 56px) / 2)`,
+              transform: `translateX(calc(${activeTabIndex} * (100% / ${tabs.length})))`,
+            }}
+          />
         </div>
-          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] mt-[0px]" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] dark:bg-gray-700 mt-[0px]" />
         </div>
 
         {/* Single bounded scroll container so content cannot go under bottom nav */}
@@ -485,26 +493,26 @@ export default function JournalScreen({
 
         {activeTab === 'myJournal' && (
           <div className="space-y-6">
-            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black">{t('journal.statistics')}</h3>
+            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black dark:text-white">{t('journal.statistics')}</h3>
 
             <div>
               <div className="flex gap-4 px-0 overflow-x-hidden justify-center">
-                <div className="min-w-[96px] w-[96px] h-[96px] bg-white border border-[rgba(0,0,0,0.4)] rounded-[10px] flex flex-col items-center justify-center">
-                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold">{formatNumber(likes)}</div>
-                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)]">{t('journal.likes')}</div>
+                <div className="min-w-[96px] w-[96px] h-[96px] bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.4)] dark:border-gray-700 rounded-[10px] flex flex-col items-center justify-center">
+                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold dark:text-white">{formatNumber(likes)}</div>
+                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)] dark:text-gray-400">{t('journal.likes')}</div>
                 </div>
-                <div className="min-w-[96px] w-[96px] h-[96px] bg-white border border-[rgba(0,0,0,0.4)] rounded-[10px] flex flex-col items-center justify-center">
-                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold">{formatNumber(totalViews)}</div>
-                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)]">{t('journal.views')}</div>
+                <div className="min-w-[96px] w-[96px] h-[96px] bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.4)] dark:border-gray-700 rounded-[10px] flex flex-col items-center justify-center">
+                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold dark:text-white">{formatNumber(totalViews)}</div>
+                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)] dark:text-gray-400">{t('journal.views')}</div>
                 </div>
-                <div className="min-w-[96px] w-[96px] h-[96px] bg-white border border-[rgba(0,0,0,0.4)] rounded-[10px] flex flex-col items-center justify-center">
-                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold">{formatNumber(countries)}</div>
-                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)]">{t('journal.countries')}</div>
+                <div className="min-w-[96px] w-[96px] h-[96px] bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.4)] dark:border-gray-700 rounded-[10px] flex flex-col items-center justify-center">
+                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold dark:text-white">{formatNumber(countries)}</div>
+                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)] dark:text-gray-400">{t('journal.countries')}</div>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black">{t('journal.post')}</h3>
+            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black dark:text-white">{t('journal.post')}</h3>
 
             <div className="space-y-6">
               {filteredMyJournal.map((p) => (
@@ -574,27 +582,27 @@ export default function JournalScreen({
         )}
 
         <div className="absolute left-0 right-0 bottom-0 h-[90px]">
-          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)] dark:bg-gray-700" />
           <div className="flex flex-col h-[78px] p-[10px]">
             <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
               <button onClick={() => onNavigate('home')} className="flex-1 flex flex-col items-center">
-              <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>{t('navigation.home')}</p>
+              <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.home')}</p>
             </button>
 
             <button onClick={() => onNavigate('mapview')} className="flex-1 flex flex-col items-center">
-              <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>{t('navigation.nearby')}</p>
+              <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.nearby')}</p>
             </button>
 
             <button onClick={() => onNavigate('ailens')} className="flex-1 flex flex-col items-center">
-              <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>{t('navigation.aiLens')}</p>
+              <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.aiLens')}</p>
             </button>
 
               <button onClick={() => onNavigate('profile')} className="flex-1 flex flex-col items-center">
-              <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>{t('navigation.profile')}</p>
+              <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.profile')}</p>
             </button>
             </div>
           </div>
