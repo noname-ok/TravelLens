@@ -45,7 +45,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
     <div className={className || ""}>
       <div className="h-[47px] relative w-full bg-white/10 backdrop-blur-md">
         <div className="absolute left-[30px] top-[14px]">
-            <p className="font-semibold text-[17px] text-black">9:41</p>
+            <p className="font-semibold text-[17px] text-black dark:text-white">9:41</p>
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
 function HomeIndicator() {
   return (
     <div className="h-[34px] relative w-full bg-transparent">
-      <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-1/2 rounded-[100px] w-[134px]" />
+      <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-1/2 rounded-[100px] w-[134px]" />
     </div>
   );
 }
@@ -394,7 +394,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
         </div>
 
         {/* Bottom Navigation */}
-        <div className="bg-white border-t border-gray-100 px-6 py-2 pb-8 z-30">
+        <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 px-6 py-2 pb-8 z-30">
             <div className="flex justify-between items-center">
               <NavButton icon={<Home />} label={t('navigation.home')} active={currentScreen === 'home'} onClick={() => onNavigate?.('home')} />
               <NavButton icon={<MapPin />} label={t('navigation.nearby')} active={currentScreen === 'mapview'} onClick={() => onNavigate?.('mapview')} />
@@ -784,7 +784,9 @@ function FullChatView({
 
 function NavButton({ icon, label, active, onClick }: { icon: ReactNode, label: string, active: boolean, onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 ${
+      active ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'
+    }`}>
       {icon}
       <span className="text-[10px] font-medium">{label}</span>
     </button>

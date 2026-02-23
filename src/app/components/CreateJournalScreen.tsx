@@ -15,7 +15,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
         </div>
         <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
           <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
+            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
               9:41
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <style>{`
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -177,9 +177,9 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
 
         <div className="absolute left-0 right-0 top-[52px] px-[20px] flex items-center justify-between">
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
-            <img src={backIcon} alt="Back" className="w-[10.09px] h-[15.63px]" />
+            <img src={backIcon} alt="Back" className="w-[10.09px] h-[15.63px] dark:invert" />
           </button>
-          <p className="font-['Poppins',sans-serif] font-semibold text-[18px] text-black">
+          <p className="font-['Poppins',sans-serif] font-semibold text-[18px] text-black dark:text-white">
             {mode === 'edit' ? t('journal.editTitle') : t('journal.newTitle')}
           </p>
           <div className="w-[10.09px] h-[15.63px]" />
@@ -187,11 +187,11 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
 
         <div className="absolute left-[20px] right-[20px] top-[110px] bottom-[20px] overflow-y-auto no-scrollbar">
           <div className="space-y-5 pb-8">
-            <div className="bg-[#f5f5f5] rounded-[14px] h-[200px] flex items-center justify-center overflow-hidden">
+            <div className="bg-[#f5f5f5] dark:bg-gray-800 rounded-[14px] h-[200px] flex items-center justify-center overflow-hidden">
               {imageUrl ? (
                 <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
               ) : (
-                <div className="text-center text-[12px] text-[rgba(0,0,0,0.5)]">
+                <div className="text-center text-[12px] text-[rgba(0,0,0,0.5)] dark:text-gray-500">
                   {t('journal.uploadPhotoPlaceholder')}
                 </div>
               )}
@@ -207,29 +207,29 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-white border border-[rgba(0,0,0,0.1)] rounded-[12px] py-[12px] text-[12px] font-['Poppins',sans-serif] text-[#2c638b]"
+              className="w-full bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.1)] dark:border-gray-700 rounded-[12px] py-[12px] text-[12px] font-['Poppins',sans-serif] text-[#2c638b] dark:text-blue-400"
             >
               {t('journal.choosePhoto')}
             </button>
 
             <div>
-              <label className="text-[12px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.6)]">{t('journal.title')}</label>
+              <label className="text-[12px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.6)] dark:text-gray-400">{t('journal.title')}</label>
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t('journal.titlePlaceholder')}
-                className="mt-2 w-full h-[44px] rounded-[12px] border border-[rgba(0,0,0,0.1)] px-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b]"
+                className="mt-2 w-full h-[44px] rounded-[12px] border border-[rgba(0,0,0,0.1)] dark:border-gray-700 px-3 text-[12px] font-['Poppins',sans-serif] dark:bg-gray-800 dark:text-white outline-none focus:border-[#2c638b]"
               />
             </div>
 
             <div>
-              <label className="text-[12px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.6)]">{t('journal.location')}</label>
+              <label className="text-[12px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.6)] dark:text-gray-400">{t('journal.location')}</label>
               <input
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
                 placeholder={t('journal.locationPlaceholder')}
                 list="location-suggestions"
-                className="mt-2 w-full h-[44px] rounded-[12px] border border-[rgba(0,0,0,0.1)] px-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b]"
+                className="mt-2 w-full h-[44px] rounded-[12px] border border-[rgba(0,0,0,0.1)] dark:border-gray-700 px-3 text-[12px] font-['Poppins',sans-serif] dark:bg-gray-800 dark:text-white outline-none focus:border-[#2c638b]"
               />
               <datalist id="location-suggestions">
                 {locationSuggestions.map((suggestion) => (
@@ -241,23 +241,23 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
                   type="button"
                   onClick={handleDetectLocation}
                   disabled={detectingLocation}
-                  className="text-[11px] font-['Poppins',sans-serif] text-[#2c638b] underline disabled:opacity-50"
+                  className="text-[11px] font-['Poppins',sans-serif] text-[#2c638b] dark:text-blue-400 underline disabled:opacity-50"
                 >
                   {detectingLocation ? t('journal.detectingLocation') : t('journal.useCurrentLocation')}
                 </button>
                 {searchingLocation && (
-                  <span className="text-[11px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.5)]">{t('journal.searching')}</span>
+                  <span className="text-[11px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.5)] dark:text-gray-500">{t('journal.searching')}</span>
                 )}
               </div>
             </div>
 
             <div>
-              <label className="text-[12px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.6)]">{t('journal.description')}</label>
+              <label className="text-[12px] font-['Poppins',sans-serif] text-[rgba(0,0,0,0.6)] dark:text-gray-400">{t('journal.description')}</label>
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder={t('journal.descriptionPlaceholder')}
-                className="mt-2 w-full h-[140px] rounded-[12px] border border-[rgba(0,0,0,0.1)] px-3 py-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b] resize-none"
+                className="mt-2 w-full h-[140px] rounded-[12px] border border-[rgba(0,0,0,0.1)] dark:border-gray-700 px-3 py-3 text-[12px] font-['Poppins',sans-serif] dark:bg-gray-800 dark:text-white outline-none focus:border-[#2c638b] resize-none"
               />
             </div>
 
