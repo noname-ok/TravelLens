@@ -17,12 +17,15 @@ import EditProfileScreen from './components/EditProfileScreen';
 import LanguageScreen from './components/LanguageScreen';
 import TermsScreen from './components/TermsScreen';
 import PrivacyScreen from './components/PrivacyScreen';
+import ItineraryViewScreen from './components/ItineraryViewScreen';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { signUpWithEmail, logOut } from './services/authService';
 import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
+import { TripItinerary } from './types/tripPlanning';
+import { deleteTripFromStorage, updateTripInStorage } from './services/tripPlannerService';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy' | 'itinerary';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -37,6 +40,7 @@ export default function App() {
   const [deletedJournalId, setDeletedJournalId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<TripItinerary | null>(null);
 
   // Listen to auth state changes
   useEffect(() => {
@@ -115,6 +119,23 @@ export default function App() {
   const handlePhoneVerified = () => {
     toast.success('Phone number verified successfully!');
     setCurrentScreen('createNewPassword');
+  };
+
+  const handleViewTrip = (trip: TripItinerary) => {
+    setSelectedTrip(trip);
+    setCurrentScreen('itinerary');
+  };
+
+  const handleDeleteTrip = (tripId: string) => {
+    deleteTripFromStorage(tripId);
+    setSelectedTrip(null);
+    toast.success('Trip deleted successfully');
+  };
+
+  const handleUpdateTrip = (trip: TripItinerary) => {
+    updateTripInStorage(trip);
+    setSelectedTrip(trip);
+    toast.success('Trip updated successfully');
   };
 
   if (loading) {
@@ -269,6 +290,10 @@ export default function App() {
           <MapViewScreen
             currentScreen={currentScreen}
             onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onViewTrip={(trip: TripItinerary) => {
+              setSelectedTrip(trip);
+              setCurrentScreen('itinerary');
+            }}
           />
         )}
         {currentScreen === 'ailens' && user && (
@@ -324,6 +349,21 @@ export default function App() {
                   preferences: { ...userProfile.preferences, darkMode: enabled }
                 });
               }
+            }}
+          />
+        )}
+        {currentScreen === 'itinerary' && selectedTrip && (
+          <ItineraryViewScreen
+            trip={selectedTrip}
+            onBack={() => {
+              setSelectedTrip(null);
+              setCurrentScreen('mapview');
+            }}
+            onDelete={handleDeleteTrip}
+            onUpdate={handleUpdateTrip}
+            onReplan={() => {
+              setSelectedTrip(null);
+              setCurrentScreen('mapview');
             }}
           />
         )}
