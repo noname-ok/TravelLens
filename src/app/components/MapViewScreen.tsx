@@ -1,5 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { Home, MapPin, Camera, User, Wand2 } from 'lucide-react';
+import PlaceDetailSheet from './PlaceDetailSheet';
+import TripPlanningModal from './TripPlanningModal';
+import { PLACE_FILTERS, Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
+import { TripItinerary } from '@/app/types/tripPlanning';
+import { saveTripToStorage } from '@/app/services/tripPlannerService';
+
+const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
+const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
 import { Home, MapPin, Camera, User, Compass, LocateFixed, Car, PersonStanding, Bike, Bus, ChevronDown, Plus, X, GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PlaceDetailSheet from './PlaceDetailSheet';
@@ -33,8 +42,10 @@ function HomeIndicator({ className }: { className?: string }) {
 interface MapViewScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
+  onViewTrip?: (trip: TripItinerary) => void;
 }
 
+export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }: MapViewScreenProps) {
 export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScreenProps) {
   const { t } = useTranslation();
   
@@ -54,6 +65,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   const [searchedPlace, setSearchedPlace] = useState<Attraction | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string>('');
+  const [isTripPlanningOpen, setIsTripPlanningOpen] = useState(false);
+  const [generatedTrip, setGeneratedTrip] = useState<TripItinerary | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
@@ -960,9 +973,46 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
           />
         </div>
 
+        {/* Trip Planning Button - Show View/Replan based on trip state */}
+        {generatedTrip ? (
+          <div className="absolute left-[24px] right-[24px] top-[215px] z-10 flex gap-2">
+            <button
+              onClick={() => {
+                if (onViewTrip && generatedTrip) {
+                  onViewTrip(generatedTrip);
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+            >
+              <Wand2 size={18} />
+              View Itinerary
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('This will delete your current itinerary and create a new one. Continue?')) {
+                  setGeneratedTrip(null);
+                  setIsTripPlanningOpen(true);
+                }
+              }}
+              className="px-4 py-3 bg-white border-2 border-[#2c638b] text-[#2c638b] rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] hover:bg-blue-50 transition-all"
+            >
+              Replan
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsTripPlanningOpen(true)}
+            className="absolute left-[24px] right-[24px] top-[215px] z-10 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+          >
+            <Wand2 size={18} />
+            Plan Your Trip
+          </button>
+        )}
+
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
+          className="absolute left-0 right-0 top-[269px] bottom-[90px]"
           className="absolute left-0 right-0 top-[105px] bottom-[90px]"
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
@@ -1610,6 +1660,19 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
             }}
           />
         )}
+
+        {/* Trip Planning Modal */}
+        <TripPlanningModal
+          isOpen={isTripPlanningOpen}
+          onClose={() => setIsTripPlanningOpen(false)}
+          userLocation={userLocation}
+          map={map}
+          onTripGenerated={(trip) => {
+            saveTripToStorage(trip);
+            setGeneratedTrip(trip);
+            setIsTripPlanningOpen(false);
+          }}
+        />
 
         {/* Bottom Navigation */}
         <div className="absolute left-0 right-0 bottom-0 h-[90px]">
