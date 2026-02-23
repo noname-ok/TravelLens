@@ -2,38 +2,14 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { toast } from 'sonner';
 import backIcon from '@/assets/Back.svg';
 import { useTranslation } from 'react-i18next';
-
-const imgNotch = 'https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb';
-const imgRightSide = 'https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf';
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ''}>
-      <div className="h-[47px] relative w-full">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { X } from 'lucide-react';
 
 interface CreateJournalScreenProps {
   onBack: () => void;
-  onSubmit: (entry: { title: string; location: string; description: string; imageUrl?: string; imageFile?: File }) => void;
+  onSubmit: (entry: { title: string; location: string; description: string; imageUrl?: string; imageUrls?: string[]; imageFile?: File; imageFiles?: File[] }) => void;
   onDelete?: () => void;
   mode?: 'create' | 'edit';
-  initialEntry?: { title: string; location: string; description: string; imageUrl?: string };
+  initialEntry?: { title: string; location: string; description: string; imageUrl?: string; imageUrls?: string[] };
 }
 
 export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode = 'create', initialEntry }: CreateJournalScreenProps) {
@@ -46,6 +22,8 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageFile, setImageFile] = useState<File | undefined>(undefined);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -54,25 +32,47 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
     setLocation(initialEntry.location || '');
     setDescription(initialEntry.description || '');
     setImageUrl(initialEntry.imageUrl);
+    setImageUrls(initialEntry.imageUrls || []);
     setImageFile(undefined);
+    setImageFiles([]);
   }, [initialEntry]);
 
   useEffect(() => {
     return () => {
+      // Cleanup blob URLs
       if (imageUrl && imageUrl.startsWith('blob:')) {
         URL.revokeObjectURL(imageUrl);
       }
+      imageUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     };
-  }, [imageUrl]);
+  }, [imageUrl, imageUrls]);
 
   const handleImagePick = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (imageUrl && imageUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(imageUrl);
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files);
+    const newUrls = newFiles.map(file => URL.createObjectURL(file));
+
+    setImageFiles(prev => [...prev, ...newFiles]);
+    setImageUrls(prev => [...prev, ...newUrls]);
+
+    // Reset input value to allow re-selecting the same file
+    event.target.value = '';
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const urlToRevoke = imageUrls[index];
+    if (urlToRevoke && urlToRevoke.startsWith('blob:')) {
+      URL.revokeObjectURL(urlToRevoke);
     }
-    setImageFile(file);
-    setImageUrl(URL.createObjectURL(file));
+
+    setImageUrls(prev => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDetectLocation = () => {
@@ -161,8 +161,10 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
       title: title.trim(),
       location: location.trim(),
       description: description.trim(),
-      imageUrl,
-      imageFile,
+      imageUrl: imageUrls.length > 0 ? imageUrls[0] : imageUrl,
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      imageFile: imageFiles.length > 0 ? imageFiles[0] : imageFile,
+      imageFiles: imageFiles.length > 0 ? imageFiles : undefined,
     });
   };
 
@@ -173,9 +175,7 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
           .no-scrollbar::-webkit-scrollbar { display: none; }
         `}</style>
       <div className="relative mx-auto w-full max-w-[390px] h-full">
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
-
-        <div className="absolute left-0 right-0 top-[52px] px-[20px] flex items-center justify-between">
+        <div className="absolute left-0 right-0 top-[30px] px-[20px] flex items-center justify-between">
           <button onClick={onBack} className="w-[10.09px] h-[15.63px] flex items-center justify-center">
             <img src={backIcon} alt="Back" className="w-[10.09px] h-[15.63px] dark:invert" />
           </button>
@@ -185,22 +185,41 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
           <div className="w-[10.09px] h-[15.63px]" />
         </div>
 
-        <div className="absolute left-[20px] right-[20px] top-[110px] bottom-[20px] overflow-y-auto no-scrollbar">
+        <div className="absolute left-[20px] right-[20px] top-[74px] bottom-[20px] overflow-y-auto no-scrollbar">
           <div className="space-y-5 pb-8">
-            <div className="bg-[#f5f5f5] dark:bg-gray-800 rounded-[14px] h-[200px] flex items-center justify-center overflow-hidden">
-              {imageUrl ? (
-                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
+            {/* Image Preview Grid */}
+            {imageUrls.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="relative bg-[#f5f5f5] dark:bg-gray-800 rounded-[14px] h-[120px] overflow-hidden">
+                    <img src={url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+                      aria-label="Remove image"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Placeholder when no images */}
+            {imageUrls.length === 0 && (
+              <div className="bg-[#f5f5f5] dark:bg-gray-800 rounded-[14px] h-[200px] flex items-center justify-center">
                 <div className="text-center text-[12px] text-[rgba(0,0,0,0.5)] dark:text-gray-500">
                   {t('journal.uploadPhotoPlaceholder')}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={handleImagePick}
             />
@@ -209,7 +228,7 @@ export default function CreateJournalScreen({ onBack, onSubmit, onDelete, mode =
               onClick={() => fileInputRef.current?.click()}
               className="w-full bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.1)] dark:border-gray-700 rounded-[12px] py-[12px] text-[12px] font-['Poppins',sans-serif] text-[#2c638b] dark:text-blue-400"
             >
-              {t('journal.choosePhoto')}
+              {imageUrls.length > 0 ? t('journal.addMorePhotos') || 'Add More Photos' : t('journal.choosePhoto')}
             </button>
 
             <div>

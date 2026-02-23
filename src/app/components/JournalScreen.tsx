@@ -85,6 +85,7 @@ export interface JournalEntry {
   location: string;
   description: string;
   imageUrl?: string;
+  imageUrls?: string[]; // Support multiple images
   likes: number;
   bookmarks: number;
   views?: number;
@@ -198,6 +199,7 @@ export default function JournalScreen({
             location: translated?.location || record.location,
             description: translated?.description || record.description,
             imageUrl: record.imageUrl,
+            imageUrls: (record as any).imageUrls, // Support multiple images
             likes: record.likes,
             bookmarks: record.bookmarks,
             views: record.views,
@@ -277,7 +279,7 @@ export default function JournalScreen({
   const filteredFavorites = filterEntries(favorites);
 
   const tabs: Array<{ key: Tab; label: string }> = [
-    { key: 'community', label: t('journal.community') },
+    { key: 'community', label: t('journal.forYou') },
     { key: 'myJournal', label: t('journal.myJournal') },
     { key: 'favourites', label: t('journal.favourites') },
   ];
@@ -455,10 +457,9 @@ export default function JournalScreen({
           ))}
 
           <div
-            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] dark:bg-blue-600 rounded-tl-[100px] rounded-tr-[100px]"
+            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] dark:bg-blue-600 rounded-tl-[100px] rounded-tr-[100px] transition-all duration-200"
             style={{
-              left: `calc((100% / ${tabs.length} - 56px) / 2)`,
-              transform: `translateX(calc(${activeTabIndex} * (100% / ${tabs.length})))`,
+              left: `calc(${(activeTabIndex + 0.5) * (100 / tabs.length)}% - 28px)`,
             }}
           />
         </div>
@@ -480,6 +481,7 @@ export default function JournalScreen({
                 location={p.location}
                 description={p.description}
                 imageUrl={p.imageUrl}
+                imageUrls={p.imageUrls}
                 likes={p.likes}
                 bookmarks={p.bookmarks}
                 views={p.views}
@@ -528,6 +530,7 @@ export default function JournalScreen({
                   location={p.location}
                   description={p.description}
                   imageUrl={p.imageUrl}
+                  imageUrls={p.imageUrls}
                   likes={p.likes}
                   bookmarks={p.bookmarks}
                   views={p.views}
@@ -557,6 +560,7 @@ export default function JournalScreen({
                 location={p.location}
                 description={p.description}
                 imageUrl={p.imageUrl}
+                imageUrls={p.imageUrls}
                 likes={p.likes}
                 bookmarks={p.bookmarks}
                 views={p.views}
