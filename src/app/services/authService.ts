@@ -29,8 +29,9 @@ export const signUpWithEmail = async (formData: SignUpFormData) => {
     );
 
     // Update user profile with display name
+    const displayName = `${formData.firstName} ${formData.lastName}`;
     await updateProfile(userCredential.user, {
-      displayName: `${formData.firstName} ${formData.lastName}`
+      displayName
     });
 
     // Initialize user profile in Firestore

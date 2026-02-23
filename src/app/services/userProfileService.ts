@@ -10,11 +10,65 @@ import {
 } from 'firebase/firestore';
 import {
   ref,
-  uploadBytes,
-  getDownloadURL,
   deleteObject
 } from 'firebase/storage';
 import { db, storage, auth } from '@/app/config/firebase';
+
+const MAX_INLINE_IMAGE_BYTES = 160_000;
+
+const fileToDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
+};
+
+const loadImage = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Failed to load image'));
+    image.src = src;
+  });
+};
+
+const makeInlineCompressedImage = async (file: File): Promise<string | null> => {
+  try {
+    const originalDataUrl = await fileToDataUrl(file);
+    const image = await loadImage(originalDataUrl);
+
+    const dimensions = [640, 480, 360, 280, 220];
+    const qualities = [0.72, 0.62, 0.52, 0.42, 0.32, 0.24];
+
+    for (const maxDimension of dimensions) {
+      const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+      const width = Math.max(1, Math.floor(image.width * scale));
+      const height = Math.max(1, Math.floor(image.height * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(image, 0, 0, width, height);
+
+      for (const quality of qualities) {
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        if (compressed.length <= MAX_INLINE_IMAGE_BYTES) {
+          return compressed;
+        }
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to generate inline compressed avatar:', error);
+    return null;
+  }
+};
 
 // Check if Firebase services are initialized
 const isFirebaseInitialized = () => {
@@ -28,12 +82,14 @@ const isFirebaseInitialized = () => {
 export interface UserProfile {
   uid: string;
   name: string;
-  location: string;
+  bio: string;
   avatarUrl?: string;
+  userInterestVector?: number[];
   preferences: {
     privateAccount: boolean;
     shareGpsData: boolean;
     darkMode: boolean;
+    language: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -41,12 +97,14 @@ export interface UserProfile {
 
 export interface UserProfileUpdate {
   name?: string;
-  location?: string;
+  bio?: string;
   avatarUrl?: string;
+  userInterestVector?: number[];
   preferences?: {
     privateAccount?: boolean;
     shareGpsData?: boolean;
     darkMode?: boolean;
+    language?: string;
   };
 }
 
@@ -71,12 +129,16 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
       return {
         uid,
         name: data.name || 'User',
-        location: data.location || '',
+        bio: data.bio || '',
         avatarUrl: data.avatarUrl,
+        userInterestVector: Array.isArray(data.userInterestVector)
+          ? data.userInterestVector.filter((value: unknown) => Number.isFinite(Number(value))).map((value: unknown) => Number(value))
+          : undefined,
         preferences: {
           privateAccount: data.preferences?.privateAccount || false,
           shareGpsData: data.preferences?.shareGpsData || false,
           darkMode: data.preferences?.darkMode || false,
+          language: data.preferences?.language || 'en',
         },
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
@@ -103,14 +165,18 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
     };
 
     if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.location !== undefined) updateData.location = updates.location;
+    if (updates.bio !== undefined) updateData.bio = updates.bio;
     if (updates.avatarUrl !== undefined) updateData.avatarUrl = updates.avatarUrl;
+    if (updates.userInterestVector !== undefined) updateData.userInterestVector = updates.userInterestVector;
 
     if (updates.preferences) {
+      // Merge with existing preferences instead of replacing
+      const existingPreferences = docSnap.exists() ? docSnap.data()?.preferences || {} : {};
       updateData.preferences = {
-        privateAccount: updates.preferences.privateAccount ?? false,
-        shareGpsData: updates.preferences.shareGpsData ?? false,
-        darkMode: updates.preferences.darkMode ?? false,
+        privateAccount: updates.preferences.privateAccount ?? existingPreferences.privateAccount ?? false,
+        shareGpsData: updates.preferences.shareGpsData ?? existingPreferences.shareGpsData ?? false,
+        darkMode: updates.preferences.darkMode ?? existingPreferences.darkMode ?? false,
+        language: updates.preferences.language ?? existingPreferences.language ?? 'en',
       };
     }
 
@@ -118,19 +184,29 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
       // Update existing document
       await updateDoc(docRef, updateData);
     } else {
-      // Create new document
-      const newProfile: Omit<UserProfile, 'uid'> = {
+      // Create new document - avoid undefined values
+      const newProfile: any = {
         name: updates.name || 'User',
-        location: updates.location || '',
-        avatarUrl: updates.avatarUrl,
+        bio: updates.bio || '',
         preferences: {
           privateAccount: updates.preferences?.privateAccount || false,
           shareGpsData: updates.preferences?.shareGpsData || false,
           darkMode: updates.preferences?.darkMode || false,
+          language: updates.preferences?.language || 'en',
         },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      if (updates.userInterestVector !== undefined) {
+        newProfile.userInterestVector = updates.userInterestVector;
+      }
+      
+      // Only add avatarUrl if it's defined
+      if (updates.avatarUrl !== undefined) {
+        newProfile.avatarUrl = updates.avatarUrl;
+      }
+      
       await setDoc(docRef, newProfile);
     }
 
@@ -145,23 +221,13 @@ export const updateUserProfile = async (uid: string, updates: UserProfileUpdate)
  * Upload avatar image to Firebase Storage
  */
 export const uploadAvatar = async (uid: string, file: File): Promise<string | null> => {
-  try {
-    // Create a unique filename
-    const timestamp = Date.now();
-    const filename = `avatars/${uid}/${timestamp}_${file.name}`;
-    const storageRef = ref(storage, filename);
-
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
-
-    // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-
-    return downloadURL;
-  } catch (error) {
-    console.error('Error uploading avatar:', error);
-    return null;
+  void uid;
+  const inlineAvatar = await makeInlineCompressedImage(file);
+  if (inlineAvatar) {
+    return inlineAvatar;
   }
+  console.error('Failed to process avatar image into inline format');
+  return null;
 };
 
 /**
@@ -200,6 +266,7 @@ export const initializeUserProfile = async (uid: string, initialData?: Partial<U
           privateAccount: initialData?.preferences?.privateAccount || false,
           shareGpsData: initialData?.preferences?.shareGpsData || false,
           darkMode: initialData?.preferences?.darkMode || false,
+          language: initialData?.preferences?.language || 'en',
         },
         createdAt: new Date(),
         updatedAt: new Date(),

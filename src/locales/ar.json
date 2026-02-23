@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "title": "الملف الشخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "changeLanguage": "تغيير اللغة",
+    "darkMode": "الوضع الداكن",
+    "accountSettings": "إعدادات الحساب",
+    "legal": "قانوني",
+    "termsAndConditions": "الشروط والأحكام",
+    "privacyPolicy": "سياسة الخصوصية",
+    "logout": "تسجيل الخروج",
+    "logoutConfirmTitle": "تسجيل الخروج؟",
+    "logoutConfirmDescription": "هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟",
+    "confirmLogout": "نعم، تسجيل الخروج",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "journalPrivacy": "خصوصية اليوميات",
+    "privateAccount": "حساب خاص",
+    "privateAccountDescription": "عندما يكون حسابك عامًا، يمكن للجميع رؤية ملفك الشخصي ومنشوراتك.",
+    "makePublicTitle": "جعل حسابك عامًا؟",
+    "makePublicDescription": "سيكون المحتوى الخاص بك مرئيًا للمستخدمين الآخرين. كن حذرًا عند مشاركة التفاصيل الشخصية."
+  },
+  "editProfile": {
+    "title": "تعديل الملف الشخصي",
+    "username": "اسم المستخدم",
+    "bio": "السيرة الذاتية",
+    "bioPlaceholder": "أخبرنا عن نفسك...",
+    "save": "حفظ الملف الشخصي",
+    "saving": "جاري الحفظ..."
+  },
+  "language": {
+    "title": "اللغة",
+    "changed": "تم تغيير اللغة إلى"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "nearby": "قريب",
+    "aiLens": "عدسة الذكاء الاصطناعي",
+    "profile": "الملف الشخصي"
+  },
+  "toast": {
+    "profileUpdated": "تم تحديث الملف الشخصي",
+    "profileSaved": "تم حفظ الملف الشخصي بنجاح!",
+    "photoUpdated": "تم تحديث الصورة!",
+    "uploadingPhoto": "جاري معالجة الصورة...",
+    "savingProfile": "جاري حفظ الملف الشخصي...",
+    "failedToSave": "فشل حفظ الملف الشخصي",
+    "failedToProcess": "فشلت معالجة الصورة",
+    "privateAccountEnabled": "تم تفعيل الحساب الخاص",
+    "privateAccountDisabled": "تم تعطيل الحساب الخاص",
+    "darkModeEnabled": "تم تفعيل الوضع الداكن",
+    "darkModeDisabled": "تم تعطيل الوضع الداكن"
+  }
+}

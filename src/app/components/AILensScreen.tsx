@@ -1,9 +1,17 @@
 import { Home, MapPin, Camera, User, Image, Mic, Send, Settings2, Volume2, Bot, Loader2, GripHorizontal, Languages } from 'lucide-react';
 import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AIChatSheet } from './AIChatSheet';
 import { TranslateModal } from './TranslateModal';
 // Fix: Use relative path if @ alias isn't fully working yet
-import { getImageExplanation, askAIQuestion, AIExplanationResult, translateImageText } from '../services/geminiService';
+import {
+  getImageExplanation,
+  askAIQuestion,
+  AIExplanationResult,
+  translateImageText,
+  GEMINI_NOT_CONFIGURED_MESSAGE,
+  getGeminiTargetLanguageName,
+} from '../services/geminiService';
 import { toast } from 'sonner';
 import { Checkbox } from '@/app/components/ui/checkbox';
 
@@ -14,6 +22,7 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 interface AILensScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate?: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
+  preferredLanguageCode?: string;
 }
 
 interface ChatMessage {
@@ -44,7 +53,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
     <div className={className || ""}>
       <div className="h-[47px] relative w-full bg-white/10 backdrop-blur-md">
         <div className="absolute left-[30px] top-[14px]">
-            <p className="font-semibold text-[17px] text-black">9:41</p>
+            <p className="font-semibold text-[17px] text-black dark:text-white">9:41</p>
         </div>
       </div>
     </div>
@@ -54,7 +63,7 @@ function StatusBarIPhone({ className }: { className?: string }) {
 function HomeIndicator() {
   return (
     <div className="h-[34px] relative w-full bg-transparent">
-      <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-1/2 rounded-[100px] w-[134px]" />
+      <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-1/2 rounded-[100px] w-[134px]" />
     </div>
   );
 }
@@ -67,10 +76,13 @@ function HomeIndicator() {
 // MAIN SCREEN COMPONENT
 // ============================================================================
 
-export default function AILensScreen({ currentScreen, onNavigate }: AILensScreenProps) {
+export default function AILensScreen({ currentScreen, onNavigate, preferredLanguageCode }: AILensScreenProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('camera');
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState('');
+  const { t, i18n } = useTranslation();
+  const activeLanguageCode = preferredLanguageCode || i18n.language || 'en';
+  const activeTargetLanguage = getGeminiTargetLanguageName(activeLanguageCode);
   
   // Translation & Language
   // Removed toLang and fromLang as they're no longer needed with modal approach
@@ -136,7 +148,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      toast.error("Camera access denied.");
+      toast.error(t('aiLens.cameraAccessDenied'));
     }
   };
 
@@ -148,7 +160,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   const handleAnalyze = async () => {
   // Use a guard to ensure both refs are available
   if (!videoRef.current || !canvasRef.current || videoRef.current.readyState !== 4) {
-    toast.error("Camera is still warming up. Try again in a second!");
+    toast.error(t('aiLens.cameraWarmingUp'));
     return;
   }
   
@@ -187,7 +199,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
   const handleTranslate = async () => {
     // Use a guard to ensure both refs are available
     if (!videoRef.current || !canvasRef.current || videoRef.current.readyState !== 4) {
-      toast.error("Camera is still warming up. Try again in a second!");
+        toast.error(t('aiLens.cameraWarmingUp'));
       return;
     }
 
@@ -204,35 +216,25 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
 
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
-    // Check if user has a default language set
-    const defaultLanguage = localStorage.getItem('travelLens_defaultLanguage');
-
-    if (defaultLanguage) {
-      // Skip modal and translate directly with default language
-      setIsLoading(true);
-      try {
-        const result = await translateImageText(imageData, defaultLanguage);
-        setTranslateImageData(imageData);
-        setTranslationResult(result);
-        setCurrentLanguage(defaultLanguage);
-        setViewMode('translation');
-        toast.success(`Translated to ${defaultLanguage}`);
-      } catch (error) {
-        console.error('Translation error:', error);
-        toast.error('Failed to translate. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // No default language, show modal for language selection
+    setIsLoading(true);
+    try {
+      const result = await translateImageText(imageData, activeTargetLanguage);
       setTranslateImageData(imageData);
-      setIsTranslateModalOpen(true);
+      setTranslationResult(result);
+      setCurrentLanguage(activeTargetLanguage);
+      setViewMode('translation');
+      toast.success(t('aiLens.translatedToLanguage', { language: activeTargetLanguage }));
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Failed to translate. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLanguageChange = async (newLanguage: string) => {
     if (!translateImageData) {
-      toast.error("No image data available");
+      toast.error(t('aiLens.noImageData'));
       return;
     }
 
@@ -241,7 +243,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
       const result = await translateImageText(translateImageData, newLanguage);
       setTranslationResult(result);
       setCurrentLanguage(newLanguage);
-      toast.success(`Translated to ${newLanguage}`);
+      toast.success(t('aiLens.translatedToLanguage', { language: newLanguage }));
     } catch (error) {
       console.error('Translation error:', error);
       toast.error('Failed to translate. Please try again.');
@@ -318,8 +320,8 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
                   <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-6 py-2.5 flex items-center gap-3 shadow-2xl">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter">Translate</span>
-                      <span className="text-sm font-semibold text-white">Text</span>
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter">{t('aiLens.translate')}</span>
+                      <span className="text-sm font-semibold text-white">{t('aiLens.text')}</span>
                     </div>
                     
                     <div className="w-px h-4 bg-white/20" />
@@ -363,6 +365,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
             <HybridView
               image={capturedImage}
               explanation={explanation}
+              targetLanguageCode={activeLanguageCode}
               onDragStart={handleSheetDragStart}
               onDragEnd={handleSheetDragEnd}
             />
@@ -375,6 +378,7 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
               explanation={explanation}
               messages={messages}
               setMessages={setMessages}
+              targetLanguageCode={activeLanguageCode}
               onDragDown={() => setViewMode('hybrid')}
             />
           )}
@@ -392,12 +396,12 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
         </div>
 
         {/* Bottom Navigation */}
-        <div className="bg-white border-t border-gray-100 px-6 py-2 pb-8 z-30">
+        <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 px-6 py-2 pb-8 z-30">
             <div className="flex justify-between items-center">
-                <NavButton icon={<Home />} label="Home" active={currentScreen === 'home'} onClick={() => onNavigate?.('home')} />
-                <NavButton icon={<MapPin />} label="Nearby" active={currentScreen === 'mapview'} onClick={() => onNavigate?.('mapview')} />
-                <NavButton icon={<Camera />} label="AI Lens" active={currentScreen === 'ailens'} onClick={() => { setViewMode('camera'); onNavigate?.('ailens'); }} />
-                <NavButton icon={<User />} label="Profile" active={currentScreen === 'profile'} onClick={() => onNavigate?.('profile')} />
+              <NavButton icon={<Home />} label={t('navigation.home')} active={currentScreen === 'home'} onClick={() => onNavigate?.('home')} />
+              <NavButton icon={<MapPin />} label={t('navigation.nearby')} active={currentScreen === 'mapview'} onClick={() => onNavigate?.('mapview')} />
+              <NavButton icon={<Camera />} label={t('navigation.aiLens')} active={currentScreen === 'ailens'} onClick={() => { setViewMode('camera'); onNavigate?.('ailens'); }} />
+              <NavButton icon={<User />} label={t('navigation.profile')} active={currentScreen === 'profile'} onClick={() => onNavigate?.('profile')} />
             </div>
             <HomeIndicator />
         </div>
@@ -408,11 +412,12 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
         isOpen={isTranslateModalOpen}
         onClose={() => setIsTranslateModalOpen(false)}
         imageData={translateImageData || ''}
+        defaultTargetLanguage={activeTargetLanguage}
         onTranslateComplete={(translation, language) => {
           setTranslationResult(translation);
           setCurrentLanguage(language);
           setViewMode('translation');
-          toast.success(`Translated to ${language}`);
+          toast.success(t('aiLens.translatedToLanguage', { language }));
         }}
       />
     </div>
@@ -424,11 +429,12 @@ export default function AILensScreen({ currentScreen, onNavigate }: AILensScreen
 // ============================================================================
 
 function ChatView({ messages }: { messages: ChatMessage[] }) {
+  const { t } = useTranslation();
   return (
     <div className="p-4 h-full flex flex-col">
-      <h1 className="text-xl font-bold mb-4">TRAVEL AI AGENT</h1>
+      <h1 className="text-xl font-bold mb-4">{t('aiLens.travelAgentTitle')}</h1>
       <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 && <p className="text-gray-400 text-center mt-10">Scan an object to start a deep conversation.</p>}
+        {messages.length === 0 && <p className="text-gray-400 text-center mt-10">{t('aiLens.scanPrompt')}</p>}
       </div>
     </div>
   );
@@ -438,14 +444,17 @@ function ChatView({ messages }: { messages: ChatMessage[] }) {
 function HybridView({ 
   image, 
   explanation,
+  targetLanguageCode,
   onDragStart,
   onDragEnd
 }: { 
   image: string
   explanation: AIExplanationResult
+  targetLanguageCode: string
   onDragStart: (e: React.TouchEvent) => void
   onDragEnd: (e: React.TouchEvent) => void
 }) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -461,12 +470,13 @@ function HybridView({
     setIsLoading(true);
     try {
       // Call the askAIQuestion function and show toast notification
-      const response = await askAIQuestion(question, image, explanation);
+      const response = await askAIQuestion(question, image, explanation, undefined, targetLanguageCode);
       toast.success(response);
       setInput('');
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Failed to get response. Try again.');
+      const message = error instanceof Error ? error.message : GEMINI_NOT_CONFIGURED_MESSAGE;
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -523,7 +533,7 @@ function HybridView({
           <div className="flex gap-2 items-center bg-white/20 hover:bg-white/25 border border-white/30 rounded-full px-4 py-2 backdrop-blur-md transition-all" style={{ backdropFilter: 'blur(10px)' }}>
             <input
               type="text"
-              placeholder="Ask a question..."
+              placeholder={t('aiLens.askQuestionPlaceholder')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => {
@@ -554,14 +564,17 @@ function FullChatView({
   explanation,
   messages,
   setMessages,
+  targetLanguageCode,
   onDragDown
 }: {
   imageData: string
   explanation: AIExplanationResult
   messages: ChatMessage[]
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  targetLanguageCode: string
   onDragDown: () => void
 }) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const touchStartY = useRef(0);
@@ -595,7 +608,7 @@ function FullChatView({
 
     try {
       // Call AI service for follow-up question
-      const aiResponse = await askAIQuestion(question, imageData, explanation);
+      const aiResponse = await askAIQuestion(question, imageData, explanation, undefined, targetLanguageCode);
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -607,7 +620,8 @@ function FullChatView({
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error asking question:', error);
-      toast.error('Failed to get AI response. Try again.');
+      const message = error instanceof Error ? error.message : GEMINI_NOT_CONFIGURED_MESSAGE;
+      toast.error(message);
       // Remove the user message if the AI call fails
       setMessages(prev => prev.slice(0, -1));
     } finally {
@@ -659,8 +673,8 @@ function FullChatView({
 
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900">AI Analysis & Chat</h2>
-        <p className="text-xs text-gray-500 mt-1">Explore details and ask questions about {explanation.title}</p>
+        <h2 className="text-lg font-bold text-gray-900">{t('aiLens.analysisChatTitle')}</h2>
+        <p className="text-xs text-gray-500 mt-1">{t('aiLens.analysisChatSubtitle', { title: explanation.title })}</p>
       </div>
 
       {/* Messages */}
@@ -755,7 +769,7 @@ function FullChatView({
           <div className="flex-1 flex gap-2 bg-gray-100 rounded-full px-4 py-2">
             <input
               type="text"
-              placeholder="What would you like to know?"
+              placeholder={t('aiLens.whatWouldYouLikeToKnow')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => {
@@ -782,7 +796,9 @@ function FullChatView({
 
 function NavButton({ icon, label, active, onClick }: { icon: ReactNode, label: string, active: boolean, onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 ${
+      active ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'
+    }`}>
       {icon}
       <span className="text-[10px] font-medium">{label}</span>
     </button>
@@ -828,6 +844,7 @@ function TranslationView({
   onLanguageChange: (language: string) => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = useState(currentLanguage);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [setAsDefault, setSetAsDefault] = useState(false);
@@ -885,7 +902,7 @@ function TranslationView({
   const handleConfirmLanguageChange = () => {
     if (setAsDefault) {
       localStorage.setItem('travelLens_defaultLanguage', selectedLanguage);
-      toast.success(`Default language set to ${selectedLanguage}`);
+      toast.success(t('aiLens.defaultLanguageSetTo', { language: selectedLanguage }));
     }
     onLanguageChange(selectedLanguage);
     setIsConfirmModalOpen(false);
@@ -911,7 +928,7 @@ function TranslationView({
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-white text-sm font-medium">Translated to</span>
+            <span className="text-white text-sm font-medium">{t('aiLens.translatedTo')}</span>
             <select
               value={currentLanguage}
               onChange={(e) => handleLanguageSelect(e.target.value)}
@@ -937,7 +954,7 @@ function TranslationView({
           {/* 1. Original Text Card */}
           <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2 opacity-60">
-              <span className="text-[10px] font-bold text-white uppercase">Detected Text</span>
+              <span className="text-[10px] font-bold text-white uppercase">{t('aiLens.detectedText')}</span>
             </div>
             <p className="text-white text-base leading-relaxed whitespace-pre-line">{formatText(translation.originalText)}</p>
           </div>
@@ -946,7 +963,7 @@ function TranslationView({
           <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-5 shadow-xl">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-              <span className="text-[10px] font-bold text-white uppercase tracking-widest">Translation</span>
+              <span className="text-[10px] font-bold text-white uppercase tracking-widest">{t('aiLens.translation')}</span>
             </div>
             <p className="text-white text-xl font-semibold leading-snug whitespace-pre-line">{formatText(translation.translatedText)}</p>
           </div>
@@ -956,7 +973,7 @@ function TranslationView({
             <div className="bg-amber-500/10 backdrop-blur-2xl border border-amber-500/30 rounded-2xl p-5 shadow-lg">
               <div className="flex items-center gap-2 mb-2">
                 <Bot size={16} className="text-amber-400" />
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Traveler's Tip</span>
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">{t('aiLens.travelerTip')}</span>
               </div>
               <p className="text-white text-sm italic leading-relaxed opacity-90">
                 "{translation.travelerTip}"
@@ -970,9 +987,9 @@ function TranslationView({
       {isConfirmModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Change Language</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('aiLens.changeLanguageTitle')}</h3>
             <p className="text-gray-600 text-sm mb-4">
-              Translate this text to {selectedLanguage}?
+              {t('aiLens.translateThisTextTo', { language: selectedLanguage })}
             </p>
 
             <div className="flex items-center space-x-2 mb-6">
@@ -985,7 +1002,7 @@ function TranslationView({
                 htmlFor="setDefault"
                 className="text-sm text-gray-700 cursor-pointer"
               >
-                Set as default language
+                {t('aiLens.setAsDefaultLanguage')}
               </label>
             </div>
 
@@ -994,13 +1011,13 @@ function TranslationView({
                 onClick={() => setIsConfirmModalOpen(false)}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
               >
-                Cancel
+                {t('profile.cancel')}
               </button>
               <button
                 onClick={handleConfirmLanguageChange}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
               >
-                Translate
+                {t('aiLens.translateAction')}
               </button>
             </div>
           </div>

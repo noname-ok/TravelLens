@@ -1,13 +1,32 @@
 import { useEffect, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import JournalCard from './JournalCard';
+import {
+  getJournalLocalizedContent,
+  subscribeToJournals,
+  toggleJournalReaction,
+  type JournalRecord,
+} from '@/app/services/journalService';
 
 // small helper to format numbers like 1200 -> 1.2k
 function formatNumber(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
   return String(n);
+}
+
+function formatTimeAgo(date: Date, language = 'en') {
+  const rtf = new Intl.RelativeTimeFormat(language, { numeric: 'auto' });
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return rtf.format(0, 'second');
+  if (minutes < 60) return rtf.format(-minutes, 'minute');
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, 'hour');
+  const days = Math.floor(hours / 24);
+  return rtf.format(-days, 'day');
 }
 
 const imgNotch = 'https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb';
@@ -37,7 +56,7 @@ function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ''}>
       <div className="h-[34px] relative w-full">
-        <div className="-translate-x-1/2 absolute bg-black bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
+        <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
       </div>
     </div>
   );
@@ -46,17 +65,17 @@ function HomeIndicator({ className }: { className?: string }) {
 interface JournalScreenProps {
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string;
+  currentUserId?: string;
   onLogout?: () => void;
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
   onOpenJournal?: (journal: JournalEntry) => void;
   onCreateJournal?: () => void;
   onEditJournal?: (journal: JournalEntry) => void;
+  userInterestVector?: number[];
+  onPositiveInteraction?: (journalId: string, signal: 'like' | 'save') => void;
   initialTab?: JournalTab;
-  pendingJournal?: JournalEntry | null;
-  onConsumePendingJournal?: () => void;
-  deletedJournalId?: string | null;
-  onConsumeDeletedJournal?: () => void;
 }
 
 export interface JournalEntry {
@@ -66,10 +85,18 @@ export interface JournalEntry {
   location: string;
   description: string;
   imageUrl?: string;
+  imageUrls?: string[]; // Support multiple images
   likes: number;
   bookmarks: number;
   views?: number;
+  comments?: number;
+  country?: string;
+  embedding?: number[];
+  likedBy?: string[];
+  savedBy?: string[];
   author?: string;
+  authorId?: string;
+  authorAvatarUrl?: string;
   isLiked?: boolean;
   isSaved?: boolean;
 }
@@ -80,70 +107,76 @@ type Tab = JournalTab;
 export default function JournalScreen({
   userName,
   userEmail,
+  userAvatarUrl,
+  currentUserId,
   currentScreen,
   onNavigate,
   onOpenJournal,
   onCreateJournal,
   onEditJournal,
+  userInterestVector,
+  onPositiveInteraction,
   initialTab,
-  pendingJournal,
-  onConsumePendingJournal,
-  deletedJournalId,
-  onConsumeDeletedJournal,
 }: JournalScreenProps) {
+  const { i18n, t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('community');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const userInitial = (userName && userName.charAt(0).toUpperCase()) || (userEmail && userEmail.charAt(0).toUpperCase()) || 'U';
 
-  const [communityPosts, setCommunityPosts] = useState<JournalEntry[]>([
-    {
-      id: 'community-1',
-      timeAgo: '2 hours ago',
-      title: 'Sunset in the Old City',
-      location: 'Kyoto, Japan',
-      description: 'Amazing experience exploring the historical sites...',
-      views: 1240,
-      likes: 1200,
-      bookmarks: 234,
-      isLiked: false,
-      isSaved: false,
-    },
-    {
-      id: 'community-2',
-      timeAgo: '1 day ago',
-      title: 'Coastal Hike',
-      location: 'Bali, Indonesia',
-      description: 'A long hike along the coast with beautiful views...',
-      views: 845,
-      likes: 340,
-      bookmarks: 45,
-      isLiked: false,
-      isSaved: false,
-    },
-  ]);
+  const [journals, setJournals] = useState<JournalEntry[]>([]);
 
-  const [myJournalPosts, setMyJournalPosts] = useState<JournalEntry[]>([
-    {
-      id: 'my-1',
-      timeAgo: '2 hours ago',
-      title: 'Sunset in the Old City',
-      location: 'Kyoto, Japan',
-      description: 'Amazing experience exploring the historical sites...',
-      views: 620,
-      likes: 1200,
-      bookmarks: 234,
-      isLiked: false,
-      isSaved: false,
-    },
-  ]);
+  const cosineSimilarity = (left: number[], right: number[]) => {
+    const length = Math.min(left.length, right.length);
+    if (length === 0) return 0;
 
-  const favorites = [...communityPosts, ...myJournalPosts].filter((post) => post.isSaved);
-  const primaryMyJournal = myJournalPosts[0];
-  const likes = primaryMyJournal?.likes ?? 0;
-  const bookmarks = primaryMyJournal?.bookmarks ?? 0;
+    let dot = 0;
+    let leftNorm = 0;
+    let rightNorm = 0;
+
+    for (let index = 0; index < length; index += 1) {
+      const leftValue = Number(left[index]) || 0;
+      const rightValue = Number(right[index]) || 0;
+      dot += leftValue * rightValue;
+      leftNorm += leftValue * leftValue;
+      rightNorm += rightValue * rightValue;
+    }
+
+    if (!leftNorm || !rightNorm) return 0;
+    return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+  };
+
+  const engagementScore = (entry: JournalEntry) => {
+    return (entry.likes || 0) * 1.3 + (entry.bookmarks || 0) * 1.5 + (entry.views || 0) * 0.15 + (entry.comments || 0) * 2;
+  };
+
+  const communityPosts = (() => {
+    const base = journals;
+    if (!userInterestVector || userInterestVector.length === 0) {
+      return [...base].sort((left, right) => engagementScore(right) - engagementScore(left));
+    }
+
+    return [...base].sort((left, right) => {
+      const leftSimilarity = left.embedding?.length ? cosineSimilarity(userInterestVector, left.embedding) : -1;
+      const rightSimilarity = right.embedding?.length ? cosineSimilarity(userInterestVector, right.embedding) : -1;
+      if (rightSimilarity !== leftSimilarity) return rightSimilarity - leftSimilarity;
+      return engagementScore(right) - engagementScore(left);
+    });
+  })();
+  const myJournalPosts = journals.filter((post) => post.authorId === currentUserId);
+  const favorites = journals.filter((post) => post.isSaved);
+  const likes = myJournalPosts.reduce((sum, entry) => sum + (entry.likes ?? 0), 0);
   const totalViews = myJournalPosts.reduce((sum, entry) => sum + (entry.views ?? 0), 0);
+  const countries = new Set(
+    myJournalPosts
+      .map((entry) => {
+        if (entry.country) return entry.country;
+        const parts = entry.location.split(',').map((part) => part.trim()).filter(Boolean);
+        return parts.length > 0 ? parts[parts.length - 1] : '';
+      })
+      .filter(Boolean),
+  ).size;
 
   useEffect(() => {
     if (initialTab) {
@@ -152,25 +185,81 @@ export default function JournalScreen({
   }, [initialTab]);
 
   useEffect(() => {
-    if (!pendingJournal) return;
-    const upsert = (entries: JournalEntry[]) => {
-      const existingIndex = entries.findIndex((entry) => entry.id === pendingJournal.id);
-      if (existingIndex === -1) {
-        return [pendingJournal, ...entries];
-      }
-      return entries.map((entry) => (entry.id === pendingJournal.id ? pendingJournal : entry));
-    };
-    setCommunityPosts((prev) => upsert(prev));
-    setMyJournalPosts((prev) => upsert(prev));
-    onConsumePendingJournal?.();
-  }, [pendingJournal, onConsumePendingJournal]);
+    let isActive = true;
 
-  useEffect(() => {
-    if (!deletedJournalId) return;
-    setCommunityPosts((prev) => prev.filter((entry) => entry.id !== deletedJournalId));
-    setMyJournalPosts((prev) => prev.filter((entry) => entry.id !== deletedJournalId));
-    onConsumeDeletedJournal?.();
-  }, [deletedJournalId, onConsumeDeletedJournal]);
+    const unsubscribe = subscribeToJournals(
+      (records: JournalRecord[]) => {
+        const currentLanguage = i18n.language || 'en';
+        const mapped: JournalEntry[] = records.map((record) => {
+          const translated = record.translations?.[currentLanguage];
+          return {
+            id: record.id,
+            timeAgo: formatTimeAgo(record.createdAt, currentLanguage),
+            title: translated?.title || record.title,
+            location: translated?.location || record.location,
+            description: translated?.description || record.description,
+            imageUrl: record.imageUrl,
+            imageUrls: (record as any).imageUrls, // Support multiple images
+            likes: record.likes,
+            bookmarks: record.bookmarks,
+            views: record.views,
+            comments: record.comments,
+            country: record.country,
+            embedding: record.embedding,
+            likedBy: record.likedBy,
+            savedBy: record.savedBy,
+            author: record.author,
+            authorId: record.authorId,
+            authorAvatarUrl: record.authorAvatarUrl,
+            isLiked: currentUserId ? (record.likedBy || []).includes(currentUserId) : false,
+            isSaved: currentUserId ? (record.savedBy || []).includes(currentUserId) : false,
+          };
+        });
+        if (!isActive) return;
+        setJournals(mapped);
+
+        if (currentLanguage === 'en') return;
+
+        const missingTranslations = records.filter((record) => !record.translations?.[currentLanguage]);
+        if (missingTranslations.length === 0) return;
+
+        void (async () => {
+          for (const record of missingTranslations) {
+            const localized = await getJournalLocalizedContent(record.id, currentLanguage, {
+              title: record.title,
+              location: record.location,
+              description: record.description,
+              country: record.country,
+            });
+
+            if (!isActive) return;
+
+            setJournals((prev) =>
+              prev.map((entry) => {
+                if (entry.id !== record.id) return entry;
+                return {
+                  ...entry,
+                  title: localized.title,
+                  location: localized.location,
+                  description: localized.description,
+                  country: localized.country || entry.country,
+                  timeAgo: formatTimeAgo(record.createdAt, currentLanguage),
+                };
+              }),
+            );
+          }
+        })();
+      },
+      () => {
+        toast.error('Failed to load journals');
+      },
+    );
+
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
+  }, [i18n.language, currentUserId]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isSearchActive = searchOpen || normalizedSearch.length > 0;
@@ -189,34 +278,120 @@ export default function JournalScreen({
   const filteredMyJournal = filterEntries(myJournalPosts);
   const filteredFavorites = filterEntries(favorites);
 
-  const updateEntry = (
-    setEntries: Dispatch<SetStateAction<JournalEntry[]>>,
-    id: string,
-    updater: (entry: JournalEntry) => JournalEntry
-  ) => {
-    setEntries((prev) => prev.map((entry) => (entry.id === id ? updater(entry) : entry)));
-  };
+  const tabs: Array<{ key: Tab; label: string }> = [
+    { key: 'community', label: t('journal.forYou') },
+    { key: 'myJournal', label: t('journal.myJournal') },
+    { key: 'favourites', label: t('journal.favourites') },
+  ];
 
-  const toggleLike = (list: 'community' | 'myJournal', id: string) => {
-    const setter = list === 'community' ? setCommunityPosts : setMyJournalPosts;
-    updateEntry(setter, id, (entry) => {
-      const nextLiked = !entry.isLiked;
-      const nextLikes = nextLiked ? entry.likes + 1 : Math.max(0, entry.likes - 1);
-      return { ...entry, isLiked: nextLiked, likes: nextLikes };
+  const activeTabIndex = tabs.findIndex(tab => tab.key === activeTab);
+
+  const toggleLike = (id: string) => {
+    if (!currentUserId) {
+      toast.error('Please log in to like posts');
+      return;
+    }
+
+    const target = journals.find((entry) => entry.id === id);
+    if (!target) return;
+
+    const optimisticActive = !target.isLiked;
+    const optimisticCount = optimisticActive
+      ? target.likes + 1
+      : Math.max(0, target.likes - 1);
+
+    setJournals((prev) => prev.map((entry) => {
+      if (entry.id !== id) return entry;
+      return {
+        ...entry,
+        isLiked: optimisticActive,
+        likes: optimisticCount,
+      };
+    }));
+
+    void toggleJournalReaction(id, currentUserId, 'like').then((result) => {
+      if (!result) {
+        setJournals((prev) => prev.map((entry) => {
+          if (entry.id !== id) return entry;
+          return {
+            ...entry,
+            isLiked: target.isLiked,
+            likes: target.likes,
+          };
+        }));
+        toast.error('Failed to update likes');
+        return;
+      }
+
+      setJournals((prev) => prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        return {
+          ...entry,
+          isLiked: result.active,
+          likes: result.count,
+        };
+      }));
+
+      if (result.active) {
+        onPositiveInteraction?.(id, 'like');
+      }
     });
   };
 
-  const toggleSave = (list: 'community' | 'myJournal', id: string) => {
-    const setter = list === 'community' ? setCommunityPosts : setMyJournalPosts;
-    updateEntry(setter, id, (entry) => {
-      const nextSaved = !entry.isSaved;
-      const nextBookmarks = nextSaved ? entry.bookmarks + 1 : Math.max(0, entry.bookmarks - 1);
-      return { ...entry, isSaved: nextSaved, bookmarks: nextBookmarks };
+  const toggleSave = (id: string) => {
+    if (!currentUserId) {
+      toast.error('Please log in to save posts');
+      return;
+    }
+
+    const target = journals.find((entry) => entry.id === id);
+    if (!target) return;
+
+    const optimisticActive = !target.isSaved;
+    const optimisticCount = optimisticActive
+      ? target.bookmarks + 1
+      : Math.max(0, target.bookmarks - 1);
+
+    setJournals((prev) => prev.map((entry) => {
+      if (entry.id !== id) return entry;
+      return {
+        ...entry,
+        isSaved: optimisticActive,
+        bookmarks: optimisticCount,
+      };
+    }));
+
+    void toggleJournalReaction(id, currentUserId, 'save').then((result) => {
+      if (!result) {
+        setJournals((prev) => prev.map((entry) => {
+          if (entry.id !== id) return entry;
+          return {
+            ...entry,
+            isSaved: target.isSaved,
+            bookmarks: target.bookmarks,
+          };
+        }));
+        toast.error('Failed to update saved count');
+        return;
+      }
+
+      setJournals((prev) => prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        return {
+          ...entry,
+          isSaved: result.active,
+          bookmarks: result.count,
+        };
+      }));
+
+      if (result.active) {
+        onPositiveInteraction?.(id, 'save');
+      }
     });
   };
 
   return (
-    <div className="bg-white relative size-full">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
       <style>{`
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -229,22 +404,26 @@ export default function JournalScreen({
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
 
-        <div className="absolute bg-white h-[109px] left-0 right-0 top-[-2px]" />
+        <div className="absolute bg-white dark:bg-gray-900 h-[109px] left-0 right-0 top-[-2px]" />
 
         <div className="absolute left-0 right-0 top-[52px] px-[20px] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-[#eaddff] overflow-clip rounded-[100px] size-[40px] flex items-center justify-center">
-              <span className="font-['Poppins',sans-serif] font-semibold text-[16px] text-[#4f378a]">{userInitial}</span>
+              {userAvatarUrl ? (
+                <img src={userAvatarUrl} alt="profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-['Poppins',sans-serif] font-semibold text-[16px] text-[#4f378a]">{userInitial}</span>
+              )}
             </div>
             {isSearchActive ? (
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search journals"
-                className="w-[210px] h-[32px] rounded-[10px] border border-[rgba(0,0,0,0.1)] px-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b]"
+                placeholder={t('journal.searchPlaceholder')}
+                className="w-[210px] h-[32px] rounded-[10px] border border-[rgba(0,0,0,0.1)] dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 text-[12px] font-['Poppins',sans-serif] outline-none focus:border-[#2c638b]"
               />
             ) : (
-              <p className="font-['Inter',sans-serif] font-medium leading-[22px] text-[20px] text-black tracking-[-0.408px]">Journal</p>
+              <p className="font-['Inter',sans-serif] font-medium leading-[22px] text-[20px] text-black dark:text-white tracking-[-0.408px]">{t('journal.screenTitle')}</p>
             )}
           </div>
           <button
@@ -267,48 +446,50 @@ export default function JournalScreen({
 
         <div className="absolute bg-transparent left-0 right-0 top-[107px] h-[48px]">
           <div className="relative w-full h-[40px] flex flex-row">
-          <button onClick={() => setActiveTab('community')} className={`w-[129.33px] h-[40px] flex items-center justify-center bg-[#F7F9FF] ${activeTab === 'community' ? 'text-[#094B72]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-            <span className="font-['Roboto',sans-serif] font-medium text-[14px] leading-[20px] tracking-[0.1px]">Community</span>
-          </button>
-
-          <button onClick={() => setActiveTab('myJournal')} className={`w-[129.33px] h-[40px] flex items-center justify-center bg-[#F7F9FF] ${activeTab === 'myJournal' ? 'text-[#094B72]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-            <span className="font-['Roboto',sans-serif] font-medium text-[14px] leading-[20px] tracking-[0.1px]">My Journal</span>
-          </button>
-
-          <button onClick={() => setActiveTab('favourites')} className={`w-[129.33px] h-[40px] flex items-center justify-center bg-[#F7F9FF] ${activeTab === 'favourites' ? 'text-[#094B72]' : 'text-[rgba(0,0,0,0.4)]'}`}>
-            <span className="font-['Roboto',sans-serif] font-medium text-[14px] leading-[20px] tracking-[0.1px]">Favourites</span>
-          </button>
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 h-[40px] flex items-center justify-center bg-[#F7F9FF] dark:bg-gray-800 ${activeTab === tab.key ? 'text-[#094B72] dark:text-blue-400' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}
+            >
+              <span className="font-['Roboto',sans-serif] font-medium text-[14px] leading-[20px] tracking-[0.1px]">{tab.label}</span>
+            </button>
+          ))}
 
           <div
-            className="absolute left-2 right-2 bottom-0 h-[3px] bg-[#094B72] rounded-tl-[100px] rounded-tr-[100px]"
-            style={{ transform: `translateX(${activeTab === 'community' ? '0%' : activeTab === 'myJournal' ? '100%' : '200%'})`, width: 'calc(129.33px)' }}
+            className="absolute bottom-0 h-[3px] w-[56px] bg-[#094B72] dark:bg-blue-600 rounded-tl-[100px] rounded-tr-[100px] transition-all duration-200"
+            style={{
+              left: `calc(${(activeTabIndex + 0.5) * (100 / tabs.length)}% - 28px)`,
+            }}
           />
         </div>
-          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] mt-[0px]" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.05)] dark:bg-gray-700 mt-[0px]" />
         </div>
 
         {/* Single bounded scroll container so content cannot go under bottom nav */}
-        <div className="absolute left-[20px] top-[169px] right-[20px] bottom-[90px] overflow-y-auto overflow-x-hidden pr-6 pb-6 no-scrollbar">
+        <div className="absolute left-[20px] top-[169px] right-[20px] bottom-[90px] overflow-y-auto overflow-x-hidden pb-6 no-scrollbar">
         {activeTab === 'community' && (
           <div className="space-y-6">
             {filteredCommunity.map((p) => (
               <JournalCard
                 key={p.id}
-                author={userName}
+                author={p.author}
                 avatarLetter={userInitial}
+                avatarUrl={p.authorAvatarUrl}
                 timeAgo={p.timeAgo}
                 title={p.title}
                 location={p.location}
                 description={p.description}
                 imageUrl={p.imageUrl}
+                imageUrls={p.imageUrls}
                 likes={p.likes}
                 bookmarks={p.bookmarks}
                 views={p.views}
                 isLiked={p.isLiked}
                 isSaved={p.isSaved}
-                onToggleLike={() => toggleLike('community', p.id)}
-                onToggleSave={() => toggleSave('community', p.id)}
-                onViewJournal={() => onOpenJournal?.({ ...p, author: userName })}
+                onToggleLike={() => toggleLike(p.id)}
+                onToggleSave={() => toggleSave(p.id)}
+                onViewJournal={() => onOpenJournal?.(p)}
               />
             ))}
           </div>
@@ -316,48 +497,50 @@ export default function JournalScreen({
 
         {activeTab === 'myJournal' && (
           <div className="space-y-6">
-            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black">Journal Statistics</h3>
+            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black dark:text-white">{t('journal.statistics')}</h3>
 
             <div>
-              <div className="flex gap-4 px-0 overflow-x-hidden">
-                <div className="min-w-[96px] w-[96px] h-[96px] bg-white border border-[rgba(0,0,0,0.4)] rounded-[10px] flex flex-col items-center justify-center">
-                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold">{formatNumber(likes)}</div>
-                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)]">Likes</div>
+              <div className="flex gap-4 px-0 overflow-x-hidden justify-center">
+                <div className="min-w-[96px] w-[96px] h-[96px] bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.4)] dark:border-gray-700 rounded-[10px] flex flex-col items-center justify-center">
+                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold dark:text-white">{formatNumber(likes)}</div>
+                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)] dark:text-gray-400">{t('journal.likes')}</div>
                 </div>
-                <div className="min-w-[96px] w-[96px] h-[96px] bg-white border border-[rgba(0,0,0,0.4)] rounded-[10px] flex flex-col items-center justify-center">
-                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold">{formatNumber(totalViews)}</div>
-                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)]">Views</div>
+                <div className="min-w-[96px] w-[96px] h-[96px] bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.4)] dark:border-gray-700 rounded-[10px] flex flex-col items-center justify-center">
+                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold dark:text-white">{formatNumber(totalViews)}</div>
+                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)] dark:text-gray-400">{t('journal.views')}</div>
                 </div>
-                <div className="min-w-[96px] w-[96px] h-[96px] bg-white border border-[rgba(0,0,0,0.4)] rounded-[10px] flex flex-col items-center justify-center">
-                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold">10</div>
-                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)]">Countries</div>
+                <div className="min-w-[96px] w-[96px] h-[96px] bg-white dark:bg-gray-800 border border-[rgba(0,0,0,0.4)] dark:border-gray-700 rounded-[10px] flex flex-col items-center justify-center">
+                  <div className="text-[24px] font-['Poppins',sans-serif] font-bold dark:text-white">{formatNumber(countries)}</div>
+                  <div className="text-[14px] font-['Poppins',sans-serif] font-medium text-[rgba(0,0,0,0.4)] dark:text-gray-400">{t('journal.countries')}</div>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black">Post</h3>
+            <h3 className="text-[20px] font-['Poppins',sans-serif] font-semibold text-black dark:text-white">{t('journal.post')}</h3>
 
             <div className="space-y-6">
               {filteredMyJournal.map((p) => (
                 <JournalCard
                   key={p.id}
-                  author={userName}
+                  author={p.author}
                 avatarLetter={userInitial}
+                  avatarUrl={p.authorAvatarUrl}
                   timeAgo={p.timeAgo}
                   title={p.title}
                   location={p.location}
                   description={p.description}
                   imageUrl={p.imageUrl}
+                  imageUrls={p.imageUrls}
                   likes={p.likes}
                   bookmarks={p.bookmarks}
                   views={p.views}
                   isLiked={p.isLiked}
                   isSaved={p.isSaved}
                   showViews
-                  actionLabel="Edit"
-                  onToggleLike={() => toggleLike('myJournal', p.id)}
-                  onToggleSave={() => toggleSave('myJournal', p.id)}
-                  onViewJournal={() => onEditJournal?.({ ...p, author: userName })}
+                  actionLabel={t('journal.edit')}
+                  onToggleLike={() => toggleLike(p.id)}
+                  onToggleSave={() => toggleSave(p.id)}
+                  onViewJournal={() => onEditJournal?.(p)}
                 />
               ))}
             </div>
@@ -369,25 +552,28 @@ export default function JournalScreen({
             {filteredFavorites.map((p) => (
               <JournalCard
                 key={p.id}
-                author={userName}
+                author={p.author}
                 avatarLetter={userInitial}
+                avatarUrl={p.authorAvatarUrl}
                 timeAgo={p.timeAgo}
                 title={p.title}
                 location={p.location}
                 description={p.description}
                 imageUrl={p.imageUrl}
+                imageUrls={p.imageUrls}
                 likes={p.likes}
                 bookmarks={p.bookmarks}
                 views={p.views}
                 isLiked={p.isLiked}
                 isSaved={p.isSaved}
-                onToggleLike={() => toggleLike(p.id.startsWith('my-') ? 'myJournal' : 'community', p.id)}
-                onToggleSave={() => toggleSave(p.id.startsWith('my-') ? 'myJournal' : 'community', p.id)}
-                onViewJournal={() => onOpenJournal?.({ ...p, author: userName })}
+                onToggleLike={() => toggleLike(p.id)}
+                onToggleSave={() => toggleSave(p.id)}
+                onViewJournal={() => onOpenJournal?.(p)}
               />
             ))}
           </div>
         )}
+
         </div>
 
         {activeTab === 'myJournal' && (
@@ -402,27 +588,27 @@ export default function JournalScreen({
         )}
 
         <div className="absolute left-0 right-0 bottom-0 h-[90px]">
-          <div className="h-px w-full bg-[rgba(0,0,0,0.1)]" />
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)] dark:bg-gray-700" />
           <div className="flex flex-col h-[78px] p-[10px]">
             <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
               <button onClick={() => onNavigate('home')} className="flex-1 flex flex-col items-center">
-              <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>Home</p>
+              <Home size={28} className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.home')}</p>
             </button>
 
             <button onClick={() => onNavigate('mapview')} className="flex-1 flex flex-col items-center">
-              <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>Nearby</p>
+              <MapPin size={28} className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.nearby')}</p>
             </button>
 
             <button onClick={() => onNavigate('ailens')} className="flex-1 flex flex-col items-center">
-              <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>AI Lens</p>
+              <Camera size={28} className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.aiLens')}</p>
             </button>
 
               <button onClick={() => onNavigate('profile')} className="flex-1 flex flex-col items-center">
-              <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'} strokeWidth={2} />
-              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)]'}`}>Profile</p>
+              <User size={28} className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'} strokeWidth={2} />
+              <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}`}>{t('navigation.profile')}</p>
             </button>
             </div>
           </div>
