@@ -79,6 +79,8 @@ function HomeIndicator() {
 export default function AILensScreen({ currentScreen, onNavigate, preferredLanguageCode }: AILensScreenProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('camera');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [input, setInput] = useState('');
   const { t, i18n } = useTranslation();
   const activeLanguageCode = preferredLanguageCode || i18n.language || 'en';
@@ -110,7 +112,6 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const touchStartY = useRef(0);
   const currentTranslateY = useRef(0);
 
   // Camera Control
@@ -165,8 +166,15 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
   }
   
   setIsLoading(true);
-  // Show "Consulting..." toast immediately when starting analysis
-  const toastId = toast.loading('🤖 Consulting the travel guide... Please wait ~5 seconds');
+  setIsAnalyzing(true);
+  setAnalysisProgress(5);
+
+  const progressTimer = setInterval(() => {
+    setAnalysisProgress((prev) => {
+      if (prev >= 92) return prev;
+      return Math.min(92, prev + Math.floor(Math.random() * 8) + 3);
+    });
+  }, 300);
   
   const video = videoRef.current;
   const canvas = canvasRef.current; // Now TypeScript knows this isn't null because of the guard above
@@ -183,16 +191,20 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
   
   try {
     const result = await getImageExplanation(imageData);
+    setAnalysisProgress(100);
     setExplanation(result);
     setCapturedImage(imageData);
     setViewMode('hybrid');
-    toast.dismiss(toastId);
     toast.success('✨ Analysis complete! Swipe up to explore.');  
   } catch (error: any) {
-    toast.dismiss(toastId);
     toast.error(error.message);
   } finally {
+    clearInterval(progressTimer);
     setIsLoading(false);
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+    }, 250);
   }
 };
 
@@ -254,42 +266,29 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
 
   
 
-  const handleSheetDragStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
+  const expandHybridToFullChat = () => {
+    setViewMode('fullchat');
+    if (messages.length === 0 && explanation) {
+      setMessages([{
+        id: '0',
+        role: 'assistant',
+        content: `${explanation.title}\n\n${explanation.description}\n\n${explanation.culturalNote ? `💡 ${explanation.culturalNote}\n\n` : ''}${explanation.interestingFact ? `✨ ${explanation.interestingFact}\n\n` : ''}What would you like to know about this?`,
+        timestamp: new Date(),
+      }]);
+    }
   };
 
-  const handleSheetDragEnd = (e: React.TouchEvent) => {
-    const touchEndY = e.changedTouches[0].clientY;
-    const diff = touchEndY - touchStartY.current;
-
-    // Swipe up to expand
-    if (diff < -50 && viewMode === 'hybrid') {
-      setViewMode('fullchat');
-      // Initialize chat messages with explanation if this is the first time opening chat
-      if (messages.length === 0 && explanation) {
-        setMessages([{
-          id: '0',
-          role: 'assistant',
-          content: `${explanation.title}\n\n${explanation.description}\n\n${explanation.culturalNote ? `💡 ${explanation.culturalNote}\n\n` : ''}${explanation.interestingFact ? `✨ ${explanation.interestingFact}\n\n` : ''}What would you like to know about this?`,
-          timestamp: new Date(),
-        }]);
-      }
-    }
-    // Swipe down to dismiss
-    else if (diff > 50 && viewMode === 'hybrid') {
-      setViewMode('camera');
-      setCapturedImage(null);
-      setExplanation(null);
-      setMessages([]); // Clear messages when going back to camera
-    }
+  const dismissHybridToCamera = () => {
+    setViewMode('camera');
+    setCapturedImage(null);
+    setExplanation(null);
+    setMessages([]);
   };
 
   return (
-    <div className="bg-black relative h-screen w-full">
-      <div className="relative mx-auto w-full max-w-[390px] h-full flex flex-col overflow-hidden">
-        <StatusBarIPhone className="z-50" />
-
-        <div className="flex-1 relative overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 relative size-full">
+      <div className="relative mx-auto w-full max-w-[390px] h-full overflow-hidden">
+        <div className="absolute left-0 right-0 top-[24px] bottom-[90px] overflow-hidden">
           {/* LAYER 1: Live Camera View */}
           {(viewMode === 'camera' || viewMode === 'hybrid') && (
             <div className="absolute inset-0 bg-black">
@@ -357,6 +356,21 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
                   )}
                 </button>
               )}
+
+              {viewMode === 'camera' && isAnalyzing && (
+                <div className="absolute left-6 right-6 bottom-[188px] z-30 bg-black/45 backdrop-blur-md border border-white/30 rounded-2xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-white text-xs font-semibold">Consulting travel guide...</p>
+                    <p className="text-white text-xs font-semibold">{analysisProgress}%</p>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-white/20 overflow-hidden">
+                    <div
+                      className="h-full bg-white transition-all duration-300"
+                      style={{ width: `${analysisProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -366,8 +380,8 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
               image={capturedImage}
               explanation={explanation}
               targetLanguageCode={activeLanguageCode}
-              onDragStart={handleSheetDragStart}
-              onDragEnd={handleSheetDragEnd}
+              onExpand={expandHybridToFullChat}
+              onDismiss={dismissHybridToCamera}
             />
           )}
 
@@ -379,7 +393,12 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
               messages={messages}
               setMessages={setMessages}
               targetLanguageCode={activeLanguageCode}
-              onDragDown={() => setViewMode('hybrid')}
+              onDragDown={() => {
+                setViewMode('camera');
+                setCapturedImage(null);
+                setExplanation(null);
+                setMessages([]);
+              }}
             />
           )}
 
@@ -396,14 +415,80 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
         </div>
 
         {/* Bottom Navigation */}
-        <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 px-6 py-2 pb-8 z-30">
-            <div className="flex justify-between items-center">
-              <NavButton icon={<Home />} label={t('navigation.home')} active={currentScreen === 'home'} onClick={() => onNavigate?.('home')} />
-              <NavButton icon={<MapPin />} label={t('navigation.nearby')} active={currentScreen === 'mapview'} onClick={() => onNavigate?.('mapview')} />
-              <NavButton icon={<Camera />} label={t('navigation.aiLens')} active={currentScreen === 'ailens'} onClick={() => { setViewMode('camera'); onNavigate?.('ailens'); }} />
-              <NavButton icon={<User />} label={t('navigation.profile')} active={currentScreen === 'profile'} onClick={() => onNavigate?.('profile')} />
+        <div className="absolute left-0 right-0 bottom-0 h-[90px] bg-white dark:bg-gray-900 z-40">
+          <div className="h-px w-full bg-[rgba(0,0,0,0.1)] dark:bg-gray-700" />
+          <div className="flex flex-col h-[78px] p-[10px]">
+            <div className="flex gap-[10px] h-[60px] items-center justify-center p-[10px]">
+              <button
+                onClick={() => onNavigate?.('home')}
+                className="flex-1 flex flex-col items-center"
+              >
+                <Home
+                  size={28}
+                  className={currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
+                  strokeWidth={2}
+                />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'home' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
+                }`}>
+                  {t('navigation.home')}
+                </p>
+              </button>
+
+              <button
+                onClick={() => onNavigate?.('mapview')}
+                className="flex-1 flex flex-col items-center"
+              >
+                <MapPin
+                  size={28}
+                  className={currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
+                  strokeWidth={2}
+                />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'mapview' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
+                }`}>
+                  {t('navigation.nearby')}
+                </p>
+              </button>
+
+              <button
+                onClick={() => {
+                  setViewMode('camera');
+                  onNavigate?.('ailens');
+                }}
+                className="flex-1 flex flex-col items-center"
+              >
+                <Camera
+                  size={28}
+                  className={currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
+                  strokeWidth={2}
+                />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'ailens' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
+                }`}>
+                  {t('navigation.aiLens')}
+                </p>
+              </button>
+
+              <button
+                onClick={() => onNavigate?.('profile')}
+                className="flex-1 flex flex-col items-center"
+              >
+                <User
+                  size={28}
+                  className={currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'}
+                  strokeWidth={2}
+                />
+                <p className={`font-['Inter',sans-serif] font-normal text-[12px] leading-[22px] text-center tracking-[-0.408px] ${
+                  currentScreen === 'profile' ? 'text-[#2c638b]' : 'text-[rgba(0,0,0,0.4)] dark:text-gray-400'
+                }`}>
+                  {t('navigation.profile')}
+                </p>
+              </button>
             </div>
-            <HomeIndicator />
+          </div>
+
+          <HomeIndicator />
         </div>
       </div>
 
@@ -445,18 +530,22 @@ function HybridView({
   image, 
   explanation,
   targetLanguageCode,
-  onDragStart,
-  onDragEnd
+  onExpand,
+  onDismiss
 }: { 
   image: string
   explanation: AIExplanationResult
   targetLanguageCode: string
-  onDragStart: (e: React.TouchEvent) => void
-  onDragEnd: (e: React.TouchEvent) => void
+  onExpand: () => void
+  onDismiss: () => void
 }) {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [qaPairs, setQaPairs] = useState<Array<{ id: string; question: string; answer?: string }>>([]);
+  const dragStartY = useRef<number | null>(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const sampleQuestions = [
     'What does this mean?',
@@ -467,18 +556,69 @@ function HybridView({
 
   const handleAskQuestion = async (question: string) => {
     if (!question.trim()) return;
+    const trimmedQuestion = question.trim();
+    const pairId = Date.now().toString();
+
+    setQaPairs((prev) => [...prev, { id: pairId, question: trimmedQuestion }]);
+    setInput('');
     setIsLoading(true);
+
     try {
-      // Call the askAIQuestion function and show toast notification
-      const response = await askAIQuestion(question, image, explanation, undefined, targetLanguageCode);
-      toast.success(response);
-      setInput('');
+      const response = await askAIQuestion(trimmedQuestion, image, explanation, undefined, targetLanguageCode);
+      setQaPairs((prev) =>
+        prev.map((pair) => (pair.id === pairId ? { ...pair, answer: response } : pair))
+      );
     } catch (error) {
       console.error('Error:', error);
       const message = error instanceof Error ? error.message : GEMINI_NOT_CONFIGURED_MESSAGE;
       toast.error(message);
+      setQaPairs((prev) => prev.filter((pair) => pair.id !== pairId));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDragStart = (clientY: number) => {
+    dragStartY.current = clientY;
+    setIsDragging(true);
+    setDragOffsetY(0);
+  };
+
+  const handleDragMove = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const diff = clientY - dragStartY.current;
+    const clampedOffset = Math.max(-180, Math.min(220, diff));
+    setDragOffsetY(clampedOffset);
+  };
+
+  const handleDragEnd = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const diff = clientY - dragStartY.current;
+
+    if (diff < -40) {
+      onExpand();
+    } else if (diff > 40) {
+      onDismiss();
+    }
+
+    dragStartY.current = null;
+    setIsDragging(false);
+    setDragOffsetY(0);
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    handleDragStart(event.clientY);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    handleDragMove(event.clientY);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    handleDragEnd(event.clientY);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
@@ -490,40 +630,68 @@ function HybridView({
 
       {/* Sheet that covers 40-50% of screen with glassmorphism */}
       <div
-        onTouchStart={onDragStart}
-        onTouchEnd={onDragEnd}
         className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-b from-white/20 to-white/10 backdrop-blur-3xl border-t border-white/30 rounded-t-3xl flex flex-col overflow-hidden z-20 shadow-2xl"
         style={{
+          transform: `translateY(${dragOffsetY}px)`,
+          transition: isDragging ? 'none' : 'transform 240ms ease-out',
           backdropFilter: 'blur(20px) brightness(1.1)',
           WebkitBackdropFilter: 'blur(20px) brightness(1.1)'
         }}
       >
         {/* Handle bar */}
-        <div className="flex justify-center pt-4 pb-3">
+        <div
+          className="flex justify-center pt-4 pb-3 cursor-grab active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
           <div className="w-12 h-1.5 bg-white/50 rounded-full shadow-md" />
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-          {/* Title & Description */}
-          <div>
-            <h2 className="text-xl font-bold text-white">{explanation.title}</h2>
-            <p className="text-sm text-white/80 line-clamp-3 mt-1">{explanation.description}</p>
-          </div>
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-4 space-y-3 [scrollbar-width:none] [-ms-overflow-style:none]">
+          {/* Single dialogue box: explanation + Q/A + suggested questions */}
+          <div className="bg-white/20 border border-white/30 rounded-2xl p-4 backdrop-blur-md space-y-3">
+            <div>
+              <h2 className="text-xl font-bold text-white">{explanation.title}</h2>
+              <p className="text-sm text-white/85 mt-1">{explanation.description}</p>
+            </div>
 
-          {/* Smart Recommendations - Horizontal scrolling pills */}
-          <div className="pt-2">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {sampleQuestions.map((q, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleAskQuestion(q)}
-                  disabled={isLoading}
-                  className="flex-shrink-0 bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm px-4 py-2 rounded-full whitespace-nowrap disabled:opacity-50 transition-colors"
-                >
-                  {q}
-                </button>
-              ))}
+            {qaPairs.map((pair, index) => (
+              <div key={pair.id} className="border-t border-white/25 pt-3 space-y-2">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-white/70 font-semibold">You</p>
+                  <p className="text-sm text-white">{pair.question}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-blue-100 font-semibold">AI</p>
+                  {pair.answer ? (
+                    <p className="text-sm text-white/90">{pair.answer}</p>
+                  ) : isLoading && index === qaPairs.length - 1 ? (
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+
+            <div className="border-t border-white/25 pt-3">
+              <p className="text-[11px] uppercase tracking-wide text-white/70 font-semibold mb-2">Suggested Questions</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {sampleQuestions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleAskQuestion(q)}
+                    disabled={isLoading}
+                    className="flex-shrink-0 bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm px-4 py-2 rounded-full whitespace-nowrap disabled:opacity-50 transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -577,7 +745,10 @@ function FullChatView({
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const touchStartY = useRef(0);
+  const dragStartY = useRef<number | null>(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isExpandedVisual, setIsExpandedVisual] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sampleQuestions = [
@@ -590,6 +761,11 @@ function FullChatView({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const animationFrame = requestAnimationFrame(() => setIsExpandedVisual(true));
+    return () => cancelAnimationFrame(animationFrame);
+  }, []);
 
   const handleSendMessage = async (question: string) => {
     if (!question.trim()) return;
@@ -629,46 +805,96 @@ function FullChatView({
     }
   };
 
-  const handleDragStart = (e: React.TouchEvent) => {
-    // Only allow swipe gestures from the top area (handle bar and header)
-    // This prevents conflicts with scrolling in the messages area
-    const touchY = e.touches[0].clientY;
-    const headerHeight = 120; // Approximate height of handle bar + header area
-
-    // If touch starts below the header area, don't track for swipe gestures
-    if (touchY > headerHeight) {
-      return;
-    }
-
-    touchStartY.current = touchY;
+  const handleDragStart = (clientY: number) => {
+    dragStartY.current = clientY;
+    setIsDragging(true);
+    setDragOffsetY(0);
   };
 
-  const handleDragEnd = (e: React.TouchEvent) => {
-    // Only process swipe if we actually started tracking (touch was in header area)
-    if (touchStartY.current === 0) return;
+  const handleDragMove = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const diff = clientY - dragStartY.current;
+    const clampedOffset = Math.max(0, Math.min(240, diff));
+    setDragOffsetY(clampedOffset);
+  };
 
-    const diff = e.changedTouches[0].clientY - touchStartY.current;
+  const handleDragEnd = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const diff = clientY - dragStartY.current;
     if (diff > 50) {
       onDragDown();
     }
-
-    // Reset touch tracking
-    touchStartY.current = 0;
+    dragStartY.current = null;
+    setIsDragging(false);
+    setDragOffsetY(0);
   };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    handleDragStart(event.clientY);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    handleDragMove(event.clientY);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    handleDragEnd(event.clientY);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const conversationRows = (() => {
+    const rows: Array<
+      | { type: 'assistant'; assistant: ChatMessage }
+      | { type: 'pair'; user: ChatMessage; assistant?: ChatMessage }
+    > = [];
+    let pendingUser: ChatMessage | null = null;
+
+    for (const message of messages) {
+      if (message.role === 'user') {
+        if (pendingUser) {
+          rows.push({ type: 'pair', user: pendingUser });
+        }
+        pendingUser = message;
+      } else if (pendingUser) {
+        rows.push({ type: 'pair', user: pendingUser, assistant: message });
+        pendingUser = null;
+      } else {
+        rows.push({ type: 'assistant', assistant: message });
+      }
+    }
+
+    if (pendingUser) {
+      rows.push({ type: 'pair', user: pendingUser });
+    }
+
+    return rows;
+  })();
 
   return (
     <div
-      onTouchStart={handleDragStart}
-      onTouchEnd={handleDragEnd}
-      className="absolute inset-0 bg-gradient-to-b from-white/90 to-white rounded-t-3xl flex flex-col z-30 overflow-hidden backdrop-blur-sm"
+      className={`absolute inset-0 rounded-t-3xl flex flex-col z-30 overflow-hidden backdrop-blur-sm transition-colors duration-300 ${
+        isExpandedVisual ? 'bg-gradient-to-b from-white/95 to-white' : 'bg-gradient-to-b from-white/55 to-white/80'
+      }`}
       style={{
-        backdropFilter: 'blur(10px) brightness(0.95)',
-        WebkitBackdropFilter: 'blur(10px) brightness(0.95)'
+        transform: `translateY(${dragOffsetY}px)`,
+        transition: isDragging
+          ? 'transform 0ms linear'
+          : 'transform 240ms ease-out, background 300ms ease-out',
+        backdropFilter: 'blur(10px) brightness(0.98)',
+        WebkitBackdropFilter: 'blur(10px) brightness(0.98)'
       }}
     >
       {/* Handle bar at top */}
-      <div className="flex justify-center pt-3 pb-4 border-b border-gray-200">
-        <div className="w-12 h-1 bg-gray-300 rounded-full" />
+      <div
+        className="flex justify-center pt-5 pb-3 border-b border-gray-200 cursor-grab active:cursor-grabbing"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
       </div>
 
       {/* Header */}
@@ -679,44 +905,52 @@ function FullChatView({
 
       {/* Messages */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
-        onTouchStart={(e) => {
-          // Prevent swipe gestures when scrolling in messages area
-          e.stopPropagation();
-        }}
-        onTouchMove={(e) => {
-          // Allow normal scrolling in messages area
-          e.stopPropagation();
-        }}
-        onTouchEnd={(e) => {
-          // Prevent swipe gestures when ending touch in messages area
-          e.stopPropagation();
-        }}
+        className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-4 [scrollbar-width:none] [-ms-overflow-style:none]"
       >
-        {messages.map(message => (
-          <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
-            {message.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
-                <Bot size={18} className="text-blue-600" />
+        {conversationRows.map((row, index) => (
+          <div key={row.type === 'assistant' ? row.assistant.id : row.user.id} className="flex justify-start gap-2">
+            <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
+              <Bot size={18} className="text-blue-600" />
+            </div>
+
+            {row.type === 'assistant' ? (
+              <div className="max-w-[85%] bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-bl-none">
+                <p className="text-sm leading-relaxed">{row.assistant.content}</p>
+                <p className="text-xs mt-1 text-gray-500">
+                  {row.assistant.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            ) : (
+              <div className="max-w-[90%] bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-bl-none space-y-2">
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-500">You</p>
+                  <p className="text-sm leading-relaxed">{row.user.content}</p>
+                </div>
+
+                <div className="border-t border-gray-200 pt-2">
+                  <p className="text-[11px] font-semibold text-[#2c638b]">AI</p>
+                  {row.assistant ? (
+                    <p className="text-sm leading-relaxed">{row.assistant.content}</p>
+                  ) : isLoading && index === conversationRows.length - 1 ? (
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-gray-500">...</p>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  {row.user.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
             )}
-            <div className={`max-w-xs px-4 py-3 rounded-2xl ${
-              message.role === 'user'
-                ? 'bg-blue-600 text-white rounded-br-none'
-                : 'bg-gray-100 text-gray-900 rounded-bl-none'
-            }`}>
-              <p className="text-sm leading-relaxed">{message.content}</p>
-              <p className={`text-xs mt-1 ${
-                message.role === 'user'
-                  ? 'text-blue-100'
-                  : 'text-gray-500'
-              }`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
           </div>
         ))}
-        {isLoading && (
+
+        {isLoading && conversationRows.length === 0 && (
           <div className="flex justify-start gap-2">
             <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
               <Bot size={18} className="text-blue-600" />

@@ -186,7 +186,7 @@ export function AIChatSheet({
         </SheetHeader>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-4 [scrollbar-width:none] [-ms-overflow-style:none]">
           {messages.map(message => (
             <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
               {message.role === 'assistant' && (

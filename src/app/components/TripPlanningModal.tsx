@@ -39,6 +39,8 @@ export default function TripPlanningModal({
   const [numberOfDays, setNumberOfDays] = useState(3);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [generating, setGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle place search
   const handleSearchPlaces = (query: string) => {
@@ -116,6 +118,19 @@ export default function TripPlanningModal({
 
     setGenerating(true);
     setStep('generating');
+    setGenerationProgress(8);
+
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+    }
+
+    progressTimerRef.current = setInterval(() => {
+      setGenerationProgress((prev) => {
+        if (prev >= 92) return prev;
+        const increment = prev < 35 ? 7 : prev < 70 ? 4 : 2;
+        return Math.min(92, prev + increment);
+      });
+    }, 450);
 
     try {
       let trip: TripItinerary;
@@ -170,6 +185,8 @@ export default function TripPlanningModal({
         throw new Error('Invalid mode');
       }
 
+      setGenerationProgress(100);
+
       toast.success('Trip itinerary generated successfully!');
       onTripGenerated(trip);
       onClose();
@@ -180,8 +197,31 @@ export default function TripPlanningModal({
       );
       setGenerating(false);
       setStep(mode === 'custom' ? 'custom' : 'preference');
+    } finally {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setGenerationProgress(0);
+      setGenerating(false);
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -385,12 +425,22 @@ export default function TripPlanningModal({
           {/* Generating Step */}
           {step === 'generating' && (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <div className="animate-spin">
-                <Loader size={48} className="text-[#2c638b]" />
+              <div className="w-full max-w-[320px] space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black">
+                    Creating Your Itinerary...
+                  </p>
+                  <p className="font-['Poppins',sans-serif] font-semibold text-[14px] text-[#2c638b]">
+                    {generationProgress}%
+                  </p>
+                </div>
+                <div className="w-full h-[10px] bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] transition-all duration-500"
+                    style={{ width: `${generationProgress}%` }}
+                  />
+                </div>
               </div>
-              <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black">
-                Creating Your Itinerary...
-              </p>
               <p className="font-['Poppins',sans-serif] text-[14px] text-gray-600 text-center">
                 AI is planning the perfect route and schedule for your trip
               </p>
