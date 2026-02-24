@@ -60,12 +60,14 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
   const [activeFilter] = useState('all'); // Keep for compatibility, but not used
   const [searchedPlace, setSearchedPlace] = useState<Attraction | null>(null);
   const [loading, setLoading] = useState(false);
+  const [attractionsVisible, setAttractionsVisible] = useState(false);
   const [loadError, setLoadError] = useState<string>('');
   const [isTripPlanningOpen, setIsTripPlanningOpen] = useState(false);
   const [generatedTrip, setGeneratedTrip] = useState<TripItinerary | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
+  const [selectedPredictionIndex, setSelectedPredictionIndex] = useState(-1);
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -85,6 +87,8 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
   const [routeDestinationPredictions, setRouteDestinationPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showOriginPredictions, setShowOriginPredictions] = useState(false);
   const [showDestinationPredictions, setShowDestinationPredictions] = useState(false);
+  const [selectedOriginIndex, setSelectedOriginIndex] = useState(-1);
+  const [selectedDestinationIndex, setSelectedDestinationIndex] = useState(-1);
   const [isRoutePanelCollapsed, setIsRoutePanelCollapsed] = useState(false);
   
   // Waypoints state
@@ -93,6 +97,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     input: string;
     predictions: google.maps.places.AutocompletePrediction[];
     showPredictions: boolean;
+    selectedIndex: number;
   }
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
 
@@ -419,6 +424,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
   // Handle search input change
   const handleSearchInput = useCallback((value: string) => {
     setSearchQuery(value);
+    setSelectedPredictionIndex(-1);
     
     if (!value.trim()) {
       setPredictions([]);
@@ -502,6 +508,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     setSearchQuery(prediction.description);
     setShowPredictions(false);
     setPredictions([]);
+    setSelectedPredictionIndex(-1);
     
     placesServiceRef.current.getDetails(
       {
@@ -533,9 +540,49 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     );
   }, [map]);
 
+  // Handle search button click or Enter key - select first result
+  const handleSearchSubmit = useCallback(() => {
+    if (predictions.length > 0) {
+      const indexToSelect = selectedPredictionIndex >= 0 ? selectedPredictionIndex : 0;
+      handlePredictionSelect(predictions[indexToSelect]);
+    }
+  }, [predictions, selectedPredictionIndex, handlePredictionSelect]);
+
+  // Handle keyboard navigation for search
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showPredictions || predictions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearchSubmit();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedPredictionIndex(prev => 
+          prev < predictions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedPredictionIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        handleSearchSubmit();
+        break;
+      case 'Escape':
+        setShowPredictions(false);
+        setSelectedPredictionIndex(-1);
+        break;
+    }
+  }, [showPredictions, predictions, selectedPredictionIndex, handleSearchSubmit]);
+
   // Route input handlers with autocomplete
   const handleRouteOriginInput = useCallback((value: string) => {
     setRouteOriginInput(value);
+    setSelectedOriginIndex(-1);
     
     if (!autocompleteServiceRef.current || value.trim().length < 2) {
       setRouteOriginPredictions([]);
@@ -568,6 +615,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
 
   const handleRouteDestinationInput = useCallback((value: string) => {
     setRouteDestinationInput(value);
+    setSelectedDestinationIndex(-1);
     
     if (!autocompleteServiceRef.current || value.trim().length < 2) {
       setRouteDestinationPredictions([]);
@@ -604,6 +652,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     setRouteOriginInput(prediction.description);
     setShowOriginPredictions(false);
     setRouteOriginPredictions([]);
+    setSelectedOriginIndex(-1);
     
     placesServiceRef.current.getDetails(
       { placeId: prediction.place_id, fields: ['geometry'] },
@@ -624,6 +673,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     setRouteDestinationInput(prediction.description);
     setShowDestinationPredictions(false);
     setRouteDestinationPredictions([]);
+    setSelectedDestinationIndex(-1);
     
     placesServiceRef.current.getDetails(
       { placeId: prediction.place_id, fields: ['geometry'] },
@@ -644,7 +694,8 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
       location: null,
       input: '',
       predictions: [],
-      showPredictions: false
+      showPredictions: false,
+      selectedIndex: -1
     }]);
   }, []);
 
@@ -656,6 +707,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     setWaypoints(prev => {
       const updated = [...prev];
       updated[index].input = value;
+      updated[index].selectedIndex = -1;
       return updated;
     });
 
@@ -701,6 +753,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
       updated[index].input = prediction.description;
       updated[index].showPredictions = false;
       updated[index].predictions = [];
+      updated[index].selectedIndex = -1;
       return updated;
     });
 
@@ -721,6 +774,124 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
       }
     );
   }, []);
+
+  // Keyboard handlers for Route tab inputs
+  const handleOriginKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showOriginPredictions || routeOriginPredictions.length === 0) {
+      if (e.key === 'Enter' && routeOriginPredictions.length > 0) {
+        const indexToSelect = selectedOriginIndex >= 0 ? selectedOriginIndex : 0;
+        handleRouteOriginSelect(routeOriginPredictions[indexToSelect]);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedOriginIndex(prev => 
+          prev < routeOriginPredictions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedOriginIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        const indexToSelect = selectedOriginIndex >= 0 ? selectedOriginIndex : 0;
+        if (routeOriginPredictions[indexToSelect]) {
+          handleRouteOriginSelect(routeOriginPredictions[indexToSelect]);
+        }
+        break;
+      case 'Escape':
+        setShowOriginPredictions(false);
+        setSelectedOriginIndex(-1);
+        break;
+    }
+  }, [showOriginPredictions, routeOriginPredictions, selectedOriginIndex, handleRouteOriginSelect]);
+
+  const handleDestinationKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDestinationPredictions || routeDestinationPredictions.length === 0) {
+      if (e.key === 'Enter' && routeDestinationPredictions.length > 0) {
+        const indexToSelect = selectedDestinationIndex >= 0 ? selectedDestinationIndex : 0;
+        handleRouteDestinationSelect(routeDestinationPredictions[indexToSelect]);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedDestinationIndex(prev => 
+          prev < routeDestinationPredictions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedDestinationIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        const indexToSelect = selectedDestinationIndex >= 0 ? selectedDestinationIndex : 0;
+        if (routeDestinationPredictions[indexToSelect]) {
+          handleRouteDestinationSelect(routeDestinationPredictions[indexToSelect]);
+        }
+        break;
+      case 'Escape':
+        setShowDestinationPredictions(false);
+        setSelectedDestinationIndex(-1);
+        break;
+    }
+  }, [showDestinationPredictions, routeDestinationPredictions, selectedDestinationIndex, handleRouteDestinationSelect]);
+
+  const handleWaypointKeyDown = useCallback((index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    const waypoint = waypoints[index];
+    if (!waypoint.showPredictions || waypoint.predictions.length === 0) {
+      if (e.key === 'Enter' && waypoint.predictions.length > 0) {
+        const indexToSelect = waypoint.selectedIndex >= 0 ? waypoint.selectedIndex : 0;
+        handleWaypointSelect(index, waypoint.predictions[indexToSelect]);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setWaypoints(prev => {
+          const updated = [...prev];
+          updated[index].selectedIndex = 
+            updated[index].selectedIndex < updated[index].predictions.length - 1
+              ? updated[index].selectedIndex + 1
+              : updated[index].selectedIndex;
+          return updated;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setWaypoints(prev => {
+          const updated = [...prev];
+          updated[index].selectedIndex = 
+            updated[index].selectedIndex > 0 ? updated[index].selectedIndex - 1 : -1;
+          return updated;
+        });
+        break;
+      case 'Enter':
+        e.preventDefault();
+        const indexToSelect = waypoint.selectedIndex >= 0 ? waypoint.selectedIndex : 0;
+        if (waypoint.predictions[indexToSelect]) {
+          handleWaypointSelect(index, waypoint.predictions[indexToSelect]);
+        }
+        break;
+      case 'Escape':
+        setWaypoints(prev => {
+          const updated = [...prev];
+          updated[index].showPredictions = false;
+          updated[index].selectedIndex = -1;
+          return updated;
+        });
+        break;
+    }
+  }, [waypoints, handleWaypointSelect]);
 
   // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, type: 'origin' | 'waypoint' | 'destination', index?: number) => {
@@ -793,6 +964,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           input: currentOrigin.input,
           predictions: [],
           showPredictions: false,
+          selectedIndex: -1
         });
         setWaypoints(newWaypoints);
       }
@@ -816,6 +988,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           input: currentDestination.input,
           predictions: [],
           showPredictions: false,
+          selectedIndex: -1
         });
         setWaypoints(newWaypoints);
       }
@@ -829,7 +1002,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
         newWaypoints.splice(dropIndex, 0, removed);
       } else if (dragType === 'origin') {
         // Move origin to waypoint position
-        const currentOrigin = newWaypoints[0] || { location: null, input: '', predictions: [], showPredictions: false };
+        const currentOrigin = newWaypoints[0] || { location: null, input: '', predictions: [], showPredictions: false, selectedIndex: -1 };
         setRouteOrigin(currentOrigin.location);
         setRouteOriginInput(currentOrigin.input);
         
@@ -839,6 +1012,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           input: draggedData.input,
           predictions: [],
           showPredictions: false,
+          selectedIndex: -1
         });
       } else if (dragType === 'destination') {
         // Move destination to waypoint position
@@ -847,6 +1021,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           input: draggedData.input,
           predictions: [],
           showPredictions: false,
+          selectedIndex: -1
         });
         
         // Set the last waypoint as the new destination
@@ -889,7 +1064,21 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
     
     console.log('Searching for tourist destinations at:', searchLocation);
     searchNearbyPlaces(searchLocation, touristTypes);
+    setAttractionsVisible(true);
   }, [searchedPlace, userLocation, center, map, searchNearbyPlaces]);
+
+  // Toggle nearby attractions visibility
+  const toggleNearbyAttractions = useCallback(() => {
+    if (attractionsVisible) {
+      // Hide attractions
+      setAttractions([]);
+      setSelectedAttraction(null);
+      setAttractionsVisible(false);
+    } else {
+      // Show attractions
+      searchTouristDestinations();
+    }
+  }, [attractionsVisible, searchTouristDestinations]);
 
   // Reset map to user's current location
   const resetToUserLocation = useCallback(() => {
@@ -1020,54 +1209,20 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           </div>
           {/* Tab Indicator */}
           <div
-            className="h-[3px] bg-[#2c638b] dark:bg-blue-400 rounded-full transition-all duration-200"
+            className="h-[3px] bg-[#2c638b] dark:bg-blue-400 rounded-full transition-all duration-200 absolute left-[-24px]"
             style={{
-              width: '50%',
+              width: 'calc(50% + 24px)',
               transform: `translateX(${activeTab === 'route' ? '100%' : '0'})`
             }}
           />
         </div>
 
-        {/* Trip Planning Button - Nearby subtab only */}
-        {activeTab === 'nearby' && (generatedTrip ? (
-          <div className="absolute left-[24px] right-[24px] top-[128px] z-10 flex gap-2">
-            <button
-              onClick={() => {
-                if (onViewTrip && generatedTrip) {
-                  onViewTrip(generatedTrip);
-                }
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
-            >
-              <Wand2 size={18} />
-              {t('mapView.viewItinerary')}
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm(t('mapView.replanConfirm'))) {
-                  setGeneratedTrip(null);
-                  setIsTripPlanningOpen(true);
-                }
-              }}
-              className="px-4 py-3 bg-white border-2 border-[#2c638b] text-[#2c638b] rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] hover:bg-blue-50 transition-all"
-            >
-              {t('mapView.replan')}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsTripPlanningOpen(true)}
-            className="absolute left-[24px] right-[24px] top-[128px] z-10 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
-          >
-            <Wand2 size={18} />
-            {t('mapView.planYourTrip')}
-          </button>
-        ))}
+
 
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
-          className={`absolute left-0 right-0 ${activeTab === 'nearby' ? 'top-[184px]' : 'top-[108px]'} bottom-[90px]`}
+          className={`absolute left-0 right-0 top-[105px] bottom-[90px]`}
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
@@ -1081,7 +1236,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
             {/* Nearby Tab - Search Bar */}
             {activeTab === 'nearby' && (
               <div className="absolute left-[20px] top-[10px] right-[23px] z-10">
-                <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[40px] rounded-[12px] px-[16px] gap-[12px] shadow-sm">
+                <div className="bg-[#f5f5f5] dark:bg-gray-800 flex items-center h-[40px] rounded-[12px] px-[16px] gap-[12px] shadow-sm relative">
                   {/* Autocomplete Search Input */}
                   <div className="flex-1 relative">
                     <input
@@ -1089,12 +1244,16 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                       type="text"
                       value={searchQuery}
                       onChange={(e) => handleSearchInput(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
                       onFocus={() => {
                         if (predictions.length > 0) setShowPredictions(true);
                       }}
                       onBlur={() => {
                         // Delay to allow click on prediction
-                        setTimeout(() => setShowPredictions(false), 200);
+                        setTimeout(() => {
+                          setShowPredictions(false);
+                          setSelectedPredictionIndex(-1);
+                        }, 200);
                       }}
                       placeholder={t('mapView.searchPlaceholder')}
                       className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] dark:text-white placeholder:text-[#2c638b] dark:placeholder:text-gray-400 placeholder:opacity-70"
@@ -1106,47 +1265,55 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                         }
                       }}
                     />
-                    
-                    {/* Custom Dropdown for Predictions */}
-                    {showPredictions && predictions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
-                        {predictions.map((prediction) => (
-                          <button
-                            key={prediction.place_id}
-                            onClick={() => handlePredictionSelect(prediction)}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition">
-                            <div className="flex items-start gap-2">
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b" className="dark:fill-blue-400"/>
-                              </svg>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white font-medium truncate">
-                                  {prediction.structured_formatting.main_text}
-                                </p>
-                                <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 dark:text-gray-400 truncate">
-                                  {prediction.structured_formatting.secondary_text}
-                                </p>
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Search Icon */}
-                  <button className="shrink-0">
+                  <button 
+                    onClick={handleSearchSubmit}
+                    className="shrink-0 hover:opacity-70 transition"
+                    type="button"
+                  >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                       <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#2c638b"/>
                     </svg>
                   </button>
+
+                  {/* Custom Dropdown for Predictions - Positioned to match full search bar width */}
+                  {showPredictions && predictions.length > 0 && (
+                    <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
+                      {predictions.map((prediction, index) => (
+                        <button
+                          key={prediction.place_id}
+                          onClick={() => handlePredictionSelect(prediction)}
+                          className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition ${
+                            index === selectedPredictionIndex
+                              ? 'bg-gray-100 dark:bg-gray-700'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}>
+                          <div className="flex items-start gap-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2c638b" className="dark:fill-blue-400"/>
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white font-medium truncate">
+                                {prediction.structured_formatting.main_text}
+                              </p>
+                              <p className="font-['Poppins',sans-serif] text-[12px] text-gray-500 dark:text-gray-400 truncate">
+                                {prediction.structured_formatting.secondary_text}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Route Tab - Control Panel */}
             {activeTab === 'route' && (
-              <div className="absolute left-[20px] top-[4px] right-[23px] z-10">
+              <div className="absolute left-[20px] top-[10px] right-[23px] z-10">
                 <div className={`bg-white dark:bg-gray-800 rounded-[16px] shadow-lg transition-all duration-300 ${
                   isRoutePanelCollapsed ? 'p-2' : 'p-4'
                 } ${
@@ -1157,8 +1324,8 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                   {isRoutePanelCollapsed && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-[12px] font-['Poppins',sans-serif] font-medium text-gray-600 dark:text-gray-300">
-                          {t('mapView.routeControls')}
+                        <p className="text-[13px] font-['Poppins',sans-serif] font-medium text-gray-600 dark:text-gray-300 pl-2">
+                          Route controls
                         </p>
                         <button
                           onClick={() => setIsRoutePanelCollapsed(false)}
@@ -1194,8 +1361,8 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                   {!isRoutePanelCollapsed && (
                     <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-[13px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400">
-                      {t('mapView.routeControls')}
+                    <p className="text-[13px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400 pl-2">
+                      Route controls
                     </p>
                     <button
                       onClick={() => setIsRoutePanelCollapsed(true)}
@@ -1231,10 +1398,16 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                         type="text"
                         value={routeOriginInput}
                         onChange={(e) => handleRouteOriginInput(e.target.value)}
+                        onKeyDown={handleOriginKeyDown}
                         onFocus={() => {
                           if (routeOriginPredictions.length > 0) setShowOriginPredictions(true);
                         }}
-                        onBlur={() => setTimeout(() => setShowOriginPredictions(false), 200)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setShowOriginPredictions(false);
+                            setSelectedOriginIndex(-1);
+                          }, 200);
+                        }}
                         placeholder={t('mapView.myLocation')}
                         className="flex-1 bg-transparent outline-none text-[14px] font-['Poppins',sans-serif] text-black dark:text-white placeholder:text-gray-400 cursor-text"
                         draggable={false}
@@ -1244,14 +1417,18 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                     {/* Origin Predictions Dropdown */}
                     {showOriginPredictions && routeOriginPredictions.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-50">
-                        {routeOriginPredictions.map((prediction) => (
+                        {routeOriginPredictions.map((prediction, index) => (
                           <button
                             key={prediction.place_id}
                             onMouseDown={(event) => {
                               event.preventDefault();
                               handleRouteOriginSelect(prediction);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                            className={`w-full text-left px-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition ${
+                              index === selectedOriginIndex
+                                ? 'bg-gray-100 dark:bg-gray-700'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
                           >
                             <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
                               {prediction.structured_formatting.main_text}
@@ -1301,6 +1478,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                           type="text"
                           value={waypoint.input}
                           onChange={(e) => handleWaypointInput(index, e.target.value)}
+                          onKeyDown={(e) => handleWaypointKeyDown(index, e)}
                           onFocus={() => {
                             if (waypoint.predictions.length > 0) {
                               setWaypoints(prev => {
@@ -1314,6 +1492,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                             setWaypoints(prev => {
                               const updated = [...prev];
                               updated[index].showPredictions = false;
+                              updated[index].selectedIndex = -1;
                               return updated;
                             });
                           }, 200)}
@@ -1326,14 +1505,18 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                       {/* Waypoint Predictions Dropdown */}
                       {waypoint.showPredictions && waypoint.predictions.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-50">
-                          {waypoint.predictions.map((prediction) => (
+                          {waypoint.predictions.map((prediction, predIndex) => (
                             <button
                               key={prediction.place_id}
                               onMouseDown={(event) => {
                                 event.preventDefault();
                                 handleWaypointSelect(index, prediction);
                               }}
-                              className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                              className={`w-full text-left px-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition ${
+                                predIndex === waypoint.selectedIndex
+                                  ? 'bg-gray-100 dark:bg-gray-700'
+                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                              }`}
                             >
                               <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
                                 {prediction.structured_formatting.main_text}
@@ -1373,10 +1556,16 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                         type="text"
                         value={routeDestinationInput}
                         onChange={(e) => handleRouteDestinationInput(e.target.value)}
+                        onKeyDown={handleDestinationKeyDown}
                         onFocus={() => {
                           if (routeDestinationPredictions.length > 0) setShowDestinationPredictions(true);
                         }}
-                        onBlur={() => setTimeout(() => setShowDestinationPredictions(false), 200)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setShowDestinationPredictions(false);
+                            setSelectedDestinationIndex(-1);
+                          }, 200);
+                        }}
                         placeholder={t('mapView.selectDestination')}
                         className="flex-1 bg-transparent outline-none text-[14px] font-['Poppins',sans-serif] text-black dark:text-white placeholder:text-gray-400 cursor-text"
                         draggable={false}
@@ -1386,14 +1575,18 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                     {/* Destination Predictions Dropdown */}
                     {showDestinationPredictions && routeDestinationPredictions.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-50">
-                        {routeDestinationPredictions.map((prediction) => (
+                        {routeDestinationPredictions.map((prediction, index) => (
                           <button
                             key={prediction.place_id}
                             onMouseDown={(event) => {
                               event.preventDefault();
                               handleRouteDestinationSelect(prediction);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                            className={`w-full text-left px-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition ${
+                              index === selectedDestinationIndex
+                                ? 'bg-gray-100 dark:bg-gray-700'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
                           >
                             <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
                               {prediction.structured_formatting.main_text}
@@ -1485,6 +1678,13 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                           <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatEta(totalDurationSeconds)}</p>
                         </div>
                       </div>
+
+                      <button
+                        onClick={() => setIsRoutePanelCollapsed(true)}
+                        className="w-full bg-[#5b9fd9] dark:bg-blue-500 text-white py-2.5 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-semibold hover:bg-[#4a8bc2] dark:hover:bg-blue-600 transition"
+                      >
+                        Show the Route
+                      </button>
 
                       <button
                         onClick={openGoogleMapsNavigation}
@@ -1693,19 +1893,59 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           </div>
         )}
 
+        {/* Trip Planning Button - Route tab only */}
+        {activeTab === 'route' && (
+          <div className="absolute bottom-[30px] left-[24px] z-0">
+            {generatedTrip ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (onViewTrip && generatedTrip) {
+                      onViewTrip(generatedTrip);
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+                >
+                  <Wand2 size={18} />
+                  View Itinerary
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('This will delete your current itinerary and create a new one. Continue?')) {
+                      setGeneratedTrip(null);
+                      setIsTripPlanningOpen(true);
+                    }
+                  }}
+                  className="px-4 py-3 bg-white border-2 border-[#2c638b] text-[#2c638b] rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] hover:bg-blue-50 transition-all"
+                >
+                  Replan
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsTripPlanningOpen(true)}
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+              >
+                <Wand2 size={18} />
+                Plan Your Trip
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Floating Action Buttons - Nearby Tab Only */}
         {activeTab === 'nearby' && (
           <div className="absolute bottom-[30px] left-[24px] z-20 flex gap-3">
             {/* View Nearby Button */}
             <button
-              onClick={searchTouristDestinations}
+              onClick={toggleNearbyAttractions}
               disabled={!map || loading}
               className="bg-[#2c638b] text-white rounded-full shadow-lg hover:bg-[#234d6a] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-3"
-              title={t('mapView.viewNearbyTitle')}
+              title={attractionsVisible ? "Hide nearby attractions" : "View nearby tourist attractions"}
             >
               <Compass size={20} strokeWidth={2.5} />
               <span className="font-['Poppins',sans-serif] text-[14px] font-medium">
-                {t('mapView.nearbyAttractions')}
+                {attractionsVisible ? 'Hide Attractions' : t('mapView.nearbyAttractions')}
               </span>
             </button>
 

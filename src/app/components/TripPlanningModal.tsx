@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Search, Loader, Calendar, MapPin } from 'lucide-react';
+import { X, Search, Loader, MapPin } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { TRIP_PREFERENCES, PlaceSearchResult, PlaceLocation, TripItinerary } from '@/app/types/tripPlanning';
-import { generateTripFromPlaces, generateTripFromPreferences, optimizeRouteOrder } from '@/app/services/tripPlannerService';
+import { generateTripFromPlaces, generateTripFromPreferences } from '@/app/services/tripPlannerService';
 
 interface TripPlanningModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export default function TripPlanningModal({
   const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
   const [selectedPlaces, setSelectedPlaces] = useState<PlaceSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Preference mode state
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
@@ -227,7 +227,7 @@ export default function TripPlanningModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[350px] max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black">
