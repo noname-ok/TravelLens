@@ -165,6 +165,17 @@ const buildEmbeddingInput = (payload: { title: string; location: string; descrip
     .join('\n');
 };
 
+const generateEmbeddingSafely = async (
+  payload: { title: string; location: string; description: string; country?: string },
+): Promise<number[] | null> => {
+  try {
+    return await generateTextEmbedding(buildEmbeddingInput(payload));
+  } catch (error) {
+    console.warn('Embedding generation skipped (non-blocking):', error);
+    return null;
+  }
+};
+
 const normalizeVector = (vector: number[]) => {
   const norm = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
   if (!norm) return vector;
@@ -186,14 +197,12 @@ export const createJournal = async (input: CreateJournalInput): Promise<string |
     const projectId = db.app.options.projectId;
     console.log('Creating journal in Firebase project:', projectId);
 
-    const embedding = await generateTextEmbedding(
-      buildEmbeddingInput({
-        title: input.title,
-        location: input.location,
-        description: input.description,
-        country: extractCountry(input.location),
-      }),
-    );
+    const embedding = await generateEmbeddingSafely({
+      title: input.title,
+      location: input.location,
+      description: input.description,
+      country: extractCountry(input.location),
+    });
 
     const docRef = await addDoc(collection(db, 'journals'), {
       title: input.title,
@@ -253,14 +262,12 @@ export const updateJournal = async (journalId: string, updates: UpdateJournalInp
       const nextDescription = sanitizedUpdates.description ?? String(currentData.description || '');
       const nextCountry = extractCountry(nextLocation);
 
-      const embedding = await generateTextEmbedding(
-        buildEmbeddingInput({
-          title: nextTitle,
-          location: nextLocation,
-          description: nextDescription,
-          country: nextCountry,
-        }),
-      );
+      const embedding = await generateEmbeddingSafely({
+        title: nextTitle,
+        location: nextLocation,
+        description: nextDescription,
+        country: nextCountry,
+      });
 
       if (embedding && embedding.length > 0) {
         updatePayload.embedding = embedding;
