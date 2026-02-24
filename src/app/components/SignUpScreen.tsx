@@ -20,6 +20,8 @@ const COUNTRY_CODES = [
 interface SignUpScreenProps {
   onBack?: () => void;
   onSignUp?: (data: SignUpFormData) => void;
+  onOpenTerms?: () => void;
+  acceptTermsSignal?: number;
 }
 
 export interface SignUpFormData {
@@ -33,7 +35,7 @@ export interface SignUpFormData {
   acceptTerms: boolean;
 }
 
-export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
+export default function SignUpScreen({ onBack, onSignUp, onOpenTerms, acceptTermsSignal }: SignUpScreenProps) {
   const [formData, setFormData] = useState<SignUpFormData>({
     firstName: '',
     lastName: '',
@@ -47,6 +49,11 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!acceptTermsSignal || acceptTermsSignal < 1) return;
+    setFormData((prev) => ({ ...prev, acceptTerms: true }));
+  }, [acceptTermsSignal]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -265,9 +272,14 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
                   <Check size={12} className="text-white" />
                 )}
               </button>
-              <p className="[text-decoration-skip-ink:none] decoration-solid font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[11px] text-black dark:text-white underline cursor-pointer" data-node-id="1:2639">
+              <button
+                type="button"
+                onClick={onOpenTerms}
+                className="[text-decoration-skip-ink:none] decoration-solid font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[11px] text-black dark:text-white underline cursor-pointer"
+                data-node-id="1:2639"
+              >
                 I accept term and condition
-              </p>
+              </button>
             </div>
           </div>
           

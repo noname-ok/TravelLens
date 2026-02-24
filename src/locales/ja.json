@@ -53,6 +53,8 @@
     "apiKeyRequiredTitle": "Google Maps API キーが必要です",
     "apiKeyRequiredDesc": ".env に VITE_GOOGLE_MAPS_API_KEY を追加してください",
     "loading": "読み込み中...",
+    "nearby": "近く",
+    "route": "ルート",
     "viewNearbyTitle": "近くの観光スポットを表示",
     "nearbyAttractions": "周辺スポット",
     "backToLocationTitle": "現在地に戻る"
@@ -95,6 +97,7 @@
         "cautious": "注意"
       }
     },
+    "notification": "通知",
     "replyAction": "返信",
     "deleteAction": "削除",
     "cancelAction": "キャンセル",

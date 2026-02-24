@@ -53,6 +53,8 @@
     "apiKeyRequiredTitle": "Google Maps API 키가 필요합니다",
     "apiKeyRequiredDesc": ".env 파일에 VITE_GOOGLE_MAPS_API_KEY를 추가하세요",
     "loading": "로딩 중...",
+    "nearby": "주변",
+    "route": "경로",
     "viewNearbyTitle": "근처 관광 명소 보기",
     "nearbyAttractions": "근처 명소",
     "backToLocationTitle": "내 위치로 돌아가기"
@@ -95,6 +97,7 @@
         "cautious": "주의"
       }
     },
+    "notification": "알림",
     "replyAction": "답글",
     "deleteAction": "삭제",
     "cancelAction": "취소",

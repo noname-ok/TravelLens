@@ -7,9 +7,11 @@ interface TermsScreenProps {
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
   onNavigate: (screen: 'home' | 'mapview' | 'ailens' | 'profile') => void;
   onBack: () => void;
+  showBottomNav?: boolean;
+  onAccept?: () => void;
 }
 
-export default function TermsScreen({ currentScreen, onNavigate, onBack }: TermsScreenProps) {
+export default function TermsScreen({ currentScreen, onNavigate, onBack, showBottomNav = true, onAccept }: TermsScreenProps) {
   const [hasReadToBottom, setHasReadToBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +23,8 @@ export default function TermsScreen({ currentScreen, onNavigate, onBack }: Terms
   };
 
   const handleAccept = () => {
-    onNavigate('home');
+    onAccept?.();
+    onBack();
   };
 
   return (
@@ -114,6 +117,7 @@ export default function TermsScreen({ currentScreen, onNavigate, onBack }: Terms
           </div>
         </div>
 
+        {showBottomNav && (
         <div className="absolute left-0 right-0 bottom-0 h-[90px]">
           <div className="h-px w-full bg-[rgba(0,0,0,0.1)] dark:bg-gray-700" />
           <div className="flex flex-col h-[78px] p-[10px]">
@@ -148,6 +152,7 @@ export default function TermsScreen({ currentScreen, onNavigate, onBack }: Terms
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

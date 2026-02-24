@@ -53,6 +53,8 @@
     "apiKeyRequiredTitle": "Google Maps API key आवश्यक है",
     "apiKeyRequiredDesc": "अपनी .env फ़ाइल में VITE_GOOGLE_MAPS_API_KEY जोड़ें",
     "loading": "लोड हो रहा है...",
+    "nearby": "पास में",
+    "route": "मार्ग",
     "viewNearbyTitle": "पास के पर्यटन आकर्षण देखें",
     "nearbyAttractions": "पास के आकर्षण",
     "backToLocationTitle": "मेरे स्थान पर वापस जाएँ"
@@ -95,6 +97,7 @@
         "cautious": "सावधान"
       }
     },
+    "notification": "सूचनाएं",
     "replyAction": "उत्तर दें",
     "deleteAction": "हटाएं",
     "cancelAction": "रद्द करें",

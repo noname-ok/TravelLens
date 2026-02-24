@@ -167,6 +167,9 @@
     "notificationSaved": "saved your post",
     "notificationCommented": "commented on your post",
     "notificationReplied": "replied to your comment",
+    "translateAction": "Translate",
+    "showOriginal": "Show Original",
+    "translateFailed": "Unable to translate this post right now.",
     "translationTranslating": "Translating content...",
     "translationTranslated": "Translated",
     "translationFallback": "Original shown (translation unavailable)",
@@ -175,6 +178,15 @@
     "detectingLocation": "Detecting location...",
     "useCurrentLocation": "Use Current Location",
     "searching": "Searching...",
+    "genre": {
+      "all": "All",
+      "food": "Food",
+      "history": "History",
+      "nature": "Nature",
+      "culture": "Culture",
+      "adventure": "Adventure",
+      "noMatch": "No posts match this genre yet."
+    },
     "aiSummary": {
       "title": "AI Comments Summary",
       "generating": "Generating...",

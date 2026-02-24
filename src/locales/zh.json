@@ -44,6 +44,7 @@
     "community": "社区",
     "myJournal": "我的日记",
     "favourites": "收藏",
+    "notification": "通知",
     "forYou": "为你推荐",
     "statistics": "日记统计",
     "likes": "点赞",
@@ -106,6 +107,8 @@
     "apiKeyRequiredTitle": "需要 Google Maps API 密钥",
     "apiKeyRequiredDesc": "请在 .env 文件中添加 VITE_GOOGLE_MAPS_API_KEY",
     "loading": "加载中...",
+    "nearby": "附近",
+    "route": "路线",
     "viewNearbyTitle": "查看附近旅游景点",
     "nearbyAttractions": "附近景点",
     "backToLocationTitle": "返回我的位置"

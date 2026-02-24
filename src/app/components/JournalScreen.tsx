@@ -52,6 +52,9 @@ interface JournalScreenProps {
 export interface JournalEntry {
   id: string;
   timeAgo: string;
+  originalTitle: string;
+  originalLocation: string;
+  originalDescription: string;
   title: string;
   location: string;
   description: string;
@@ -75,6 +78,69 @@ export interface JournalEntry {
 
 export type JournalTab = 'community' | 'myJournal' | 'favourites' | 'notifications';
 type Tab = JournalTab;
+
+type GenreFilter = 'all' | 'food' | 'history' | 'nature' | 'culture' | 'adventure';
+
+const GENRE_RULES: Record<Exclude<GenreFilter, 'all'>, { strong: string[]; weak: string[] }> = {
+  food: {
+    strong: ['restaurant', 'cafe', 'street food', 'food tour', 'local dish', 'culinary', 'food market'],
+    weak: ['food', 'eat', 'dish', 'meal', 'breakfast', 'lunch', 'dinner'],
+  },
+  history: {
+    strong: ['historical site', 'history museum', 'ancient temple', 'ancient ruins', 'heritage site', 'old town'],
+    weak: ['history', 'historic', 'heritage', 'museum', 'ancient', 'temple', 'castle', 'monument'],
+  },
+  nature: {
+    strong: ['national park', 'nature reserve', 'waterfall trail', 'mountain view', 'beach sunset'],
+    weak: ['nature', 'beach', 'mountain', 'forest', 'waterfall', 'lake', 'sunset', 'river', 'island'],
+  },
+  culture: {
+    strong: ['cultural festival', 'local tradition', 'traditional dance', 'art gallery', 'street performance'],
+    weak: ['culture', 'cultural', 'festival', 'tradition', 'art', 'music', 'custom', 'performance'],
+  },
+  adventure: {
+    strong: ['adventure activity', 'bungee jump', 'scuba diving', 'mountain climb', 'off road'],
+    weak: ['adventure', 'hike', 'hiking', 'trek', 'diving', 'snorkel', 'safari', 'climb', 'kayak'],
+  },
+};
+
+function normalizeGenreText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function countPhraseHits(text: string, phrase: string): number {
+  if (!phrase) return 0;
+  const safe = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+  const regex = new RegExp(`\\b${safe}\\b`, 'g');
+  const matches = text.match(regex);
+  return matches ? matches.length : 0;
+}
+
+function classifyPrimaryGenre(entry: JournalEntry): GenreFilter {
+  const content = normalizeGenreText([entry.title, entry.description].filter(Boolean).join(' '));
+  if (!content) return 'all';
+
+  let bestGenre: GenreFilter = 'all';
+  let bestScore = 0;
+
+  (Object.keys(GENRE_RULES) as Array<Exclude<GenreFilter, 'all'>>).forEach((genre) => {
+    const rules = GENRE_RULES[genre];
+    const strongHits = rules.strong.reduce((sum, phrase) => sum + countPhraseHits(content, phrase), 0);
+    const weakHits = rules.weak.reduce((sum, phrase) => sum + countPhraseHits(content, phrase), 0);
+    const score = strongHits * 3 + weakHits;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestGenre = genre;
+    }
+  });
+
+  return bestScore > 0 ? bestGenre : 'all';
+}
 
 interface Notification {
   id: string;
@@ -105,6 +171,7 @@ export default function JournalScreen({
 }: JournalScreenProps) {
   const { i18n, t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('community');
+  const [activeGenre, setActiveGenre] = useState<GenreFilter>('all');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -177,19 +244,15 @@ export default function JournalScreen({
       (records: JournalRecord[]) => {
         const currentLanguage = normalizeLanguageCode(i18n.language || 'en');
         const mapped: JournalEntry[] = records.map((record) => {
-          const translated = record.translations?.[currentLanguage];
-          const hasLocalizedContent = Boolean(translated?.title && translated?.location && translated?.description);
-          const isLocalizedFallback = hasLocalizedContent
-            ? translated?.title === record.title
-              && translated?.location === record.location
-              && translated?.description === record.description
-            : false;
           return {
             id: record.id,
             timeAgo: formatTimeAgo(record.createdAt, currentLanguage),
-            title: translated?.title || record.title,
-            location: translated?.location || record.location,
-            description: translated?.description || record.description,
+            originalTitle: record.title,
+            originalLocation: record.location,
+            originalDescription: record.description,
+            title: record.title,
+            location: record.location,
+            description: record.description,
             imageUrl: record.imageUrl,
             imageUrls: (record as any).imageUrls, // Support multiple images
             likes: record.likes,
@@ -208,64 +271,11 @@ export default function JournalScreen({
                 : record.authorAvatarUrl,
             isLiked: currentUserId ? (record.likedBy || []).includes(currentUserId) : false,
             isSaved: currentUserId ? (record.savedBy || []).includes(currentUserId) : false,
-            translationStatus:
-              currentLanguage === 'en'
-                ? undefined
-                : hasLocalizedContent
-                  ? (isLocalizedFallback ? 'fallback' : 'translated')
-                  : 'translating',
+            translationStatus: undefined,
           };
         });
         if (!isActive) return;
         setJournals(mapped);
-
-        if (currentLanguage === 'en') return;
-
-        const missingTranslations = records.filter((record) => !record.translations?.[currentLanguage]);
-        if (missingTranslations.length === 0) return;
-
-        void (async () => {
-          const batchSize = 2;
-          for (let index = 0; index < missingTranslations.length; index += batchSize) {
-            const chunk = missingTranslations.slice(index, index + batchSize);
-
-            const chunkResults = await Promise.all(
-              chunk.map(async (record) => {
-                const localized = await getJournalLocalizedContent(record.id, currentLanguage, {
-                  title: record.title,
-                  location: record.location,
-                  description: record.description,
-                  country: record.country,
-                });
-                return { record, localized };
-              }),
-            );
-
-            if (!isActive) return;
-
-            setJournals((prev) =>
-              prev.map((entry) => {
-                const result = chunkResults.find((item) => item.record.id === entry.id);
-                if (!result) return entry;
-                const { record, localized } = result;
-                return {
-                  ...entry,
-                  title: localized.title,
-                  location: localized.location,
-                  description: localized.description,
-                  country: localized.country || entry.country,
-                  timeAgo: formatTimeAgo(record.createdAt, currentLanguage),
-                  translationStatus:
-                    localized.title === record.title
-                    && localized.location === record.location
-                    && localized.description === record.description
-                      ? 'fallback'
-                      : 'translated',
-                };
-              }),
-            );
-          }
-        })();
       },
       () => {
         toast.error('Failed to load journals');
@@ -371,8 +381,21 @@ export default function JournalScreen({
   };
 
   const filteredCommunity = filterEntries(communityPosts);
+  const filteredCommunityByGenre = filteredCommunity.filter((entry) => {
+    if (activeGenre === 'all') return true;
+    return classifyPrimaryGenre(entry) === activeGenre;
+  });
   const filteredMyJournal = filterEntries(myJournalPosts);
   const filteredFavorites = filterEntries(favorites);
+
+  const genreFilters: Array<{ key: GenreFilter; label: string }> = [
+    { key: 'all', label: t('journal.genre.all') },
+    { key: 'food', label: t('journal.genre.food') },
+    { key: 'history', label: t('journal.genre.history') },
+    { key: 'nature', label: t('journal.genre.nature') },
+    { key: 'culture', label: t('journal.genre.culture') },
+    { key: 'adventure', label: t('journal.genre.adventure') },
+  ];
 
   const tabs: Array<{ key: Tab; label: string }> = [
     { key: 'community', label: t('journal.forYou') },
@@ -380,6 +403,72 @@ export default function JournalScreen({
     { key: 'favourites', label: t('journal.favourites') },
     { key: 'notifications', label: t('journal.notification') },
   ];
+
+  const currentLanguageCode = normalizeLanguageCode(i18n.language || 'en');
+
+  const toggleTranslatePost = (entry: JournalEntry) => {
+    if (currentLanguageCode === 'en') return;
+
+    if (entry.translationStatus === 'translated') {
+      setJournals((prev) => prev.map((post) => (
+        post.id === entry.id
+          ? {
+            ...post,
+            title: post.originalTitle,
+            location: post.originalLocation,
+            description: post.originalDescription,
+            translationStatus: undefined,
+          }
+          : post
+      )));
+      return;
+    }
+
+    setJournals((prev) => prev.map((post) => (
+      post.id === entry.id
+        ? { ...post, translationStatus: 'translating' }
+        : post
+    )));
+
+    void getJournalLocalizedContent(entry.id, currentLanguageCode, {
+      title: entry.originalTitle,
+      location: entry.originalLocation,
+      description: entry.originalDescription,
+      country: entry.country,
+    }).then((localized) => {
+      setJournals((prev) => prev.map((post) => {
+        if (post.id !== entry.id) return post;
+        return {
+          ...post,
+          title: localized.title,
+          location: localized.location,
+          description: localized.description,
+          country: localized.country || post.country,
+          translationStatus:
+            localized.title === post.originalTitle
+            && localized.location === post.originalLocation
+            && localized.description === post.originalDescription
+              ? 'fallback'
+              : 'translated',
+        };
+      }));
+    }).catch(() => {
+      setJournals((prev) => prev.map((post) => (
+        post.id === entry.id
+          ? { ...post, translationStatus: 'fallback' }
+          : post
+      )));
+      toast.error(t('journal.translateFailed'));
+    });
+  };
+
+  const getTranslateStatusText = (entry: JournalEntry) => {
+    if (currentLanguageCode === 'en') return undefined;
+    if (entry.translationStatus === 'translating') return t('journal.translationTranslating');
+    if (entry.translationStatus === 'translated') return t('journal.showOriginal');
+    if (entry.translationStatus === 'fallback') return t('journal.translationFallback');
+    return t('journal.translateAction');
+  };
 
   const activeTabIndex = tabs.findIndex(tab => tab.key === activeTab);
 
@@ -565,7 +654,23 @@ export default function JournalScreen({
         <div className="absolute left-[20px] top-[169px] right-[20px] bottom-[90px] overflow-y-auto overflow-x-hidden pb-6 no-scrollbar">
         {activeTab === 'community' && (
           <div className="space-y-6">
-            {filteredCommunity.map((p) => (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {genreFilters.map((genre) => (
+                <button
+                  key={genre.key}
+                  onClick={() => setActiveGenre(genre.key)}
+                  className={`px-4 py-2 rounded-full text-[12px] font-['Poppins',sans-serif] whitespace-nowrap border transition-colors ${
+                    activeGenre === genre.key
+                      ? 'bg-[#2c638b] text-white border-[#2c638b]'
+                      : 'bg-[#F7F9FF] dark:bg-gray-800 text-[#2c638b] dark:text-gray-300 border-[rgba(44,99,139,0.25)] dark:border-gray-700'
+                  }`}
+                >
+                  {genre.label}
+                </button>
+              ))}
+            </div>
+
+            {filteredCommunityByGenre.map((p) => (
               <JournalCard
                 key={p.id}
                 author={p.author}
@@ -584,15 +689,7 @@ export default function JournalScreen({
                 isSaved={p.isSaved}
                 actionLabel={t('journal.viewJournal')}
                 translationStatus={p.translationStatus}
-                translationStatusText={
-                  p.translationStatus === 'translated'
-                    ? t('journal.translationTranslated')
-                    : p.translationStatus === 'translating'
-                      ? t('journal.translationTranslating')
-                      : p.translationStatus === 'fallback'
-                        ? t('journal.translationFallback')
-                        : undefined
-                }
+                translationStatusText={getTranslateStatusText(p)}
                 onToggleLike={() => toggleLike(p.id)}
                 onToggleSave={() => toggleSave(p.id)}
                 onAuthorClick={() => {
@@ -604,8 +701,13 @@ export default function JournalScreen({
                   });
                 }}
                 onViewJournal={() => onOpenJournal?.(p)}
+                onTranslate={p.translationStatus === 'translating' ? undefined : () => toggleTranslatePost(p)}
               />
             ))}
+
+            {filteredCommunityByGenre.length === 0 && (
+              <p className="text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400">{t('journal.genre.noMatch')}</p>
+            )}
           </div>
         )}
 
@@ -651,15 +753,7 @@ export default function JournalScreen({
                   isLiked={p.isLiked}
                   isSaved={p.isSaved}
                   translationStatus={p.translationStatus}
-                  translationStatusText={
-                    p.translationStatus === 'translated'
-                      ? t('journal.translationTranslated')
-                      : p.translationStatus === 'translating'
-                        ? t('journal.translationTranslating')
-                        : p.translationStatus === 'fallback'
-                          ? t('journal.translationFallback')
-                          : undefined
-                  }
+                  translationStatusText={getTranslateStatusText(p)}
                   showViews
                   actionLabel={t('journal.edit')}
                   onToggleLike={() => toggleLike(p.id)}
@@ -673,6 +767,7 @@ export default function JournalScreen({
                     });
                   }}
                   onViewJournal={() => onEditJournal?.(p)}
+                  onTranslate={p.translationStatus === 'translating' ? undefined : () => toggleTranslatePost(p)}
                 />
               ))}
             </div>
@@ -700,15 +795,7 @@ export default function JournalScreen({
                 isSaved={p.isSaved}
                 actionLabel={t('journal.viewJournal')}
                 translationStatus={p.translationStatus}
-                translationStatusText={
-                  p.translationStatus === 'translated'
-                    ? t('journal.translationTranslated')
-                    : p.translationStatus === 'translating'
-                      ? t('journal.translationTranslating')
-                      : p.translationStatus === 'fallback'
-                        ? t('journal.translationFallback')
-                        : undefined
-                }
+                translationStatusText={getTranslateStatusText(p)}
                 onToggleLike={() => toggleLike(p.id)}
                 onToggleSave={() => toggleSave(p.id)}
                 onAuthorClick={() => {
@@ -720,6 +807,7 @@ export default function JournalScreen({
                   });
                 }}
                 onViewJournal={() => onOpenJournal?.(p)}
+                onTranslate={p.translationStatus === 'translating' ? undefined : () => toggleTranslatePost(p)}
               />
             ))}
           </div>

@@ -54,6 +54,9 @@ export default function App() {
   const [selectedTrip, setSelectedTrip] = useState<TripItinerary | null>(null);
   const [selectedProfileUser, setSelectedProfileUser] = useState<{ userId: string; userName?: string; userAvatarUrl?: string } | null>(null);
   const [profileBackScreen, setProfileBackScreen] = useState<'home' | 'journalDetail'>('home');
+  const [termsReturnScreen, setTermsReturnScreen] = useState<Screen>('profile');
+  const [termsShowBottomNav, setTermsShowBottomNav] = useState(true);
+  const [termsAcceptedSignal, setTermsAcceptedSignal] = useState(0);
   const interestViewedJournalIds = useRef<Set<string>>(new Set());
 
   const handleNavigate = (screen: Screen) => {
@@ -277,6 +280,12 @@ export default function App() {
           <SignUpScreen 
             onBack={() => setCurrentScreen('login')} 
             onSignUp={handleSignUp}
+            acceptTermsSignal={termsAcceptedSignal}
+            onOpenTerms={() => {
+              setTermsReturnScreen('signup');
+              setTermsShowBottomNav(false);
+              setCurrentScreen('terms');
+            }}
           />
         )}
         {currentScreen === 'forgetPassword' && (
@@ -495,7 +504,11 @@ export default function App() {
             onNavigate={handleNavigate}
             onEditProfile={() => setCurrentScreen('editProfile')}
             onChangeLanguage={() => setCurrentScreen('language')}
-            onOpenTerms={() => setCurrentScreen('terms')}
+            onOpenTerms={() => {
+              setTermsReturnScreen('profile');
+              setTermsShowBottomNav(true);
+              setCurrentScreen('terms');
+            }}
             onOpenPrivacy={() => setCurrentScreen('privacy')}
             onLogout={handleLogout}
             userName={userProfile.name}
@@ -655,11 +668,17 @@ export default function App() {
             }}
           />
         )}
-        {currentScreen === 'terms' && user && (
+        {currentScreen === 'terms' && (
           <TermsScreen
-            currentScreen="profile"
+            currentScreen={termsReturnScreen === 'profile' ? 'profile' : 'home'}
             onNavigate={handleNavigate}
-            onBack={() => setCurrentScreen('profile')}
+            onBack={() => setCurrentScreen(termsReturnScreen)}
+            showBottomNav={termsShowBottomNav}
+            onAccept={() => {
+              if (termsReturnScreen === 'signup') {
+                setTermsAcceptedSignal((prev) => prev + 1);
+              }
+            }}
           />
         )}
         {currentScreen === 'privacy' && user && (
