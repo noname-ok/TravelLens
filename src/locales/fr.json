@@ -18,7 +18,14 @@
     "privateAccount": "Compte Privé",
     "privateAccountDescription": "Lorsque votre compte est public, votre profil et vos publications peuvent être vus par tout le monde.",
     "makePublicTitle": "Rendre Votre Compte Public?",
-    "makePublicDescription": "Votre contenu sera visible par d'autres utilisateurs. Faites attention lors du partage de détails personnels."
+    "makePublicDescription": "Votre contenu sera visible par d'autres utilisateurs. Faites attention lors du partage de détails personnels.",
+    "publicProfileTitle": "Profil",
+    "publicProfileLoading": "Chargement du profil...",
+    "publicProfileNoBio": "Aucune bio pour le moment",
+    "publicProfilePosts": "Publications",
+    "publicProfileNoPosts": "Aucune publication pour le moment.",
+    "privateAccountPostsHiddenTitle": "Compte privé",
+    "privateAccountPostsHiddenDescription": "Les publications de cet utilisateur sont masquées car son compte est privé."
   },
   "editProfile": {
     "title": "Modifier le Profil",
@@ -72,6 +79,27 @@
     "setAsDefaultLanguage": "Définir comme langue par défaut",
     "translateAction": "Traduire",
     "defaultLanguageSetTo": "Langue par défaut définie sur {{language}}"
+  },
+  "journal": {
+    "aiSummary": {
+      "title": "Résumé IA des commentaires",
+      "generating": "Génération...",
+      "emptyHint": "Résumez les retours des voyageurs et obtenez des conseils pratiques lorsque les commentaires sont encore limités.",
+      "error": "Impossible de générer le résumé IA pour le moment. Veuillez réessayer.",
+      "sentimentLabel": "Sentiment",
+      "basedOnComments": "Basé sur {{count}} commentaire(s)",
+      "travelerShouldKnow": "Le voyageur doit savoir :",
+      "sentiment": {
+        "positive": "positif",
+        "mixed": "mitigé",
+        "cautious": "prudent"
+      }
+    },
+    "replyAction": "Répondre",
+    "deleteAction": "Supprimer",
+    "cancelAction": "Annuler",
+    "replyingTo": "Réponse à {{name}}",
+    "replyToPlaceholder": "Répondre à {{name}}..."
   },
   "navigation": {
     "home": "Accueil",

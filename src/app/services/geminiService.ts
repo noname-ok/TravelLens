@@ -439,3 +439,159 @@ export async function translatePlainText(text: string, targetLanguageCode: strin
     return translated || text;
   });
 }
+
+export interface JournalTranslationInput {
+  title: string;
+  location: string;
+  description: string;
+}
+
+export async function translateJournalFields(
+  input: JournalTranslationInput,
+  targetLanguageCode: string,
+): Promise<JournalTranslationInput> {
+  const normalizedCode = (targetLanguageCode || 'en').toLowerCase().startsWith('zh')
+    ? 'zh'
+    : ((targetLanguageCode || 'en').toLowerCase().split(/[-_]/)[0] || 'en');
+
+  if (normalizedCode === 'en') return input;
+  if (!genAI) return input;
+
+  const targetLanguage = TARGET_LANGUAGE_NAMES[normalizedCode] || 'English';
+
+  return withRetry(async () => {
+    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
+    const prompt = `Translate this travel journal content to ${targetLanguage}. Keep meaning and natural tone. Return ONLY valid JSON with keys: title, location, description.\n\nInput JSON:\n${JSON.stringify(input)}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return input;
+
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as Partial<JournalTranslationInput>;
+      return {
+        title: String(parsed.title || input.title),
+        location: String(parsed.location || input.location),
+        description: String(parsed.description || input.description),
+      };
+    } catch {
+      return input;
+    }
+  });
+}
+
+export interface CommentSummaryResult {
+  summary: string;
+  sentiment: 'positive' | 'mixed' | 'cautious';
+  keyTopics: string[];
+  travelerTips: string[];
+  basedOnCommentCount: number;
+}
+
+const fallbackCommentSummary = (
+  placeTitle: string,
+  placeLocation: string,
+  commentCount: number,
+): CommentSummaryResult => {
+  return {
+    summary:
+      commentCount > 0
+        ? `Travelers are sharing early impressions about ${placeTitle}. Overall feedback is still limited, so use these notes as a quick orientation before visiting.`
+        : `There are not enough comments yet for a strong crowd summary about ${placeTitle}, so here are practical tips for first-time visitors.`,
+    sentiment: 'mixed',
+    keyTopics: ['Crowd feedback still limited', 'Practical planning', 'On-site awareness'],
+    travelerTips: [
+      `Check opening hours and ticket requirements for ${placeLocation || placeTitle} before heading out.`,
+      'Arrive earlier in the day to avoid peak crowds and heat when possible.',
+      'Carry water, keep valuables secure, and verify transport options for your return trip.',
+    ],
+    basedOnCommentCount: commentCount,
+  };
+};
+
+export async function generateCommentSummary(
+  placeTitle: string,
+  placeLocation: string,
+  placeDescription: string,
+  comments: Array<{ author?: string; text: string }>,
+): Promise<CommentSummaryResult> {
+  const cleanedComments = comments
+    .map((entry) => ({
+      author: (entry.author || 'Traveler').trim(),
+      text: entry.text.trim(),
+    }))
+    .filter((entry) => entry.text.length > 0 && entry.text.toLowerCase() !== 'comment deleted')
+    .slice(0, 40);
+
+  const commentCount = cleanedComments.length;
+  if (!genAI) {
+    return fallbackCommentSummary(placeTitle, placeLocation, commentCount);
+  }
+
+  return withRetry(async () => {
+    try {
+      const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
+
+      const commentsBlock = cleanedComments.length
+        ? cleanedComments
+            .map((entry, index) => `${index + 1}. ${entry.author}: ${entry.text}`)
+            .join('\n')
+        : 'No comments yet.';
+
+      const prompt = `You are a helpful travel community analyst.
+
+Place:
+- Title: ${placeTitle}
+- Location: ${placeLocation}
+- Description: ${placeDescription}
+
+Community comments (${commentCount}):
+${commentsBlock}
+
+Task:
+1) Summarize what travelers are saying in 2-3 concise sentences.
+2) Identify overall sentiment as one of: positive, mixed, cautious.
+3) List 2-4 key topics discussed.
+4) If comments are fewer than 4 or low-detail, include 3 practical "travelerTips" that a visitor should know.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "summary": "...",
+  "sentiment": "positive | mixed | cautious",
+  "keyTopics": ["..."],
+  "travelerTips": ["..."],
+  "basedOnCommentCount": ${commentCount}
+}`;
+
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        return fallbackCommentSummary(placeTitle, placeLocation, commentCount);
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as Partial<CommentSummaryResult>;
+      const sentiment = parsed.sentiment;
+
+      return {
+        summary: (parsed.summary || '').trim() || fallbackCommentSummary(placeTitle, placeLocation, commentCount).summary,
+        sentiment:
+          sentiment === 'positive' || sentiment === 'mixed' || sentiment === 'cautious'
+            ? sentiment
+            : 'mixed',
+        keyTopics: Array.isArray(parsed.keyTopics) ? parsed.keyTopics.filter(Boolean).slice(0, 4) : [],
+        travelerTips: Array.isArray(parsed.travelerTips)
+          ? parsed.travelerTips.filter(Boolean).slice(0, 4)
+          : fallbackCommentSummary(placeTitle, placeLocation, commentCount).travelerTips,
+        basedOnCommentCount: Number.isFinite(Number(parsed.basedOnCommentCount))
+          ? Number(parsed.basedOnCommentCount)
+          : commentCount,
+      };
+    } catch (error) {
+      console.error('Error generating comment summary:', error);
+      return fallbackCommentSummary(placeTitle, placeLocation, commentCount);
+    }
+  });
+}

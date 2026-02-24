@@ -18,7 +18,14 @@
     "privateAccount": "निजी खाता",
     "privateAccountDescription": "जब आपका खाता सार्वजनिक होता है, तो आपकी प्रोफ़ाइल और पोस्ट सभी को दिखाई देते हैं।",
     "makePublicTitle": "अपना खाता सार्वजनिक करें?",
-    "makePublicDescription": "आपकी सामग्री अन्य उपयोगकर्ताओं को दिखाई देगी। व्यक्तिगत विवरण साझा करते समय सावधान रहें।"
+    "makePublicDescription": "आपकी सामग्री अन्य उपयोगकर्ताओं को दिखाई देगी। व्यक्तिगत विवरण साझा करते समय सावधान रहें।",
+    "publicProfileTitle": "प्रोफ़ाइल",
+    "publicProfileLoading": "प्रोफ़ाइल लोड हो रही है...",
+    "publicProfileNoBio": "अभी तक कोई बायो नहीं है",
+    "publicProfilePosts": "पोस्ट",
+    "publicProfileNoPosts": "अभी तक कोई पोस्ट नहीं है।",
+    "privateAccountPostsHiddenTitle": "निजी खाता",
+    "privateAccountPostsHiddenDescription": "इस उपयोगकर्ता की पोस्ट छिपी हुई हैं क्योंकि उनका खाता निजी है।"
   },
   "editProfile": {
     "title": "प्रोफ़ाइल संपादित करें",
@@ -72,6 +79,27 @@
     "setAsDefaultLanguage": "डिफ़ॉल्ट भाषा के रूप में सेट करें",
     "translateAction": "अनुवाद करें",
     "defaultLanguageSetTo": "डिफ़ॉल्ट भाषा {{language}} सेट की गई"
+  },
+  "journal": {
+    "aiSummary": {
+      "title": "AI टिप्पणियों का सार",
+      "generating": "जनरेट किया जा रहा है...",
+      "emptyHint": "यात्रियों की प्रतिक्रियाओं का सारांश बनाएं और जब टिप्पणियाँ कम हों तब भी उपयोगी सुझाव पाएं।",
+      "error": "इस समय AI सारांश जनरेट नहीं हो सका। कृपया फिर से प्रयास करें।",
+      "sentimentLabel": "भावना",
+      "basedOnComments": "{{count}} टिप्पणी(यों) पर आधारित",
+      "travelerShouldKnow": "यात्री को यह जानना चाहिए:",
+      "sentiment": {
+        "positive": "सकारात्मक",
+        "mixed": "मिश्रित",
+        "cautious": "सावधान"
+      }
+    },
+    "replyAction": "उत्तर दें",
+    "deleteAction": "हटाएं",
+    "cancelAction": "रद्द करें",
+    "replyingTo": "{{name}} को जवाब दिया जा रहा है",
+    "replyToPlaceholder": "{{name}} को जवाब दें..."
   },
   "navigation": {
     "home": "होम",

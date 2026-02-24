@@ -1,29 +1,18 @@
 import { useState } from 'react';
+import { Camera, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { signInWithEmail, signInWithGoogle } from '@/app/services/authService';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/ee2a526a-538d-4916-92d6-2e0ff6846f5f";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/55d3e1b0-b3df-4c65-a4f5-b39410a602db";
-const imgIcon1 = "https://www.figma.com/api/mcp/asset/3350b0c3-3072-4ea6-86d0-37a67f8115f8";
-const imgEye = "https://www.figma.com/api/mcp/asset/e1e0e2ad-5130-408c-8bb0-aa43e9b978f1";
 const imgGmail = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg";
 
 function StatusBarIPhone({ className }: { className?: string }) {
   return (
     <div className={className || ""} data-name="StatusBar / iPhone 13" data-node-id="1:64">
-      <div className="h-[47px] relative w-full" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]" data-name="Notch" data-node-id="1:66">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]" data-name="Left Side" data-node-id="1:68">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]" data-name="_StatusBar-time" data-node-id="1:69">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap" data-node-id="I1:69;839:7100">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]" data-name="Right Side" data-node-id="1:70">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
+      <div className="h-[47px] relative w-full px-6 flex items-center justify-between" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
+        <p className="font-semibold text-[17px] text-black dark:text-white">9:41</p>
+        <div className="flex items-center gap-1">
+          <div className="w-4 h-2 rounded-sm border border-black/60 dark:border-white/70" />
+          <div className="w-1 h-2 rounded-sm bg-black/70 dark:bg-white/80" />
         </div>
       </div>
     </div>
@@ -94,8 +83,8 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <div className="absolute content-stretch flex flex-col gap-[13px] items-center left-[33px] top-[80px] w-[323px]" data-node-id="1:2491">
           <div className="relative shrink-0 size-[114px]" data-name="icon 1" data-node-id="1:2492">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <img alt="" className="absolute left-[-22.5%] max-w-none size-[145%] top-[-10.75%]" src={imgIcon1} />
+            <div className="absolute inset-0 rounded-full bg-[#e7f4fb] flex items-center justify-center">
+              <Camera size={48} className="text-[#0fa3e2]" />
             </div>
           </div>
           <div className="content-stretch flex flex-col gap-[30px] items-center relative shrink-0 w-full" data-node-id="1:2493">
@@ -145,7 +134,11 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
                         data-name="eye"
                         data-node-id="1:2510"
                       >
-                        <img alt="Toggle password visibility" className="block max-w-none size-full" src={imgEye} />
+                        {showPassword ? (
+                          <EyeOff size={19} className="text-black dark:text-white" />
+                        ) : (
+                          <Eye size={19} className="text-black dark:text-white" />
+                        )}
                       </button>
                     </div>
                   </div>
