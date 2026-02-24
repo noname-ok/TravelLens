@@ -18,7 +18,14 @@
     "privateAccount": "비공개 계정",
     "privateAccountDescription": "계정이 공개되면 프로필과 게시물을 모든 사람이 볼 수 있습니다.",
     "makePublicTitle": "계정을 공개하시겠습니까?",
-    "makePublicDescription": "콘텐츠가 다른 사용자에게 표시됩니다. 개인 정보 공유에 주의하세요."
+    "makePublicDescription": "콘텐츠가 다른 사용자에게 표시됩니다. 개인 정보 공유에 주의하세요.",
+    "publicProfileTitle": "프로필",
+    "publicProfileLoading": "프로필 불러오는 중...",
+    "publicProfileNoBio": "소개가 아직 없습니다",
+    "publicProfilePosts": "게시물",
+    "publicProfileNoPosts": "게시물이 아직 없습니다.",
+    "privateAccountPostsHiddenTitle": "비공개 계정",
+    "privateAccountPostsHiddenDescription": "이 사용자의 계정이 비공개로 설정되어 게시물을 볼 수 없습니다."
   },
   "editProfile": {
     "title": "프로필 편집",
@@ -72,6 +79,27 @@
     "setAsDefaultLanguage": "기본 언어로 설정",
     "translateAction": "번역",
     "defaultLanguageSetTo": "기본 언어가 {{language}}(으)로 설정되었습니다"
+  },
+  "journal": {
+    "aiSummary": {
+      "title": "AI 댓글 요약",
+      "generating": "생성 중...",
+      "emptyHint": "여행자 피드백을 요약하고 댓글이 적을 때도 실용적인 팁을 제공합니다.",
+      "error": "지금은 AI 요약을 생성할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+      "sentimentLabel": "감정",
+      "basedOnComments": "댓글 {{count}}개 기반",
+      "travelerShouldKnow": "여행자가 알아두면 좋아요:",
+      "sentiment": {
+        "positive": "긍정적",
+        "mixed": "혼합",
+        "cautious": "주의"
+      }
+    },
+    "replyAction": "답글",
+    "deleteAction": "삭제",
+    "cancelAction": "취소",
+    "replyingTo": "{{name}}님에게 답글 작성 중",
+    "replyToPlaceholder": "{{name}}님에게 답글..."
   },
   "navigation": {
     "home": "홈",

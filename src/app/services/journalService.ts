@@ -1,8 +1,10 @@
 import {
   addDoc,
+  collectionGroup,
   collection,
   deleteDoc,
   doc,
+  getDocs,
   increment,
   getDocFromServer,
   onSnapshot,
@@ -12,10 +14,12 @@ import {
   setDoc,
   serverTimestamp,
   updateDoc,
+  where,
+  writeBatch,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '@/app/config/firebase';
-import { generateTextEmbedding, translatePlainText } from './geminiService';
+import { generateTextEmbedding, translateJournalFields, translatePlainText } from './geminiService';
 
 const MAX_INLINE_IMAGE_BYTES = 220_000;
 
@@ -397,6 +401,99 @@ export const createJournalComment = async (
   }
 };
 
+export const deleteJournalComment = async (
+  journalId: string,
+  commentId: string,
+  userId: string,
+): Promise<boolean> => {
+  try {
+    const targetRef = doc(db, 'journals', journalId, 'comments', commentId);
+    const targetSnap = await getDocFromServer(targetRef);
+
+    if (!targetSnap.exists()) {
+      return false;
+    }
+
+    const targetData = targetSnap.data();
+    if (String(targetData.authorId || '') !== userId) {
+      return false;
+    }
+
+    const allCommentsSnap = await getDocs(collection(db, 'journals', journalId, 'comments'));
+    const allComments = allCommentsSnap.docs;
+
+    const childrenMap = new Map<string, Array<typeof allComments[number]>>();
+    allComments.forEach((entry) => {
+      const parentId = String(entry.data().parentId || '');
+      if (!parentId) return;
+      const list = childrenMap.get(parentId) || [];
+      list.push(entry);
+      childrenMap.set(parentId, list);
+    });
+
+    const subtree: Array<typeof allComments[number]> = [];
+    const queue: string[] = [commentId];
+    const seen = new Set<string>();
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (seen.has(currentId)) continue;
+      seen.add(currentId);
+
+      const currentDoc = allComments.find((entry) => entry.id === currentId);
+      if (currentDoc) subtree.push(currentDoc);
+
+      const children = childrenMap.get(currentId) || [];
+      children.forEach((child) => queue.push(child.id));
+    }
+
+    const hasForeignReplies = subtree.some(
+      (entry) => entry.id !== commentId && String(entry.data().authorId || '') !== userId,
+    );
+
+    if (hasForeignReplies) {
+      await updateDoc(targetRef, {
+        text: 'Comment deleted',
+        isDeleted: true,
+        author: 'Deleted user',
+        authorAvatarUrl: null,
+        likes: 0,
+        likedBy: [],
+        updatedAt: serverTimestamp(),
+      });
+      return true;
+    }
+
+    const refsToDelete = subtree.map((entry) => entry.ref);
+    if (refsToDelete.length === 0) return false;
+
+    const BATCH_LIMIT = 450;
+    for (let index = 0; index < refsToDelete.length; index += BATCH_LIMIT) {
+      const batch = writeBatch(db);
+      const chunk = refsToDelete.slice(index, index + BATCH_LIMIT);
+      chunk.forEach((ref) => batch.delete(ref));
+      await batch.commit();
+    }
+
+    const removedCount = refsToDelete.length;
+    const journalRef = doc(db, 'journals', journalId);
+    await runTransaction(db, async (transaction) => {
+      const journalSnap = await transaction.get(journalRef);
+      if (!journalSnap.exists()) return;
+      const currentCount = Number(journalSnap.data().comments || 0);
+      transaction.update(journalRef, {
+        comments: Math.max(0, currentCount - removedCount),
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting journal comment:', error);
+    return false;
+  }
+};
+
 export const toggleJournalCommentLike = async (
   journalId: string,
   commentId: string,
@@ -443,7 +540,11 @@ export const getJournalLocalizedContent = async (
   languageCode: string,
   original: JournalLocalizedContent,
 ): Promise<JournalLocalizedContent> => {
-  if (!languageCode || languageCode === 'en') {
+  const normalizedLanguageCode = (languageCode || 'en').toLowerCase().startsWith('zh')
+    ? 'zh'
+    : ((languageCode || 'en').toLowerCase().split(/[-_]/)[0] || 'en');
+
+  if (normalizedLanguageCode === 'en') {
     return original;
   }
 
@@ -451,7 +552,7 @@ export const getJournalLocalizedContent = async (
     const journalRef = doc(db, 'journals', journalId);
     const snap = await getDocFromServer(journalRef);
     const data = snap.data();
-    const cached = data?.translations?.[languageCode];
+    const cached = data?.translations?.[normalizedLanguageCode];
     if (cached?.title && cached?.location && cached?.description) {
       return {
         title: cached.title,
@@ -461,23 +562,30 @@ export const getJournalLocalizedContent = async (
       };
     }
 
-    const [translatedTitle, translatedLocation, translatedDescription] = await Promise.all([
-      translatePlainText(original.title, languageCode),
-      translatePlainText(original.location, languageCode),
-      translatePlainText(original.description, languageCode),
-    ]);
+    const translatedFields = await translateJournalFields(
+      {
+        title: original.title,
+        location: original.location,
+        description: original.description,
+      },
+      normalizedLanguageCode,
+    );
 
     const translated: JournalLocalizedContent = {
-      title: translatedTitle,
-      location: translatedLocation,
-      description: translatedDescription,
+      title: translatedFields.title,
+      location: translatedFields.location,
+      description: translatedFields.description,
       country: original.country,
     };
 
-    await updateDoc(journalRef, {
-      [`translations.${languageCode}`]: translated,
-      updatedAt: serverTimestamp(),
-    });
+    try {
+      await updateDoc(journalRef, {
+        [`translations.${normalizedLanguageCode}`]: translated,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (cacheError) {
+      console.warn('Skipping journal translation cache update:', cacheError);
+    }
 
     return translated;
   } catch (error) {
@@ -492,7 +600,11 @@ export const getJournalCommentLocalizedText = async (
   languageCode: string,
   originalText: string,
 ): Promise<string> => {
-  if (!languageCode || languageCode === 'en') {
+  const normalizedLanguageCode = (languageCode || 'en').toLowerCase().startsWith('zh')
+    ? 'zh'
+    : ((languageCode || 'en').toLowerCase().split(/[-_]/)[0] || 'en');
+
+  if (normalizedLanguageCode === 'en') {
     return originalText;
   }
 
@@ -500,13 +612,17 @@ export const getJournalCommentLocalizedText = async (
     const commentRef = doc(db, 'journals', journalId, 'comments', commentId);
     const snap = await getDocFromServer(commentRef);
     const data = snap.data();
-    const cached = data?.translations?.[languageCode]?.text;
+    const cached = data?.translations?.[normalizedLanguageCode]?.text;
     if (cached) return cached;
 
-    const translatedText = await translatePlainText(originalText, languageCode);
-    await updateDoc(commentRef, {
-      [`translations.${languageCode}.text`]: translatedText,
-    });
+    const translatedText = await translatePlainText(originalText, normalizedLanguageCode);
+    try {
+      await updateDoc(commentRef, {
+        [`translations.${normalizedLanguageCode}.text`]: translatedText,
+      });
+    } catch (cacheError) {
+      console.warn('Skipping comment translation cache update:', cacheError);
+    }
     return translatedText;
   } catch (error) {
     console.error('Error getting localized comment text:', error);
@@ -570,6 +686,48 @@ export const deleteJournal = async (journalId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Error deleting journal:', error);
+    return false;
+  }
+};
+
+export const syncAuthorAvatarAcrossContent = async (
+  userId: string,
+  avatarUrl?: string,
+): Promise<boolean> => {
+  try {
+    const normalizedAvatar = avatarUrl || null;
+    const refsToUpdate = [] as Array<ReturnType<typeof doc>>;
+
+    const journalsQuery = query(collection(db, 'journals'), where('authorId', '==', userId));
+    const journalSnapshot = await getDocs(journalsQuery);
+    journalSnapshot.docs.forEach((entry) => {
+      refsToUpdate.push(entry.ref);
+    });
+
+    const commentsQuery = query(collectionGroup(db, 'comments'), where('authorId', '==', userId));
+    const commentSnapshot = await getDocs(commentsQuery);
+    commentSnapshot.docs.forEach((entry) => {
+      refsToUpdate.push(entry.ref);
+    });
+
+    if (refsToUpdate.length === 0) return true;
+
+    const BATCH_LIMIT = 450;
+    for (let index = 0; index < refsToUpdate.length; index += BATCH_LIMIT) {
+      const batch = writeBatch(db);
+      const chunk = refsToUpdate.slice(index, index + BATCH_LIMIT);
+      chunk.forEach((ref) => {
+        batch.update(ref, {
+          authorAvatarUrl: normalizedAvatar,
+          updatedAt: serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error syncing author avatar across content:', error);
     return false;
   }
 };

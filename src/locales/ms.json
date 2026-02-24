@@ -18,7 +18,14 @@
     "privateAccount": "Akaun Peribadi",
     "privateAccountDescription": "Apabila akaun anda awam, profil dan siaran anda boleh dilihat oleh semua orang.",
     "makePublicTitle": "Jadikan Akaun Anda Awam?",
-    "makePublicDescription": "Kandungan anda akan kelihatan kepada pengguna lain. Sila berhati-hati semasa berkongsi butiran peribadi."
+    "makePublicDescription": "Kandungan anda akan kelihatan kepada pengguna lain. Sila berhati-hati semasa berkongsi butiran peribadi.",
+    "publicProfileTitle": "Profil",
+    "publicProfileLoading": "Memuatkan profil...",
+    "publicProfileNoBio": "Belum ada bio",
+    "publicProfilePosts": "Siaran",
+    "publicProfileNoPosts": "Belum ada siaran.",
+    "privateAccountPostsHiddenTitle": "Akaun Peribadi",
+    "privateAccountPostsHiddenDescription": "Siaran pengguna ini disembunyikan kerana akaunnya ditetapkan sebagai peribadi."
   },
   "editProfile": {
     "title": "Edit Profil",
@@ -60,11 +67,30 @@
     "delete": "Padam",
     "searchPlaceholder": "Cari jurnal",
     "writeComment": "Tulis komen anda di sini...",
+    "replyAction": "Balas",
+    "deleteAction": "Padam",
+    "cancelAction": "Batal",
+    "replyingTo": "Membalas kepada {{name}}",
+    "replyToPlaceholder": "Balas kepada {{name}}...",
     "verifiedTraveler": "Pengembara Disahkan",
     "fillRequired": "Sila isi tajuk, lokasi, dan penerangan.",
     "detectingLocation": "Mengesan lokasi...",
     "useCurrentLocation": "Guna Lokasi Semasa",
-    "searching": "Mencari..."
+    "searching": "Mencari...",
+    "aiSummary": {
+      "title": "Ringkasan Komen AI",
+      "generating": "Menjana...",
+      "emptyHint": "Ringkaskan maklum balas pengembara dan dapatkan tip praktikal apabila komen masih terhad.",
+      "error": "Tidak dapat menjana ringkasan AI buat masa ini. Sila cuba lagi.",
+      "sentimentLabel": "Sentimen",
+      "basedOnComments": "Berdasarkan {{count}} komen",
+      "travelerShouldKnow": "Pengembara perlu tahu:",
+      "sentiment": {
+        "positive": "positif",
+        "mixed": "bercampur",
+        "cautious": "berhati-hati"
+      }
+    }
   },
     "mapView": {
       "title": "Paparan Peta",

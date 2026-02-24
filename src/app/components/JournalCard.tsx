@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type JournalCardProps = {
   author?: string;
@@ -18,9 +19,12 @@ type JournalCardProps = {
   isSaved?: boolean;
   showViews?: boolean;
   actionLabel?: string;
+  translationStatus?: 'translating' | 'translated' | 'fallback';
+  translationStatusText?: string;
   onToggleLike?: () => void;
   onToggleSave?: () => void;
   onViewJournal?: () => void;
+  onAuthorClick?: () => void;
 };
 
 function JournalCard({
@@ -39,12 +43,17 @@ function JournalCard({
   isLiked = false,
   isSaved = false,
   showViews = false,
-  actionLabel = 'View Journal',
+  actionLabel,
+  translationStatus,
+  translationStatusText,
   onToggleLike,
   onToggleSave,
   onViewJournal,
+  onAuthorClick,
 }: JournalCardProps) {
+  const { t } = useTranslation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const resolvedActionLabel = actionLabel || t('journal.viewJournal');
 
   // Use imageUrls if available, otherwise fall back to single imageUrl
   const images = imageUrls && imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [];
@@ -70,17 +79,27 @@ function JournalCard({
     <div className="w-full bg-white rounded-[12px] border border-[#CAC4D0] shadow-md overflow-hidden mb-6">
       {/* Header Area */}
         <div className="flex items-center p-4 gap-4">
-        <div className="w-10 h-10 bg-[#DAECFF] rounded-full flex items-center justify-center text-[#2C638B] font-medium">
+        <button
+          type="button"
+          onClick={onAuthorClick}
+          disabled={!onAuthorClick}
+          className="w-10 h-10 bg-[#DAECFF] rounded-full flex items-center justify-center text-[#2C638B] font-medium disabled:cursor-default"
+        >
           {avatarUrl ? (
             <img src={avatarUrl} alt="author" loading="lazy" decoding="async" className="w-full h-full rounded-full object-cover" />
           ) : (
             avatarLetter
           )}
-        </div>
-        <div>
+        </button>
+        <button
+          type="button"
+          onClick={onAuthorClick}
+          disabled={!onAuthorClick}
+          className="text-left disabled:cursor-default"
+        >
           <h3 className="font-['Poppins'] font-medium text-[16px] text-[#1D1B20]">{author}</h3>
           <p className="font-['Inter'] text-[14px] text-[#49454F]">{timeAgo}</p>
-        </div>
+        </button>
       </div>
 
       {/* Media / Image Area */}
@@ -146,6 +165,19 @@ function JournalCard({
         <div>
           <h2 className="font-['Poppins'] font-semibold text-[24px] text-[#181C20]">{title}</h2>
           <p className="font-['Poppins'] font-medium text-[14px] text-[#B3B3B3] uppercase">{location}</p>
+          {translationStatusText && (
+            <p
+              className={`font-['Inter'] text-[11px] mt-1 ${
+                translationStatus === 'translated'
+                  ? 'text-[#2C638B]'
+                  : translationStatus === 'translating'
+                    ? 'text-[#8b8b8b]'
+                    : 'text-amber-600'
+              }`}
+            >
+              {translationStatusText}
+            </p>
+          )}
         </div>
         
         <p className="font-['Roboto'] text-[14px] text-[#49454F]">
@@ -190,7 +222,7 @@ function JournalCard({
             onClick={onViewJournal}
             className="bg-[#094B72] text-white px-6 py-2 rounded-full text-sm font-medium"
           >
-            {actionLabel}
+            {resolvedActionLabel}
           </button>
         </div>
       </div>
