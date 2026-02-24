@@ -45,22 +45,6 @@ interface DetectedText {
 }
 
 // ============================================================================
-// HELPER COMPONENTS (Home Indicator)
-// ============================================================================
-
-function HomeIndicator() {
-  return (
-    <div className="h-[34px] relative w-full bg-transparent">
-      <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-1/2 rounded-[100px] w-[134px]" />
-    </div>
-  );
-}
-
-// ============================================================================
-// MAIN SCREEN COMPONENT
-// ============================================================================
-
-// ============================================================================
 // MAIN SCREEN COMPONENT
 // ============================================================================
 
@@ -475,8 +459,6 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
               </button>
             </div>
           </div>
-
-          <HomeIndicator />
         </div>
       </div>
 

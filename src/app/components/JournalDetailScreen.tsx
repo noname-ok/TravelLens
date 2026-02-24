@@ -17,16 +17,6 @@ import {
 } from '@/app/services/journalService';
 import { generateCommentSummary } from '@/app/services/geminiService';
 
-function HomeIndicator({ className }: { className?: string }) {
-  return (
-    <div className={className || ''}>
-      <div className="h-[34px] relative w-full">
-        <div className="-translate-x-1/2 absolute bg-black dark:bg-white bottom-[8px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] w-[134px]" />
-      </div>
-    </div>
-  );
-}
-
 interface JournalDetailProps {
   onBack: () => void;
   currentScreen: 'home' | 'mapview' | 'ailens' | 'profile';
@@ -655,8 +645,6 @@ export default function JournalDetailScreen({
               </button>
             </div>
           </div>
-
-          <HomeIndicator className="absolute h-[34px] left-0 right-0 bottom-0" />
         </div>
       </div>
     </div>
