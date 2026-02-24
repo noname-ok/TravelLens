@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { Home, MapPin, Camera, User, Wand2 } from 'lucide-react';
+import { Home, MapPin, Camera, User, Wand2, Compass, LocateFixed, Car, PersonStanding, Bike, Bus, ChevronDown, Plus, X, GripVertical } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import TripPlanningModal from './TripPlanningModal';
 import { PLACE_FILTERS, Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
@@ -9,10 +10,6 @@ import { saveTripToStorage } from '@/app/services/tripPlannerService';
 
 const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
 const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-import { Home, MapPin, Camera, User, Compass, LocateFixed, Car, PersonStanding, Bike, Bus, ChevronDown, Plus, X, GripVertical } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import PlaceDetailSheet from './PlaceDetailSheet';
-import { Attraction, PlaceDetails, PlaceLocation } from '@/app/types/places';
 
 const libraries: ("places")[] = ["places"];
 
@@ -46,7 +43,6 @@ interface MapViewScreenProps {
 }
 
 export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }: MapViewScreenProps) {
-export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScreenProps) {
   const { t } = useTranslation();
   
   // Tab Management
@@ -103,6 +99,65 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<{ type: 'origin' | 'waypoint' | 'destination', index?: number } | null>(null);
   const [dragOverItem, setDragOverItem] = useState<{ type: 'origin' | 'waypoint' | 'destination', index?: number } | null>(null);
+
+  const routeLegs = directionsResult?.routes?.[0]?.legs || [];
+  const totalDistanceMeters = routeLegs.reduce((sum, leg) => sum + (leg.distance?.value || 0), 0);
+  const totalDurationSeconds = routeLegs.reduce((sum, leg) => sum + (leg.duration?.value || 0), 0);
+
+  const formatDistance = (meters: number): string => {
+    if (!meters) return '--';
+    const km = meters / 1000;
+    if (km < 1) return `${Math.round(meters)} m`;
+    return `${km.toFixed(km >= 10 ? 0 : 1)} km`;
+  };
+
+  const formatDuration = (seconds: number): string => {
+    if (!seconds) return '--';
+    const totalMinutes = Math.ceil(seconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours === 0) return `${minutes} min`;
+    if (minutes === 0) return `${hours} hr`;
+    return `${hours} hr ${minutes} min`;
+  };
+
+  const formatEta = (seconds: number): string => {
+    if (!seconds) return '--';
+    const arrival = new Date(Date.now() + seconds * 1000);
+    return arrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getTravelModeLabel = (mode: 'DRIVING' | 'WALKING' | 'BICYCLING' | 'TRANSIT'): string => {
+    switch (mode) {
+      case 'DRIVING':
+        return t('mapView.travelModeDriving');
+      case 'WALKING':
+        return t('mapView.travelModeWalking');
+      case 'BICYCLING':
+        return t('mapView.travelModeCycling');
+      case 'TRANSIT':
+        return t('mapView.travelModeTransit');
+      default:
+        return mode;
+    }
+  };
+
+  const openGoogleMapsNavigation = () => {
+    if (!routeOrigin || !routeDestination) return;
+
+    const waypointCoordinates = waypoints
+      .map((waypoint) => waypoint.location)
+      .filter((location): location is PlaceLocation => location !== null)
+      .map((location) => `${location.lat},${location.lng}`)
+      .join('|');
+
+    const waypointQuery = waypointCoordinates
+      ? `&waypoints=${encodeURIComponent(waypointCoordinates)}`
+      : '';
+
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${routeOrigin.lat},${routeOrigin.lng}&destination=${routeDestination.lat},${routeDestination.lng}${waypointQuery}&travelmode=${travelMode.toLowerCase()}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   // Get user location on mount
   useEffect(() => {
@@ -973,9 +1028,9 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
           />
         </div>
 
-        {/* Trip Planning Button - Show View/Replan based on trip state */}
-        {generatedTrip ? (
-          <div className="absolute left-[24px] right-[24px] top-[215px] z-10 flex gap-2">
+        {/* Trip Planning Button - Nearby subtab only */}
+        {activeTab === 'nearby' && (generatedTrip ? (
+          <div className="absolute left-[24px] right-[24px] top-[128px] z-10 flex gap-2">
             <button
               onClick={() => {
                 if (onViewTrip && generatedTrip) {
@@ -1002,18 +1057,17 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
         ) : (
           <button
             onClick={() => setIsTripPlanningOpen(true)}
-            className="absolute left-[24px] right-[24px] top-[215px] z-10 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+            className="absolute left-[24px] right-[24px] top-[128px] z-10 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
           >
             <Wand2 size={18} />
             Plan Your Trip
           </button>
-        )}
+        ))}
 
         {/* Map Container - Google Maps */}
         <div 
           id="google-map" 
-          className="absolute left-0 right-0 top-[269px] bottom-[90px]"
-          className="absolute left-0 right-0 top-[105px] bottom-[90px]"
+          className={`absolute left-0 right-0 ${activeTab === 'nearby' ? 'top-[184px]' : 'top-[108px]'} bottom-[90px]`}
         >
         {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
           <LoadScript
@@ -1092,7 +1146,7 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
 
             {/* Route Tab - Control Panel */}
             {activeTab === 'route' && (
-              <div className="absolute left-[20px] top-[10px] right-[23px] z-10">
+              <div className="absolute left-[20px] top-[4px] right-[23px] z-10">
                 <div className={`bg-white dark:bg-gray-800 rounded-[16px] shadow-lg transition-all duration-300 ${
                   isRoutePanelCollapsed ? 'p-2' : 'p-4'
                 } ${
@@ -1100,20 +1154,12 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                 }`}>
                   
                   {/* Collapsed State - Compact Header */}
-                  {isRoutePanelCollapsed && directionsResult && (
+                  {isRoutePanelCollapsed && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 text-[12px] font-['Poppins',sans-serif]">
-                            <span className="font-semibold text-[#2c638b] dark:text-blue-400">
-                              {directionsResult.routes[0].legs[0].distance?.text}
-                            </span>
-                            <span className="text-gray-400">•</span>
-                            <span className="font-semibold text-[#2c638b] dark:text-blue-400">
-                              {directionsResult.routes[0].legs[0].duration?.text}
-                            </span>
-                          </div>
-                        </div>
+                        <p className="text-[12px] font-['Poppins',sans-serif] font-medium text-gray-600 dark:text-gray-300">
+                          Route controls
+                        </p>
                         <button
                           onClick={() => setIsRoutePanelCollapsed(false)}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
@@ -1122,12 +1168,44 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                           <ChevronDown size={20} className="text-gray-600 dark:text-gray-400" />
                         </button>
                       </div>
+                      <div className="bg-[#f5f5f5] dark:bg-gray-700 rounded-[10px] px-3 py-2">
+                        <p className="text-[11px] font-['Poppins',sans-serif] text-gray-500 dark:text-gray-400">
+                          Travel Mode: <span className="font-medium text-[#2c638b] dark:text-blue-400">{getTravelModeLabel(travelMode)}</span>
+                        </p>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          <div className="text-center">
+                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Distance</p>
+                            <p className="text-[12px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDistance(totalDistanceMeters)}</p>
+                          </div>
+                          <div className="text-center border-x border-[rgba(0,0,0,0.08)] dark:border-gray-600">
+                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Duration</p>
+                            <p className="text-[12px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDuration(totalDurationSeconds)}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">ETA</p>
+                            <p className="text-[12px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatEta(totalDurationSeconds)}</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {/* Expanded State - Full Panel */}
                   {!isRoutePanelCollapsed && (
                     <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400">
+                      Route controls
+                    </p>
+                    <button
+                      onClick={() => setIsRoutePanelCollapsed(true)}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                      title="Collapse panel"
+                    >
+                      <ChevronDown size={20} className="text-gray-600 dark:text-gray-400 rotate-180" />
+                    </button>
+                  </div>
+
                   {/* Origin Input */}
                   <div className="space-y-1 relative">
                     <label className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
@@ -1169,7 +1247,10 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                         {routeOriginPredictions.map((prediction) => (
                           <button
                             key={prediction.place_id}
-                            onClick={() => handleRouteOriginSelect(prediction)}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              handleRouteOriginSelect(prediction);
+                            }}
                             className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                           >
                             <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
@@ -1248,7 +1329,10 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                           {waypoint.predictions.map((prediction) => (
                             <button
                               key={prediction.place_id}
-                              onClick={() => handleWaypointSelect(index, prediction)}
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                handleWaypointSelect(index, prediction);
+                              }}
                               className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                             >
                               <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
@@ -1305,7 +1389,10 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                         {routeDestinationPredictions.map((prediction) => (
                           <button
                             key={prediction.place_id}
-                            onClick={() => handleRouteDestinationSelect(prediction)}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              handleRouteDestinationSelect(prediction);
+                            }}
                             className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                           >
                             <p className="font-['Poppins',sans-serif] text-[13px] text-black dark:text-white font-medium truncate">
@@ -1382,45 +1469,29 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                     </div>
                   </div>
 
-                  {/* Route Summary */}
                   {directionsResult && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-[12px] p-3 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
-                          {t('mapView.totalDistance')}
-                        </span>
-                        <span className="text-[14px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400">
-                          {directionsResult.routes[0].legs[0].distance?.text}
-                        </span>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Distance</p>
+                          <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDistance(totalDistanceMeters)}</p>
+                        </div>
+                        <div className="text-center border-x border-[rgba(0,0,0,0.08)] dark:border-gray-600">
+                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Duration</p>
+                          <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDuration(totalDurationSeconds)}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">ETA</p>
+                          <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatEta(totalDurationSeconds)}</p>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
-                          {t('mapView.duration')}
-                        </span>
-                        <span className="text-[14px] font-['Poppins',sans-serif] font-semibold text-[#2c638b] dark:text-blue-400">
-                          {directionsResult.routes[0].legs[0].duration?.text}
-                        </span>
-                      </div>
-                      
-                      {/* Plan the Route Button */}
+
                       <button
-                        onClick={() => setIsRoutePanelCollapsed(true)}
-                        className="w-full bg-[#2c638b] dark:bg-blue-600 text-white py-2 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-medium hover:bg-[#235070] dark:hover:bg-blue-700 transition"
+                        onClick={openGoogleMapsNavigation}
+                        disabled={!routeOrigin || !routeDestination}
+                        className="w-full bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] text-white py-2.5 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-semibold hover:from-[#235070] hover:to-[#17394d] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Plan the Route
-                      </button>
-                      
-                      {/* Open in Google Maps */}
-                      <button
-                        onClick={() => {
-                          if (routeOrigin && routeDestination) {
-                            const url = `https://www.google.com/maps/dir/?api=1&origin=${routeOrigin.lat},${routeOrigin.lng}&destination=${routeDestination.lat},${routeDestination.lng}&travelmode=${travelMode.toLowerCase()}`;
-                            window.open(url, '_blank');
-                          }
-                        }}
-                        className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                      >
-                        {t('mapView.openInGoogleMaps')}
+                        Start Navigation in Google Maps
                       </button>
                     </div>
                   )}
@@ -1445,7 +1516,8 @@ export default function MapViewScreen({ currentScreen, onNavigate }: MapViewScre
                 </div>
               </div>
             )}
-            
+
+
             {loadError ? (
               <div className="flex flex-col items-center justify-center h-full bg-gradient-to-b from-[#ffe8e8] to-[#ffd0d0]">
                 <div className="mb-[24px]">

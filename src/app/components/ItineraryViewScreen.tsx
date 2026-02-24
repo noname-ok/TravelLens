@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Edit2, Trash2, Download, Image as ImageIcon, FileText } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Download, Image as ImageIcon, FileText, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { TripItinerary, ItineraryItem } from '@/app/types/tripPlanning';
 import { Input } from './ui/input';
@@ -106,6 +106,14 @@ export default function ItineraryViewScreen({
       }
       toast.success('Ready to create a new itinerary');
     }
+  };
+
+  const openItemInGoogleMaps = (item: ItineraryItem) => {
+    const destinationUrl = item.placeId
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.placeName)}&query_place_id=${encodeURIComponent(item.placeId)}`
+      : `https://www.google.com/maps/search/?api=1&query=${item.position.lat},${item.position.lng}`;
+
+    window.open(destinationUrl, '_blank', 'noopener,noreferrer');
   };
 
   const itemsByDay = new Map<number, ItineraryItem[]>();
@@ -243,14 +251,24 @@ export default function ItineraryViewScreen({
                           <p className="font-['Poppins',sans-serif] font-bold text-[12px] text-[#2c638b]">
                             ⏰ {item.time}
                           </p>
-                          <p className="font-['Poppins',sans-serif] font-semibold text-[14px] text-black mt-1">
+                          <button
+                            onClick={() => openItemInGoogleMaps(item)}
+                            className="font-['Poppins',sans-serif] font-semibold text-[14px] text-[#2c638b] mt-1 hover:underline text-left"
+                          >
                             {item.placeName}
-                          </p>
+                          </button>
                           <p className="font-['Poppins',sans-serif] text-[11px] text-gray-600 mt-1">
                             📍 {item.address}
                           </p>
                         </div>
                         <div className="flex gap-1">
+                          <button
+                            onClick={() => openItemInGoogleMaps(item)}
+                            className="p-1.5 hover:bg-green-100 rounded-lg transition text-green-600"
+                            title="Open in Google Maps"
+                          >
+                            <Navigation size={16} />
+                          </button>
                           <button
                             onClick={() => setEditingItem(item)}
                             className="p-1.5 hover:bg-blue-100 rounded-lg transition text-[#2c638b]"

@@ -7,6 +7,79 @@ import {
 import { PlaceLocation } from '@/app/types/places';
 import { generateTripItinerary, findPlacesByPreference, PlaceForItinerary } from './geminiService';
 
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function scorePlaceMatch(aiPlace: string, candidate: PlaceSearchResult): number {
+  const left = normalizeText(aiPlace);
+  const right = normalizeText(candidate.name);
+  if (!left || !right) return 0;
+  if (left === right) return 100;
+  if (left.includes(right) || right.includes(left)) return 80;
+
+  const leftWords = new Set(left.split(' '));
+  const rightWords = new Set(right.split(' '));
+  let overlap = 0;
+  rightWords.forEach((word) => {
+    if (leftWords.has(word)) overlap += 1;
+  });
+  return overlap;
+}
+
+function pickBestMatchingPlace(
+  aiPlace: string,
+  candidates: PlaceSearchResult[],
+  usedPlaceIds: Set<string>,
+): PlaceSearchResult | null {
+  let best: PlaceSearchResult | null = null;
+  let bestScore = 0;
+
+  for (const candidate of candidates) {
+    if (usedPlaceIds.has(candidate.placeId)) continue;
+    const score = scorePlaceMatch(aiPlace, candidate);
+    if (score > bestScore) {
+      bestScore = score;
+      best = candidate;
+    }
+  }
+
+  if (best && bestScore > 0) return best;
+
+  for (const candidate of candidates) {
+    if (!usedPlaceIds.has(candidate.placeId)) return candidate;
+  }
+
+  return candidates[0] || null;
+}
+
+function fallbackTime(index: number): string {
+  const slots = ['09:00', '12:00', '15:00', '18:00'];
+  return slots[index % slots.length];
+}
+
+function clampDay(day: number, totalDays: number): number {
+  if (!Number.isFinite(day)) return 1;
+  return Math.max(1, Math.min(totalDays, Math.floor(day)));
+}
+
+function recomputeTotalDistance(items: ItineraryItem[], startLocation: PlaceLocation): number {
+  let total = 0;
+  let previous = startLocation;
+
+  for (const item of items) {
+    const distance = calculateDistance(previous.lat, previous.lng, item.position.lat, item.position.lng);
+    total += distance;
+    previous = item.position;
+  }
+
+  return Math.round(total * 10) / 10;
+}
+
 /**
  * Calculate distance between two coordinates using Haversine formula
  */
@@ -111,44 +184,104 @@ export async function generateTripFromPlaces(
   );
 
   // Convert AI response to itinerary items
-  let totalDistance = 0;
   const items: ItineraryItem[] = [];
+  const usedPlaceIds = new Set<string>();
 
   for (let i = 0; i < aiResponse.itinerary.length; i++) {
     const item = aiResponse.itinerary[i];
-    const matchingPlace = optimizedPlaces.find(
-      (p) => p.name.toLowerCase().includes(item.place.toLowerCase())
-    );
+    const matchingPlace = pickBestMatchingPlace(item.place, optimizedPlaces, usedPlaceIds);
+    if (!matchingPlace) continue;
 
-    if (matchingPlace) {
-      // Calculate distance from previous location
-      const prevLocation =
-        i === 0
-          ? startLocation
-          : items[i - 1]?.position || startLocation;
-      const distance = calculateDistance(
-        prevLocation.lat,
-        prevLocation.lng,
-        matchingPlace.position.lat,
-        matchingPlace.position.lng
-      );
-      totalDistance += distance;
+    usedPlaceIds.add(matchingPlace.placeId);
 
+    const prevLocation =
+      i === 0
+        ? startLocation
+        : items[i - 1]?.position || startLocation;
+    const estimatedTravelTime =
+      item.estimatedTravelTime && item.estimatedTravelTime > 0
+        ? item.estimatedTravelTime
+        : estimateTravelTime(
+            calculateDistance(
+              prevLocation.lat,
+              prevLocation.lng,
+              matchingPlace.position.lat,
+              matchingPlace.position.lng,
+            ),
+          );
+
+    items.push({
+      id: `item_${i}`,
+      day: clampDay(item.day, numberOfDays),
+      time: item.time || fallbackTime(i),
+      placeName: matchingPlace.name,
+      placeId: matchingPlace.placeId,
+      address: matchingPlace.address,
+      position: matchingPlace.position,
+      duration: item.duration && item.duration > 0 ? item.duration : 2,
+      description: item.description || `Explore ${matchingPlace.name}.`,
+      estimatedTravelTime,
+      notes: item.notes,
+    });
+  }
+
+  if (items.length === 0) {
+    const fallbackCount = Math.max(numberOfDays, Math.min(optimizedPlaces.length, numberOfDays * 2));
+    for (let index = 0; index < fallbackCount; index++) {
+      const place = optimizedPlaces[index % optimizedPlaces.length];
+      const prevLocation = index === 0 ? startLocation : items[index - 1].position;
       items.push({
-        id: `item_${i}`,
-        day: item.day,
-        time: item.time,
-        placeName: matchingPlace.name,
-        placeId: matchingPlace.placeId,
-        address: matchingPlace.address,
-        position: matchingPlace.position,
-        duration: item.duration,
-        description: item.description,
-        estimatedTravelTime: item.estimatedTravelTime,
-        notes: item.notes,
+        id: `fallback_item_${index}`,
+        day: (index % numberOfDays) + 1,
+        time: fallbackTime(index),
+        placeName: place.name,
+        placeId: place.placeId,
+        address: place.address,
+        position: place.position,
+        duration: 2,
+        description: `Explore ${place.name} and nearby highlights.`,
+        estimatedTravelTime: estimateTravelTime(
+          calculateDistance(prevLocation.lat, prevLocation.lng, place.position.lat, place.position.lng),
+        ),
+        notes: 'Generated fallback activity to complete your itinerary.',
       });
     }
   }
+
+  for (let day = 1; day <= numberOfDays; day++) {
+    const hasDay = items.some((entry) => entry.day === day);
+    if (hasDay) continue;
+
+    const place = optimizedPlaces[(day - 1) % optimizedPlaces.length];
+    const previous = items
+      .filter((entry) => entry.day < day)
+      .sort((left, right) => left.day - right.day)
+      .pop();
+    const prevLocation = previous?.position || startLocation;
+
+    items.push({
+      id: `filled_day_${day}`,
+      day,
+      time: '10:00',
+      placeName: place.name,
+      placeId: place.placeId,
+      address: place.address,
+      position: place.position,
+      duration: 2,
+      description: `Day ${day} focus: Discover ${place.name} and the surrounding area at a relaxed pace.`,
+      estimatedTravelTime: estimateTravelTime(
+        calculateDistance(prevLocation.lat, prevLocation.lng, place.position.lat, place.position.lng),
+      ),
+      notes: 'Auto-filled to ensure each day has at least one activity.',
+    });
+  }
+
+  items.sort((left, right) => {
+    if (left.day !== right.day) return left.day - right.day;
+    return left.time.localeCompare(right.time);
+  });
+
+  const totalDistance = recomputeTotalDistance(items, startLocation);
 
   const tripId = `trip_${Date.now()}`;
   const endDate = new Date(startDate);

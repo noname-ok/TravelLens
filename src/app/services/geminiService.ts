@@ -179,14 +179,71 @@ export async function translateImageText(imageData: string, targetLang = 'Englis
 }
 
 /**
- * 4️⃣ AI Trip Planning - Generate Itinerary
+ * 4️⃣ Generate Place Insights (Text-based AI for tourist destinations)
+ */
+export interface PlaceInsights {
+  whyFamous: string;
+  cautions: string[];
+  considerations: string[];
+  bestTimeToVisit?: string;
+  estimatedDuration?: string;
+}
+
+export async function generatePlaceInsights(
+  placeName: string,
+  placeTypes: string[],
+  address?: string,
+  rating?: number,
+): Promise<PlaceInsights> {
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
+  if (!rateLimiter.canMakeRequest()) {
+    throw new Error('⏸️ Rate limit: Please wait before requesting AI insights.');
+  }
+
+  return withRetry(async () => {
+    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
+
+    const typeContext = placeTypes.join(', ');
+    const ratingText = rating ? `It has a rating of ${rating.toFixed(1)} stars.` : '';
+    const addressText = address ? `Located at: ${address}.` : '';
+
+    const prompt = `You are a knowledgeable local travel guide with expertise about "${placeName}".
+
+Place Name: ${placeName}
+Place Type: ${typeContext}
+${addressText}
+${ratingText}
+
+IMPORTANT: Provide SPECIFIC and LOCATION-RELEVANT information about this exact place.
+
+Return ONLY a JSON object with these exact keys:
+{
+  "whyFamous": "2-3 sentences explaining what makes THIS specific place famous",
+  "cautions": ["4-6 specific cautions for this location"],
+  "considerations": ["4-6 practical tips for this location"],
+  "bestTimeToVisit": "best time to visit",
+  "estimatedDuration": "realistic visit duration"
+}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) throw new Error('AI returned invalid format for place insights.');
+
+    return JSON.parse(jsonMatch[0]) as PlaceInsights;
+  });
+}
+
+/**
+ * 5️⃣ AI Trip Planning - Generate Itinerary
  */
 export interface PlaceForItinerary {
   name: string;
   address: string;
   lat: number;
   lng: number;
-  estimatedDuration: number; // hours
+  estimatedDuration: number;
 }
 
 export interface ItineraryResponse {
@@ -208,35 +265,15 @@ export async function generateTripItinerary(
   places: PlaceForItinerary[],
   numberOfDays: number,
   startDate: string,
-  preferences?: string[]
+  preferences?: string[],
 ): Promise<ItineraryResponse> {
-  if (!genAI) throw new Error('Gemini API not initialized.');
- * 4️⃣ Generate Place Insights (Text-based AI for tourist destinations)
- */
-export interface PlaceInsights {
-  whyFamous: string;
-  cautions: string[];
-  considerations: string[];
-  bestTimeToVisit?: string;
-  estimatedDuration?: string;
-}
-
-export async function generatePlaceInsights(
-  placeName: string,
-  placeTypes: string[],
-  address?: string,
-  rating?: number
-): Promise<PlaceInsights> {
   if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
-  if (!rateLimiter.canMakeRequest()) {
-    throw new Error('⏸️ Rate limit: Please wait before requesting AI insights.');
-  }
 
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
 
     const placesList = places
-      .map((p, i) => `${i + 1}. ${p.name} (${p.address}) - Duration: ${p.estimatedDuration}h`)
+      .map((place, index) => `${index + 1}. ${place.name} (${place.address}) - Duration: ${place.estimatedDuration}h`)
       .join('\n');
 
     const prompt = `You are an expert travel planner. Create a detailed ${numberOfDays}-day trip itinerary starting from ${startDate}.
@@ -246,58 +283,21 @@ ${placesList}
 
 Preferences: ${preferences?.join(', ') || 'General exploration'}
 
-Create a realistic schedule considering:
-- Travel time between locations
-- Opening hours and best visiting times
-- Rest periods and meals
-- Logical geographic routing to minimize travel time
-- Balance between activities and relaxation
-
 Return ONLY a JSON object with this exact structure:
 {
-  "itinerary": [
-    {
-      "day": 1,
-      "time": "09:00",
-      "place": "Place Name",
-      "duration": 2,
-      "description": "What to do here and why",
-      "estimatedTravelTime": 15,
-      "notes": "Any special tips or information"
-    }
-  ],
+  "itinerary": [{
+    "day": 1,
+    "time": "09:00",
+    "place": "Place Name",
+    "duration": 2,
+    "description": "What to do here and why",
+    "estimatedTravelTime": 15,
+    "notes": "Any special tips or information"
+  }],
   "summary": "Brief overview of the entire trip",
   "highlights": ["Highlight 1", "Highlight 2", "Highlight 3"],
   "tips": ["Cultural tip", "Practical tip", "Safety tip"]
 }`;
-    const typeContext = placeTypes.join(', ');
-    const ratingText = rating ? `It has a rating of ${rating.toFixed(1)} stars.` : '';
-    const addressText = address ? `Located at: ${address}.` : '';
-
-    const prompt = `You are a knowledgeable local travel guide with expertise about "${placeName}".
-    
-Place Name: ${placeName}
-Place Type: ${typeContext}
-${addressText}
-${ratingText}
-
-IMPORTANT: Provide SPECIFIC and LOCATION-RELEVANT information about this exact place. Research this specific location's:
-- Local safety concerns (crime rates, scams, environmental hazards specific to this area)
-- Weather and terrain challenges particular to this location
-- Cultural sensitivities and local customs at THIS specific place
-- Real visitor experiences and common issues at this location
-- Current local conditions and neighborhood characteristics
-
-Return ONLY a JSON object with these exact keys:
-{
-  "whyFamous": "2-3 sentences explaining what makes THIS specific place famous, its unique history, cultural significance, or why travelers visit it",
-  "cautions": ["array", "of", "4-6", "SPECIFIC safety warnings, local scams, environmental hazards, or behavioral rules that apply to THIS exact location and its surrounding area - be very specific to this place, not generic travel advice"],
-  "considerations": ["array", "of", "4-6", "practical and location-specific tips for visiting THIS place - include best entry points, parking, accessibility, what to bring, local prices, crowds, booking requirements"],
-  "bestTimeToVisit": "optimal time to visit THIS specific location (time of day, day of week, season) with reasoning based on crowds, weather, or lighting",
-  "estimatedDuration": "realistic visit duration for THIS place (e.g., '1-2 hours', '30 minutes', 'half day')"
-}
-
-Make every answer location-specific. Avoid generic travel advice.`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
@@ -310,7 +310,7 @@ Make every answer location-specific. Avoid generic travel advice.`;
 }
 
 /**
- * 5️⃣ AI Trip Planning - Find Places by Preference
+ * 6️⃣ AI Trip Planning - Find Places by Preference
  */
 export interface PreferencePlacesResponse {
   recommendedPlaces: Array<{
@@ -325,13 +325,41 @@ export interface PreferencePlacesResponse {
 export async function findPlacesByPreference(
   preferences: string[],
   numberOfDays: number,
-  location: string
+  location: string,
 ): Promise<PreferencePlacesResponse> {
-  if (!genAI) throw new Error('Gemini API not initialized.');
-    
-    if (!jsonMatch) throw new Error('AI returned invalid format for place insights.');
-    
-    return JSON.parse(jsonMatch[0]) as PlaceInsights;
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
+
+  return withRetry(async () => {
+    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
+
+    const prompt = `You are an expert travel guide. Suggest ${Math.min(preferences.length * 2, 8)} specific, real places to visit in ${location} based on these preferences: ${preferences.join(', ')}.
+
+For a ${numberOfDays}-day trip, recommend places that:
+- Exist in reality
+- Match the user's preferences
+- Are reasonably accessible
+- Fit the timeframe
+
+Return ONLY a JSON object with this exact structure:
+{
+  "recommendedPlaces": [
+    {
+      "name": "Exact place name",
+      "type": "Category",
+      "estimatedDuration": 2,
+      "whyRecommended": "Why this matches their preferences"
+    }
+  ],
+  "summary": "Brief explanation of the selection"
+}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) throw new Error('AI returned invalid places format.');
+
+    return JSON.parse(jsonMatch[0]) as PreferencePlacesResponse;
   });
 }
 
@@ -387,7 +415,9 @@ export async function generateTextEmbedding(text: string): Promise<number[] | nu
       return null;
     }
 
-    return values.map((value: unknown) => Number(value)).filter((value: number) => Number.isFinite(value));
+    return values
+      .map((value: unknown) => Number(value))
+      .filter((value: number) => Number.isFinite(value));
   });
 }
 
@@ -402,34 +432,6 @@ export async function translatePlainText(text: string, targetLanguageCode: strin
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
 
-    const prompt = `You are an expert travel guide. Suggest ${Math.min(preferences.length * 2, 8)} specific, real places to visit in ${location} based on these preferences: ${preferences.join(', ')}.
-
-For a ${numberOfDays}-day trip, recommend places that:
-- Exist in reality (real, famous locations in ${location})
-- Match the user's preferences
-- Are reasonably accessible
-- Can be visited in the given timeframe
-
-Return ONLY a JSON object with this exact structure:
-{
-  "recommendedPlaces": [
-    {
-      "name": "Exact place name",
-      "type": "Category (e.g., Temple, Museum, Restaurant)",
-      "estimatedDuration": 2,
-      "whyRecommended": "Why this matches their preferences"
-    }
-  ],
-  "summary": "Brief explanation of the selection"
-}`;
-
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) throw new Error('AI returned invalid places format.');
-
-    return JSON.parse(jsonMatch[0]) as PreferencePlacesResponse;
     const prompt = `Translate the following text to ${targetLanguage}. Keep meaning, tone, and punctuation naturally. Return only the translated text without quotes or explanations.\n\nText:\n${trimmed}`;
 
     const result = await model.generateContent(prompt);

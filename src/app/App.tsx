@@ -24,27 +24,6 @@ import { signUpWithEmail, logOut } from './services/authService';
 import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
 import { TripItinerary } from './types/tripPlanning';
 import { deleteTripFromStorage, updateTripInStorage } from './services/tripPlannerService';
-import { auth } from '@/app/config/firebase';
-import LoginScreen from '@/app/components/LoginScreen';
-import SignUpScreen, { SignUpFormData } from '@/app/components/SignUpScreen';
-import ForgetPasswordScreen from '@/app/components/ForgetPasswordScreen';
-import PhoneVerificationScreen from '@/app/components/PhoneVerificationScreen';
-import OnboardingScreen from '@/app/components/OnboardingScreen';
-import CreateNewPasswordScreen from '@/app/components/CreateNewPasswordScreen';
-import JournalScreen, { JournalEntry, JournalTab } from '@/app/components/JournalScreen';
-import MapViewScreen from '@/app/components/MapViewScreen';
-import AILensScreen from '@/app/components/AILensScreen';
-import ProfileScreen from '@/app/components/ProfileScreen';
-import JournalDetailScreen from '@/app/components/JournalDetailScreen';
-import CreateJournalScreen from '@/app/components/CreateJournalScreen';
-import EditProfileScreen from '@/app/components/EditProfileScreen';
-import LanguageScreen from '@/app/components/LanguageScreen';
-import TermsScreen from '@/app/components/TermsScreen';
-import PrivacyScreen from '@/app/components/PrivacyScreen';
-import { Toaster } from '@/app/components/ui/sonner';
-import { toast } from 'sonner';
-import { signUpWithEmail, logOut } from './services/authService';
-import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
 import {
   createJournal,
   deleteJournal,
