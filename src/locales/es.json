@@ -53,6 +53,8 @@
     "apiKeyRequiredTitle": "Se requiere clave API de Google Maps",
     "apiKeyRequiredDesc": "Añade VITE_GOOGLE_MAPS_API_KEY a tu archivo .env",
     "loading": "Cargando...",
+    "nearby": "Cerca",
+    "route": "Ruta",
     "viewNearbyTitle": "Ver atracciones turísticas cercanas",
     "nearbyAttractions": "Atracciones cercanas",
     "backToLocationTitle": "Volver a mi ubicación"
@@ -95,6 +97,7 @@
         "cautious": "cauteloso"
       }
     },
+    "notification": "Notificaciones",
     "replyAction": "Responder",
     "deleteAction": "Eliminar",
     "cancelAction": "Cancelar",

@@ -39,6 +39,10 @@
     "title": "اللغة",
     "changed": "تم تغيير اللغة إلى"
   },
+  "mapView": {
+    "nearby": "بالقرب",
+    "route": "المسار"
+  },
   "journal": {
     "aiSummary": {
       "title": "ملخص التعليقات بالذكاء الاصطناعي",
@@ -54,6 +58,7 @@
         "cautious": "حذر"
       }
     },
+    "notification": "الإشعارات",
     "replyAction": "رد",
     "deleteAction": "حذف",
     "cancelAction": "إلغاء",

@@ -1891,7 +1891,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                       onViewTrip(generatedTrip);
                     }
                   }}
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-full font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
                 >
                   <Wand2 size={18} />
                   View Itinerary
@@ -1903,7 +1903,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                       setIsTripPlanningOpen(true);
                     }
                   }}
-                  className="px-4 py-3 bg-white border-2 border-[#2c638b] text-[#2c638b] rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] hover:bg-blue-50 transition-all"
+                  className="px-4 py-3 bg-white border-2 border-[#2c638b] text-[#2c638b] rounded-full font-['Poppins',sans-serif] font-semibold text-[14px] hover:bg-blue-50 transition-all"
                 >
                   Replan
                 </button>
@@ -1911,7 +1911,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
             ) : (
               <button
                 onClick={() => setIsTripPlanningOpen(true)}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-[12px] font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] hover:from-[#1e4d6a] hover:to-[#152a3a] text-white px-4 py-3 rounded-full font-['Poppins',sans-serif] font-semibold text-[14px] shadow-md transition-all"
               >
                 <Wand2 size={18} />
                 Plan Your Trip

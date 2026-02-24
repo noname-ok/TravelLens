@@ -375,6 +375,13 @@ const TARGET_LANGUAGE_NAMES: Record<string, string> = {
   ms: 'Bahasa Melayu',
 };
 
+const normalizeTargetLanguageCode = (languageCode?: string): string => {
+  if (!languageCode) return 'en';
+  const normalized = languageCode.toLowerCase();
+  if (normalized.startsWith('zh')) return 'zh';
+  return normalized.split(/[-_]/)[0] || 'en';
+};
+
 export const getGeminiTargetLanguageName = (languageCode?: string): string => {
   if (!languageCode) return 'English';
   return TARGET_LANGUAGE_NAMES[languageCode] || 'English';
@@ -424,10 +431,11 @@ export async function generateTextEmbedding(text: string): Promise<number[] | nu
 export async function translatePlainText(text: string, targetLanguageCode: string): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return text;
-  if (targetLanguageCode === 'en') return text;
+  const normalizedCode = normalizeTargetLanguageCode(targetLanguageCode);
+  if (normalizedCode === 'en') return text;
   if (!genAI) return text;
 
-  const targetLanguage = TARGET_LANGUAGE_NAMES[targetLanguageCode] || 'English';
+  const targetLanguage = TARGET_LANGUAGE_NAMES[normalizedCode] || 'English';
 
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
@@ -450,9 +458,7 @@ export async function translateJournalFields(
   input: JournalTranslationInput,
   targetLanguageCode: string,
 ): Promise<JournalTranslationInput> {
-  const normalizedCode = (targetLanguageCode || 'en').toLowerCase().startsWith('zh')
-    ? 'zh'
-    : ((targetLanguageCode || 'en').toLowerCase().split(/[-_]/)[0] || 'en');
+  const normalizedCode = normalizeTargetLanguageCode(targetLanguageCode);
 
   if (normalizedCode === 'en') return input;
   if (!genAI) return input;
@@ -461,22 +467,44 @@ export async function translateJournalFields(
 
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
-    const prompt = `Translate this travel journal content to ${targetLanguage}. Keep meaning and natural tone. Return ONLY valid JSON with keys: title, location, description.\n\nInput JSON:\n${JSON.stringify(input)}`;
+    const prompt = `Translate this travel journal content to ${targetLanguage}. Keep meaning and natural tone. Return ONLY valid JSON with keys: title, location, description. Do not translate the keys or add extra text.\n\nInput JSON:\n${JSON.stringify(input)}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return input;
+    if (!jsonMatch) {
+      return {
+        title: await translatePlainText(input.title, normalizedCode),
+        location: await translatePlainText(input.location, normalizedCode),
+        description: await translatePlainText(input.description, normalizedCode),
+      };
+    }
 
     try {
       const parsed = JSON.parse(jsonMatch[0]) as Partial<JournalTranslationInput>;
-      return {
+      const resolved = {
         title: String(parsed.title || input.title),
         location: String(parsed.location || input.location),
         description: String(parsed.description || input.description),
       };
+      const isSameAsInput =
+        resolved.title === input.title
+        && resolved.location === input.location
+        && resolved.description === input.description;
+      if (isSameAsInput) {
+        return {
+          title: await translatePlainText(input.title, normalizedCode),
+          location: await translatePlainText(input.location, normalizedCode),
+          description: await translatePlainText(input.description, normalizedCode),
+        };
+      }
+      return resolved;
     } catch {
-      return input;
+      return {
+        title: await translatePlainText(input.title, normalizedCode),
+        location: await translatePlainText(input.location, normalizedCode),
+        description: await translatePlainText(input.description, normalizedCode),
+      };
     }
   });
 }

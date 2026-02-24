@@ -240,14 +240,10 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
 
   const expandHybridToFullChat = () => {
     setViewMode('fullchat');
-    if (messages.length === 0 && explanation) {
-      setMessages([{
-        id: '0',
-        role: 'assistant',
-        content: `${explanation.title}\n\n${explanation.description}\n\n${explanation.culturalNote ? `💡 ${explanation.culturalNote}\n\n` : ''}${explanation.interestingFact ? `✨ ${explanation.interestingFact}\n\n` : ''}What would you like to know about this?`,
-        timestamp: new Date(),
-      }]);
-    }
+  };
+
+  const collapseFullToHybrid = () => {
+    setViewMode('hybrid');
   };
 
   const dismissHybridToCamera = () => {
@@ -330,14 +326,14 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
               )}
 
               {viewMode === 'camera' && isAnalyzing && (
-                <div className="absolute left-6 right-6 bottom-[188px] z-30 bg-black/45 backdrop-blur-md border border-white/30 rounded-2xl p-3">
+                <div className="absolute left-6 right-6 bottom-[188px] z-30 bg-[#F7F9FF]/90 dark:bg-[#0b1b28]/90 backdrop-blur-md border border-[#2c638b]/20 dark:border-[#9bd1ff]/20 rounded-2xl p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-white text-xs font-semibold">Consulting travel guide...</p>
-                    <p className="text-white text-xs font-semibold">{analysisProgress}%</p>
+                    <p className="text-[#2c638b] dark:text-[#e6f3ff] text-xs font-semibold">Consulting travel guide...</p>
+                    <p className="text-[#2c638b] dark:text-[#e6f3ff] text-xs font-semibold">{analysisProgress}%</p>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-white/20 overflow-hidden">
+                  <div className="w-full h-2 rounded-full bg-[#2c638b]/15 dark:bg-[#9bd1ff]/20 overflow-hidden">
                     <div
-                      className="h-full bg-white transition-all duration-300"
+                      className="h-full bg-[#2c638b] dark:bg-[#9bd1ff] transition-all duration-300"
                       style={{ width: `${analysisProgress}%` }}
                     />
                   </div>
@@ -347,30 +343,17 @@ export default function AILensScreen({ currentScreen, onNavigate, preferredLangu
           )}
 
           {/* LAYER 2: Hybrid Overlay (40-50% of screen) */}
-          {viewMode === 'hybrid' && capturedImage && explanation && (
+          {(viewMode === 'hybrid' || viewMode === 'fullchat') && capturedImage && explanation && (
             <HybridView
               image={capturedImage}
               explanation={explanation}
               targetLanguageCode={activeLanguageCode}
-              onExpand={expandHybridToFullChat}
-              onDismiss={dismissHybridToCamera}
-            />
-          )}
-
-          {/* LAYER 3: Full Screen Chatbox */}
-          {viewMode === 'fullchat' && capturedImage && explanation && (
-            <FullChatView
-              imageData={capturedImage}
-              explanation={explanation}
+              isExpanded={viewMode === 'fullchat'}
               messages={messages}
               setMessages={setMessages}
-              targetLanguageCode={activeLanguageCode}
-              onDragDown={() => {
-                setViewMode('camera');
-                setCapturedImage(null);
-                setExplanation(null);
-                setMessages([]);
-              }}
+              onExpand={expandHybridToFullChat}
+              onCollapse={collapseFullToHybrid}
+              onDismiss={dismissHybridToCamera}
             />
           )}
 
@@ -500,22 +483,34 @@ function HybridView({
   image, 
   explanation,
   targetLanguageCode,
+  isExpanded,
+  messages,
+  setMessages,
   onExpand,
+  onCollapse,
   onDismiss
 }: { 
   image: string
   explanation: AIExplanationResult
   targetLanguageCode: string
+  isExpanded: boolean
+  messages: ChatMessage[]
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
   onExpand: () => void
+  onCollapse: () => void
   onDismiss: () => void
 }) {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [qaPairs, setQaPairs] = useState<Array<{ id: string; question: string; answer?: string }>>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [attachedImageData, setAttachedImageData] = useState<string | null>(null);
   const dragStartY = useRef<number | null>(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sampleQuestions = [
     'What does this mean?',
@@ -524,29 +519,116 @@ function HybridView({
     'How much does it cost?',
   ];
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join('');
+      setInput(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      toast.error(t('aiLens.speechRecognitionError'));
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.stop();
+    };
+  }, [t]);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      toast.error(t('aiLens.speechRecognitionNotSupported'));
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      return;
+    }
+
+    recognitionRef.current.start();
+    setIsListening(true);
+  };
+
+  const handlePickPhoto = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachedImageData(String(reader.result || ''));
+      toast.success(t('toast.photoUpdated'));
+    };
+    reader.onerror = () => {
+      toast.error(t('toast.failedToProcess'));
+    };
+    reader.readAsDataURL(file);
+
+    event.target.value = '';
+  };
+
   const handleAskQuestion = async (question: string) => {
     if (!question.trim()) return;
     const trimmedQuestion = question.trim();
-    const pairId = Date.now().toString();
 
-    setQaPairs((prev) => [...prev, { id: pairId, question: trimmedQuestion }]);
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: trimmedQuestion,
+      timestamp: new Date(),
+      image: attachedImageData || undefined,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await askAIQuestion(trimmedQuestion, image, explanation, undefined, targetLanguageCode);
-      setQaPairs((prev) =>
-        prev.map((pair) => (pair.id === pairId ? { ...pair, answer: response } : pair))
-      );
+      const response = await askAIQuestion(trimmedQuestion, attachedImageData || image, explanation, undefined, targetLanguageCode);
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+      setAttachedImageData(null);
     } catch (error) {
       console.error('Error:', error);
       const message = error instanceof Error ? error.message : GEMINI_NOT_CONFIGURED_MESSAGE;
       toast.error(message);
-      setQaPairs((prev) => prev.filter((pair) => pair.id !== pairId));
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY;
@@ -565,9 +647,13 @@ function HybridView({
     if (dragStartY.current === null) return;
     const diff = clientY - dragStartY.current;
 
-    if (diff < -40) {
+    if (isExpanded) {
+      if (diff > 60) {
+        onCollapse();
+      }
+    } else if (diff < -50) {
       onExpand();
-    } else if (diff > 40) {
+    } else if (diff > 90) {
       onDismiss();
     }
 
@@ -592,18 +678,47 @@ function HybridView({
     }
   };
 
+  const conversationRows = (() => {
+    const rows: Array<
+      | { type: 'assistant'; assistant: ChatMessage }
+      | { type: 'pair'; user: ChatMessage; assistant?: ChatMessage }
+    > = [];
+    let pendingUser: ChatMessage | null = null;
+
+    for (const message of messages) {
+      if (message.role === 'user') {
+        if (pendingUser) {
+          rows.push({ type: 'pair', user: pendingUser });
+        }
+        pendingUser = message;
+      } else if (pendingUser) {
+        rows.push({ type: 'pair', user: pendingUser, assistant: message });
+        pendingUser = null;
+      } else {
+        rows.push({ type: 'assistant', assistant: message });
+      }
+    }
+
+    if (pendingUser) {
+      rows.push({ type: 'pair', user: pendingUser });
+    }
+
+    return rows;
+  })();
+
   return (
     <div className="absolute inset-0">
       {/* Background image with blur overlay */}
       <img src={image} className="w-full h-full object-cover absolute inset-0" />
       <div className="absolute inset-0 bg-black/40" />
 
-      {/* Sheet that covers 40-50% of screen with glassmorphism */}
+      {/* Draggable anchored sheet: half-expanded and full-expanded */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-b from-white/20 to-white/10 backdrop-blur-3xl border-t border-white/30 rounded-t-3xl flex flex-col overflow-hidden z-20 shadow-2xl"
+        className="absolute left-0 right-0 bottom-0 bg-gradient-to-b from-[#F7F9FF]/95 to-[#F7F9FF]/80 dark:from-[#0b1b28]/95 dark:to-[#0b1b28]/80 backdrop-blur-3xl border-t border-[#2c638b]/20 dark:border-[#9bd1ff]/20 rounded-t-3xl flex flex-col overflow-hidden z-20 shadow-2xl"
         style={{
+          top: isExpanded ? '6%' : '50%',
           transform: `translateY(${dragOffsetY}px)`,
-          transition: isDragging ? 'none' : 'transform 240ms ease-out',
+          transition: isDragging ? 'none' : 'top 260ms ease-out, transform 240ms ease-out',
           backdropFilter: 'blur(20px) brightness(1.1)',
           WebkitBackdropFilter: 'blur(20px) brightness(1.1)'
         }}
@@ -615,81 +730,140 @@ function HybridView({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
         >
-          <div className="w-12 h-1.5 bg-white/50 rounded-full shadow-md" />
+          <div className="w-12 h-1.5 bg-[#2c638b]/35 dark:bg-[#9bd1ff]/35 rounded-full shadow-md" />
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-4 space-y-3 [scrollbar-width:none] [-ms-overflow-style:none]">
-          {/* Single dialogue box: explanation + Q/A + suggested questions */}
-          <div className="bg-white/20 border border-white/30 rounded-2xl p-4 backdrop-blur-md space-y-3">
-            <div>
-              <h2 className="text-xl font-bold text-white">{explanation.title}</h2>
-              <p className="text-sm text-white/85 mt-1">{explanation.description}</p>
+          <div className={isExpanded ? 'pt-1' : 'pt-2'}>
+            <h2 className={`font-bold text-[#2c638b] dark:text-[#e6f3ff] transition-all ${isExpanded ? 'text-xl' : 'text-lg'}`}>{explanation.title}</h2>
+            <p className="text-sm text-[#2c638b]/85 dark:text-[#cfe8ff]/80 mt-1">{explanation.description}</p>
+          </div>
+
+          {conversationRows.map((row, index) => (
+            <div key={row.type === 'assistant' ? row.assistant.id : row.user.id} className="border-t border-[#2c638b]/15 dark:border-[#9bd1ff]/15 pt-3 space-y-2">
+              {row.type === 'assistant' ? (
+                <>
+                  <p className="text-[11px] uppercase tracking-wide text-[#2c638b] dark:text-[#9bd1ff] font-semibold">AI</p>
+                  <p className="text-sm leading-relaxed text-[#2c638b]/90 dark:text-[#e6f3ff]/90">{row.assistant.content}</p>
+                  <p className="text-xs text-[#2c638b]/60 dark:text-[#9bd1ff]/60">
+                    {row.assistant.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-[#2c638b]/75 dark:text-[#9bd1ff]/75 font-semibold">You</p>
+                    {row.user.image && (
+                      <img
+                        src={row.user.image}
+                        alt="uploaded"
+                        className="mt-1 mb-2 w-full max-w-[220px] h-auto rounded-xl border border-[#2c638b]/20 dark:border-[#9bd1ff]/20 object-cover"
+                      />
+                    )}
+                    <p className="text-sm leading-relaxed text-[#2c638b] dark:text-[#e6f3ff]">{row.user.content}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-[#2c638b] dark:text-[#9bd1ff] font-semibold">AI</p>
+                    {row.assistant ? (
+                      <p className="text-sm leading-relaxed text-[#2c638b]/90 dark:text-[#e6f3ff]/90">{row.assistant.content}</p>
+                    ) : isLoading && index === conversationRows.length - 1 ? (
+                      <div className="flex items-center gap-2 py-1">
+                        <div className="w-2 h-2 bg-[#2c638b]/60 dark:bg-[#9bd1ff]/60 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-[#2c638b]/60 dark:bg-[#9bd1ff]/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        <div className="w-2 h-2 bg-[#2c638b]/60 dark:bg-[#9bd1ff]/60 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed text-[#2c638b]/60 dark:text-[#9bd1ff]/60">...</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#2c638b]/60 dark:text-[#9bd1ff]/60">
+                    {row.user.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </>
+              )}
             </div>
+          ))}
 
-            {qaPairs.map((pair, index) => (
-              <div key={pair.id} className="border-t border-white/25 pt-3 space-y-2">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-white/70 font-semibold">You</p>
-                  <p className="text-sm text-white">{pair.question}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-blue-100 font-semibold">AI</p>
-                  {pair.answer ? (
-                    <p className="text-sm text-white/90">{pair.answer}</p>
-                  ) : isLoading && index === qaPairs.length - 1 ? (
-                    <div className="flex items-center gap-2 py-1">
-                      <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+          {conversationRows.length === 0 && !isLoading && (
+            <p className="text-sm text-[#2c638b]/75 dark:text-[#cfe8ff]/75">{t('aiLens.whatWouldYouLikeToKnow')}</p>
+          )}
 
-            <div className="border-t border-white/25 pt-3">
-              <p className="text-[11px] uppercase tracking-wide text-white/70 font-semibold mb-2">Suggested Questions</p>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {sampleQuestions.map((q, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleAskQuestion(q)}
-                    disabled={isLoading}
-                    className="flex-shrink-0 bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm px-4 py-2 rounded-full whitespace-nowrap disabled:opacity-50 transition-colors"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
+          <div className="border-t border-[#2c638b]/15 dark:border-[#9bd1ff]/15 pt-3">
+            <p className="text-[11px] uppercase tracking-wide text-[#2c638b]/75 dark:text-[#9bd1ff]/75 font-semibold mb-2">Suggested Questions</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {sampleQuestions.map((q, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleAskQuestion(q)}
+                  disabled={isLoading}
+                  className="flex-shrink-0 bg-[#F7F9FF]/70 hover:bg-[#F7F9FF] dark:bg-[#142636]/70 dark:hover:bg-[#1a2f42] border border-[#2c638b]/25 dark:border-[#9bd1ff]/25 text-[#2c638b] dark:text-[#e6f3ff] text-sm px-4 py-2 rounded-full whitespace-nowrap disabled:opacity-50 transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
+
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Micro Input */}
-        <div className="px-4 pb-4 border-t border-white/20 pt-3">
-          <div className="flex gap-2 items-center bg-white/20 hover:bg-white/25 border border-white/30 rounded-full px-4 py-2 backdrop-blur-md transition-all" style={{ backdropFilter: 'blur(10px)' }}>
-            <input
-              type="text"
-              placeholder={t('aiLens.askQuestionPlaceholder')}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !isLoading) {
-                  handleAskQuestion(input);
-                }
-              }}
-              disabled={isLoading}
-              className="flex-1 bg-transparent text-white placeholder-white/70 outline-none text-sm disabled:opacity-50"
-            />
+        <div className="px-4 pb-4 border-t border-[#2c638b]/15 dark:border-[#9bd1ff]/15 pt-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoSelected}
+          />
+          <div className="flex gap-3 items-center">
             <button
-              onClick={() => handleAskQuestion(input)}
-              disabled={isLoading || !input.trim()}
-              className="text-white/70 hover:text-white disabled:opacity-50 transition-colors"
+              onClick={handlePickPhoto}
+              className="w-10 h-10 rounded-full bg-[#F7F9FF]/70 hover:bg-[#F7F9FF] dark:bg-[#142636]/70 dark:hover:bg-[#1a2f42] border border-[#2c638b]/25 dark:border-[#9bd1ff]/25 flex items-center justify-center transition-colors"
+              aria-label="Attach photo"
             >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              <Image size={20} className="text-[#2c638b] dark:text-[#e6f3ff]" />
             </button>
+            <button
+              onClick={toggleListening}
+              className={`w-10 h-10 rounded-full border border-white/30 dark:border-[#9bd1ff]/25 flex items-center justify-center transition-colors ${
+                isListening ? 'bg-red-100 hover:bg-red-200 border-red-200' : 'bg-[#F7F9FF]/70 hover:bg-[#F7F9FF] dark:bg-[#142636]/70 dark:hover:bg-[#1a2f42] border-[#2c638b]/25'
+              }`}
+              aria-label="Voice input"
+            >
+              <Mic size={20} className={isListening ? 'text-red-600' : 'text-[#2c638b] dark:text-[#e6f3ff]'} />
+            </button>
+            <div className="flex-1 flex gap-2 bg-[#F7F9FF]/70 dark:bg-[#142636]/70 border border-[#2c638b]/25 dark:border-[#9bd1ff]/25 rounded-full px-4 py-2">
+              <input
+                type="text"
+                placeholder={t('aiLens.askQuestionPlaceholder')}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !isLoading) {
+                    handleAskQuestion(input);
+                  }
+                }}
+                disabled={isLoading}
+                className="flex-1 bg-transparent text-[#2c638b] dark:text-[#e6f3ff] placeholder:text-[#2c638b]/60 dark:placeholder:text-[#cfe8ff]/60 outline-none text-sm disabled:opacity-50"
+              />
+              <button
+                onClick={() => handleAskQuestion(input)}
+                disabled={isLoading || !input.trim()}
+                className="text-[#2c638b]/70 hover:text-[#2c638b] dark:text-[#cfe8ff]/70 dark:hover:text-[#e6f3ff] disabled:opacity-50 transition-colors"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
+            </div>
           </div>
+          {(isListening || attachedImageData) && (
+            <p className="text-[11px] text-[#2c638b]/80 dark:text-[#cfe8ff]/80 mt-2">
+              {isListening
+                ? `🎤 ${t('aiLens.listening')}`
+                : t('toast.photoUpdated')}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -718,7 +892,7 @@ function FullChatView({
   const dragStartY = useRef<number | null>(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isExpandedVisual, setIsExpandedVisual] = useState(false);
+  const [enterOffsetY, setEnterOffsetY] = useState(120);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sampleQuestions = [
@@ -733,8 +907,8 @@ function FullChatView({
   }, [messages]);
 
   useEffect(() => {
-    const animationFrame = requestAnimationFrame(() => setIsExpandedVisual(true));
-    return () => cancelAnimationFrame(animationFrame);
+    const frame = requestAnimationFrame(() => setEnterOffsetY(0));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const handleSendMessage = async (question: string) => {
@@ -845,16 +1019,14 @@ function FullChatView({
 
   return (
     <div
-      className={`absolute inset-0 rounded-t-3xl flex flex-col z-30 overflow-hidden backdrop-blur-sm transition-colors duration-300 ${
-        isExpandedVisual ? 'bg-gradient-to-b from-white/95 to-white' : 'bg-gradient-to-b from-white/55 to-white/80'
-      }`}
+      className="absolute inset-0 rounded-t-3xl flex flex-col z-30 overflow-hidden bg-gradient-to-b from-white/50 to-white/35 border-t border-white/40"
       style={{
-        transform: `translateY(${dragOffsetY}px)`,
+        transform: `translateY(${dragOffsetY + enterOffsetY}px)`,
         transition: isDragging
           ? 'transform 0ms linear'
-          : 'transform 240ms ease-out, background 300ms ease-out',
-        backdropFilter: 'blur(10px) brightness(0.98)',
-        WebkitBackdropFilter: 'blur(10px) brightness(0.98)'
+          : 'transform 260ms ease-out',
+        backdropFilter: 'blur(20px) brightness(1.1)',
+        WebkitBackdropFilter: 'blur(20px) brightness(1.1)'
       }}
     >
       {/* Handle bar at top */}
@@ -867,40 +1039,36 @@ function FullChatView({
         <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
       </div>
 
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900">{t('aiLens.analysisChatTitle')}</h2>
-        <p className="text-xs text-gray-500 mt-1">{t('aiLens.analysisChatSubtitle', { title: explanation.title })}</p>
-      </div>
-
       {/* Messages */}
       <div
         className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-4 [scrollbar-width:none] [-ms-overflow-style:none]"
       >
-        {conversationRows.map((row, index) => (
-          <div key={row.type === 'assistant' ? row.assistant.id : row.user.id} className="flex justify-start gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
-              <Bot size={18} className="text-blue-600" />
-            </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">{explanation.title}</h2>
+          <p className="text-sm text-gray-700 mt-1">{explanation.description}</p>
+        </div>
 
+        {conversationRows.map((row, index) => (
+          <div key={row.type === 'assistant' ? row.assistant.id : row.user.id} className="border-t border-white/40 pt-3 space-y-2">
             {row.type === 'assistant' ? (
-              <div className="max-w-[85%] bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-bl-none">
-                <p className="text-sm leading-relaxed">{row.assistant.content}</p>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-[#2c638b] font-semibold">AI</p>
+                <p className="text-sm leading-relaxed text-gray-800">{row.assistant.content}</p>
                 <p className="text-xs mt-1 text-gray-500">
                   {row.assistant.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             ) : (
-              <div className="max-w-[90%] bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-bl-none space-y-2">
+              <>
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-500">You</p>
-                  <p className="text-sm leading-relaxed">{row.user.content}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-gray-600 font-semibold">You</p>
+                  <p className="text-sm leading-relaxed text-gray-900">{row.user.content}</p>
                 </div>
 
-                <div className="border-t border-gray-200 pt-2">
-                  <p className="text-[11px] font-semibold text-[#2c638b]">AI</p>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-[#2c638b] font-semibold">AI</p>
                   {row.assistant ? (
-                    <p className="text-sm leading-relaxed">{row.assistant.content}</p>
+                    <p className="text-sm leading-relaxed text-gray-800">{row.assistant.content}</p>
                   ) : isLoading && index === conversationRows.length - 1 ? (
                     <div className="flex items-center gap-2 py-1">
                       <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
@@ -915,17 +1083,19 @@ function FullChatView({
                 <p className="text-xs text-gray-500">
                   {row.user.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
-              </div>
+              </>
             )}
           </div>
         ))}
 
+        {conversationRows.length === 0 && !isLoading && (
+          <p className="text-sm text-gray-600">{t('aiLens.whatWouldYouLikeToKnow')}</p>
+        )}
+
         {isLoading && conversationRows.length === 0 && (
-          <div className="flex justify-start gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
-              <Bot size={18} className="text-blue-600" />
-            </div>
-            <div className="bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2">
+          <div className="border-t border-white/40 pt-3">
+            <p className="text-[11px] uppercase tracking-wide text-[#2c638b] font-semibold">AI</p>
+            <div className="flex items-center gap-2 py-1">
               <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
               <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
@@ -937,18 +1107,19 @@ function FullChatView({
 
       {/* Persistent Recommendations */}
       <div
-        className="px-4 py-3 border-b border-gray-100 bg-gray-50/50"
+        className="px-4 py-3 border-t border-white/30"
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
       >
+        <p className="text-[11px] uppercase tracking-wide text-gray-600 font-semibold mb-2">Suggested Questions</p>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {sampleQuestions.map((q, idx) => (
             <button
               key={idx}
               onClick={() => handleSendMessage(q)}
               disabled={isLoading}
-              className="flex-shrink-0 bg-white border border-gray-200 text-gray-700 text-xs px-3 py-2 rounded-full whitespace-nowrap hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="flex-shrink-0 bg-white/20 hover:bg-white/30 border border-white/30 text-gray-800 text-xs px-3 py-2 rounded-full whitespace-nowrap disabled:opacity-50 transition-colors"
             >
               {q}
             </button>
@@ -958,19 +1129,19 @@ function FullChatView({
 
       {/* Multimedia Input Bar */}
       <div
-        className="bg-white border-t border-gray-200 px-4 py-4 space-y-3"
+        className="border-t border-white/30 px-4 py-4 space-y-3"
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
       >
         <div className="flex gap-3 items-center">
-          <button className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-            <Image size={20} className="text-gray-600" />
+          <button className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 flex items-center justify-center transition-colors">
+            <Image size={20} className="text-gray-800" />
           </button>
-          <button className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-            <Mic size={20} className="text-gray-600" />
+          <button className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 flex items-center justify-center transition-colors">
+            <Mic size={20} className="text-gray-800" />
           </button>
-          <div className="flex-1 flex gap-2 bg-gray-100 rounded-full px-4 py-2">
+          <div className="flex-1 flex gap-2 bg-white/20 border border-white/30 rounded-full px-4 py-2">
             <input
               type="text"
               placeholder={t('aiLens.whatWouldYouLikeToKnow')}
@@ -982,7 +1153,7 @@ function FullChatView({
                 }
               }}
               disabled={isLoading}
-              className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-500 disabled:opacity-50"
+              className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-600 disabled:opacity-50"
             />
             <button
               onClick={() => handleSendMessage(input)}

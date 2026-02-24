@@ -44,6 +44,7 @@
     "community": "Komuniti",
     "myJournal": "Jurnal Saya",
     "favourites": "Kegemaran",
+    "notification": "Pemberitahuan",
     "forYou": "Untuk Anda",
     "statistics": "Statistik Jurnal",
     "likes": "Suka",
@@ -106,6 +107,8 @@
       "apiKeyRequiredTitle": "Kunci API Google Maps Diperlukan",
       "apiKeyRequiredDesc": "Tambah VITE_GOOGLE_MAPS_API_KEY ke fail .env anda",
       "loading": "Memuatkan...",
+      "nearby": "Berdekatan",
+      "route": "Laluan",
       "viewNearbyTitle": "Lihat tarikan pelancong berdekatan",
       "nearbyAttractions": "Tarikan Berdekatan",
       "backToLocationTitle": "Kembali ke lokasi saya"
