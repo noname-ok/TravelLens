@@ -179,6 +179,38 @@ export async function translateImageText(imageData: string, targetLang = 'Englis
 }
 
 /**
+ * 4️⃣ AI Trip Planning - Generate Itinerary
+ */
+export interface PlaceForItinerary {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  estimatedDuration: number; // hours
+}
+
+export interface ItineraryResponse {
+  itinerary: Array<{
+    day: number;
+    time: string;
+    place: string;
+    duration: number;
+    description: string;
+    estimatedTravelTime: number;
+    notes: string;
+  }>;
+  summary: string;
+  highlights: string[];
+  tips: string[];
+}
+
+export async function generateTripItinerary(
+  places: PlaceForItinerary[],
+  numberOfDays: number,
+  startDate: string,
+  preferences?: string[]
+): Promise<ItineraryResponse> {
+  if (!genAI) throw new Error('Gemini API not initialized.');
  * 4️⃣ Generate Place Insights (Text-based AI for tourist destinations)
  */
 export interface PlaceInsights {
@@ -203,6 +235,41 @@ export async function generatePlaceInsights(
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
 
+    const placesList = places
+      .map((p, i) => `${i + 1}. ${p.name} (${p.address}) - Duration: ${p.estimatedDuration}h`)
+      .join('\n');
+
+    const prompt = `You are an expert travel planner. Create a detailed ${numberOfDays}-day trip itinerary starting from ${startDate}.
+
+Places to visit:
+${placesList}
+
+Preferences: ${preferences?.join(', ') || 'General exploration'}
+
+Create a realistic schedule considering:
+- Travel time between locations
+- Opening hours and best visiting times
+- Rest periods and meals
+- Logical geographic routing to minimize travel time
+- Balance between activities and relaxation
+
+Return ONLY a JSON object with this exact structure:
+{
+  "itinerary": [
+    {
+      "day": 1,
+      "time": "09:00",
+      "place": "Place Name",
+      "duration": 2,
+      "description": "What to do here and why",
+      "estimatedTravelTime": 15,
+      "notes": "Any special tips or information"
+    }
+  ],
+  "summary": "Brief overview of the entire trip",
+  "highlights": ["Highlight 1", "Highlight 2", "Highlight 3"],
+  "tips": ["Cultural tip", "Practical tip", "Safety tip"]
+}`;
     const typeContext = placeTypes.join(', ');
     const ratingText = rating ? `It has a rating of ${rating.toFixed(1)} stars.` : '';
     const addressText = address ? `Located at: ${address}.` : '';
@@ -235,6 +302,32 @@ Make every answer location-specific. Avoid generic travel advice.`;
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) throw new Error('AI returned invalid itinerary format.');
+
+    return JSON.parse(jsonMatch[0]) as ItineraryResponse;
+  });
+}
+
+/**
+ * 5️⃣ AI Trip Planning - Find Places by Preference
+ */
+export interface PreferencePlacesResponse {
+  recommendedPlaces: Array<{
+    name: string;
+    type: string;
+    estimatedDuration: number;
+    whyRecommended: string;
+  }>;
+  summary: string;
+}
+
+export async function findPlacesByPreference(
+  preferences: string[],
+  numberOfDays: number,
+  location: string
+): Promise<PreferencePlacesResponse> {
+  if (!genAI) throw new Error('Gemini API not initialized.');
     
     if (!jsonMatch) throw new Error('AI returned invalid format for place insights.');
     
@@ -309,6 +402,34 @@ export async function translatePlainText(text: string, targetLanguageCode: strin
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
 
+    const prompt = `You are an expert travel guide. Suggest ${Math.min(preferences.length * 2, 8)} specific, real places to visit in ${location} based on these preferences: ${preferences.join(', ')}.
+
+For a ${numberOfDays}-day trip, recommend places that:
+- Exist in reality (real, famous locations in ${location})
+- Match the user's preferences
+- Are reasonably accessible
+- Can be visited in the given timeframe
+
+Return ONLY a JSON object with this exact structure:
+{
+  "recommendedPlaces": [
+    {
+      "name": "Exact place name",
+      "type": "Category (e.g., Temple, Museum, Restaurant)",
+      "estimatedDuration": 2,
+      "whyRecommended": "Why this matches their preferences"
+    }
+  ],
+  "summary": "Brief explanation of the selection"
+}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) throw new Error('AI returned invalid places format.');
+
+    return JSON.parse(jsonMatch[0]) as PreferencePlacesResponse;
     const prompt = `Translate the following text to ${targetLanguage}. Keep meaning, tone, and punctuation naturally. Return only the translated text without quotes or explanations.\n\nText:\n${trimmed}`;
 
     const result = await model.generateContent(prompt);

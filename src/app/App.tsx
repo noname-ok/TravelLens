@@ -1,5 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from './config/firebase';
+import LoginScreen from './components/LoginScreen';
+import SignUpScreen, { SignUpFormData } from './components/SignUpScreen';
+import ForgetPasswordScreen from './components/ForgetPasswordScreen';
+import PhoneVerificationScreen from './components/PhoneVerificationScreen';
+import OnboardingScreen from './components/OnboardingScreen';
+import CreateNewPasswordScreen from './components/CreateNewPasswordScreen';
+import JournalScreen, { JournalEntry, JournalTab } from './components/JournalScreen';
+import MapViewScreen from './components/MapViewScreen';
+import AILensScreen from './components/AILensScreen';
+import ProfileScreen from './components/ProfileScreen';
+import JournalDetailScreen from './components/JournalDetailScreen';
+import CreateJournalScreen from './components/CreateJournalScreen';
+import EditProfileScreen from './components/EditProfileScreen';
+import LanguageScreen from './components/LanguageScreen';
+import TermsScreen from './components/TermsScreen';
+import PrivacyScreen from './components/PrivacyScreen';
+import ItineraryViewScreen from './components/ItineraryViewScreen';
+import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
+import { signUpWithEmail, logOut } from './services/authService';
+import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from './services/userProfileService';
+import { TripItinerary } from './types/tripPlanning';
+import { deleteTripFromStorage, updateTripInStorage } from './services/tripPlannerService';
 import { auth } from '@/app/config/firebase';
 import LoginScreen from '@/app/components/LoginScreen';
 import SignUpScreen, { SignUpFormData } from '@/app/components/SignUpScreen';
@@ -32,7 +56,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy' | 'itinerary';
 
 export default function App() {
   const { t } = useTranslation();
@@ -46,6 +70,7 @@ export default function App() {
   const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<TripItinerary | null>(null);
   const interestViewedJournalIds = useRef<Set<string>>(new Set());
 
   const handleNavigate = (screen: Screen) => {
@@ -177,6 +202,22 @@ export default function App() {
     setCurrentScreen('createNewPassword');
   };
 
+  const handleViewTrip = (trip: TripItinerary) => {
+    setSelectedTrip(trip);
+    setCurrentScreen('itinerary');
+  };
+
+  const handleDeleteTrip = (tripId: string) => {
+    deleteTripFromStorage(tripId);
+    setSelectedTrip(null);
+    toast.success('Trip deleted successfully');
+  };
+
+  const handleUpdateTrip = (trip: TripItinerary) => {
+    updateTripInStorage(trip);
+    setSelectedTrip(trip);
+    toast.success('Trip updated successfully');
+  };
   useEffect(() => {
     if (!user || !selectedJournal || currentScreen !== 'journalDetail') {
       return;
@@ -412,6 +453,11 @@ export default function App() {
         {currentScreen === 'mapview' && user && (
           <MapViewScreen
             currentScreen={currentScreen}
+            onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+            onViewTrip={(trip: TripItinerary) => {
+              setSelectedTrip(trip);
+              setCurrentScreen('itinerary');
+            }}
             onNavigate={handleNavigate}
           />
         )}
@@ -482,6 +528,21 @@ export default function App() {
                 });
                 toast.error('Failed to update settings. Please try again.');
               }
+            }}
+          />
+        )}
+        {currentScreen === 'itinerary' && selectedTrip && (
+          <ItineraryViewScreen
+            trip={selectedTrip}
+            onBack={() => {
+              setSelectedTrip(null);
+              setCurrentScreen('mapview');
+            }}
+            onDelete={handleDeleteTrip}
+            onUpdate={handleUpdateTrip}
+            onReplan={() => {
+              setSelectedTrip(null);
+              setCurrentScreen('mapview');
             }}
           />
         )}
