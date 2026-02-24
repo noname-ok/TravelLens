@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Camera, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { signInWithEmail, signInWithGoogle } from '@/app/services/authService';
+import travelLensLogo from '../../assets/TravelLens.png';
 
-const imgIcon1 = "https://www.figma.com/api/mcp/asset/3350b0c3-3072-4ea6-86d0-37a67f8115f8";
-const imgEye = "https://www.figma.com/api/mcp/asset/e1e0e2ad-5130-408c-8bb0-aa43e9b978f1";
 const imgGmail = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg";
 
 interface LoginScreenProps {
@@ -71,9 +70,7 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <div className="absolute content-stretch flex flex-col gap-[13px] items-center left-[33px] top-[80px] w-[323px]" data-node-id="1:2491">
           <div className="relative shrink-0 size-[114px]" data-name="icon 1" data-node-id="1:2492">
-            <div className="absolute inset-0 rounded-full bg-[#e7f4fb] flex items-center justify-center">
-              <Camera size={48} className="text-[#0fa3e2]" />
-            </div>
+            <img src={travelLensLogo} alt="TravelLens Logo" className="w-full h-full object-contain" />
           </div>
           <div className="content-stretch flex flex-col gap-[30px] items-center relative shrink-0 w-full" data-node-id="1:2493">
             <div className="content-stretch flex flex-col items-center relative shrink-0" data-node-id="1:2494">
@@ -123,9 +120,9 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
                         data-node-id="1:2510"
                       >
                         {showPassword ? (
-                          <EyeOff size={19} className="text-black dark:text-white" />
-                        ) : (
                           <Eye size={19} className="text-black dark:text-white" />
+                        ) : (
+                          <EyeOff size={19} className="text-black dark:text-white" />
                         )}
                       </button>
                     </div>

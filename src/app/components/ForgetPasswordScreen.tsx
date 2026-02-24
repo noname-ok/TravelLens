@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendPasswordReset } from '@/app/services/authService';
-
-const imgIcon1 = "https://www.figma.com/api/mcp/asset/e98ba141-d4aa-4f2b-84c3-0c2bca3e7684";
-const imgAngleLeft = "https://www.figma.com/api/mcp/asset/db9dbf19-8dfd-49d3-bfa3-8f7589dc2555";
+import travelLensLogo from '../../assets/TravelLens.png';
 
 // Common country codes
 const COUNTRY_CODES = [
@@ -122,15 +121,13 @@ export default function ForgetPasswordScreen({ onBack, onPhoneVerification }: Fo
           data-name="angle-left" 
           data-node-id="1:2525"
         >
-          <img alt="Back" className="block max-w-none size-full dark:invert" src={imgAngleLeft} />
+          <ChevronLeft size={24} className="text-black dark:text-white" />
         </button>
         
         <div className="absolute content-stretch flex flex-col gap-[25px] items-start left-[26px] top-[164px]" data-node-id="1:2527">
         <div className="content-stretch flex flex-col gap-[20px] items-start relative shrink-0" data-node-id="1:2528">
           <div className="relative shrink-0 size-[114px]" data-name="icon 1" data-node-id="1:2529">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <img alt="" className="absolute left-[-22.5%] max-w-none size-[145%] top-[-10.75%]" src={imgIcon1} />
-            </div>
+            <img src={travelLensLogo} alt="TravelLens Logo" className="w-full h-full object-contain" />
           </div>
           <div className="content-stretch flex flex-col gap-[5px] items-start leading-[normal] not-italic relative shrink-0 tracking-[-0.165px] w-[323px]" data-node-id="1:2530">
             <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[18px] text-black dark:text-white" data-node-id="1:2531">

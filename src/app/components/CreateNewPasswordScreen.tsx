@@ -1,11 +1,8 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
-
-const imgIcon1 = "https://www.figma.com/api/mcp/asset/9f1788a8-11dc-47ec-9768-cbe920deca16";
-const imgAngleLeft = "https://www.figma.com/api/mcp/asset/9c3356ba-5e4f-4bf4-aea9-99cc828a0941";
-const imgEye = "https://www.figma.com/api/mcp/asset/d7d3f672-f2dd-4bb5-b76c-09daffc97115";
 
 interface CreateNewPasswordScreenProps {
   onBack?: () => void;
@@ -121,7 +118,11 @@ export default function CreateNewPasswordScreen({ onBack, onPasswordCreated }: C
                     onClick={() => setShowPassword(!showPassword)}
                     className="relative size-[19px] cursor-pointer flex-shrink-0"
                   >
-                    <img alt={showPassword ? "Hide password" : "Show password"} className="block max-w-none size-full dark:invert" src={imgEye} />
+                    {showPassword ? (
+                      <Eye size={19} className="text-black dark:text-white" />
+                    ) : (
+                      <EyeOff size={19} className="text-black dark:text-white" />
+                    )}
                   </button>
                 </div>
 

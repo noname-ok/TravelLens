@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Check, ChevronDown, ChevronLeft, Eye, EyeOff } from 'lucide-react';
-
-const imgVector = "https://www.figma.com/api/mcp/asset/90336c2f-f3a7-4d22-a8f2-66f98df05882";
-const imgAngleLeft = "https://www.figma.com/api/mcp/asset/1a3f9342-d6e1-494e-8825-82e9199de542";
-const imgCaretDown = "https://www.figma.com/api/mcp/asset/b396ffcd-cced-4a3d-9c24-71435feaeac8";
-const imgEye = "https://www.figma.com/api/mcp/asset/a6af9c4a-b252-47b0-aecc-6f4ebecbc5cd";
+import travelLensLogo from '../../assets/TravelLens.png';
 
 // Common country codes
 const COUNTRY_CODES = [
@@ -91,7 +87,13 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
           <ChevronLeft size={24} className="text-black dark:text-white" />
         </button>
         
-        <div className="absolute content-stretch flex flex-col gap-[5px] items-start leading-[normal] left-[26px] not-italic top-[110px] tracking-[-0.165px] w-[323px]" data-node-id="1:2593">
+        <div className="absolute left-[26px] top-[110px]">
+          <div className="w-[100px] h-[100px]">
+            <img src={travelLensLogo} alt="TravelLens Logo" className="w-full h-full object-contain" />
+          </div>
+        </div>
+        
+        <div className="absolute content-stretch flex flex-col gap-[5px] items-start leading-[normal] left-[26px] not-italic top-[225px] tracking-[-0.165px] w-[323px]" data-node-id="1:2593">
           <p className="font-['Poppins:SemiBold',sans-serif] relative shrink-0 text-[18px] text-black dark:text-white" data-node-id="1:2594">
             Create account
           </p>
@@ -100,7 +102,7 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
           </p>
         </div>
         
-        <div className="absolute content-stretch flex flex-col gap-[15px] items-start left-[26px] top-[173px] pb-20" data-name="Profile register file" data-node-id="1:2596">
+        <div className="absolute content-stretch flex flex-col gap-[15px] items-start left-[26px] top-[300px] pb-20" data-name="Profile register file" data-node-id="1:2596">
           <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-[323px]" data-node-id="1:2597">
             {/* First Name */}
             <div className="content-stretch flex flex-col gap-[2px] items-start relative shrink-0 w-full" data-name="name" data-node-id="1:2598">
@@ -242,9 +244,9 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
                   data-node-id="1:2635"
                 >
                   {showPassword ? (
-                    <EyeOff size={19} className="text-black dark:text-white" />
-                  ) : (
                     <Eye size={19} className="text-black dark:text-white" />
+                  ) : (
+                    <EyeOff size={19} className="text-black dark:text-white" />
                   )}
                 </button>
               </div>
@@ -287,7 +289,7 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
         
         <button
           onClick={onBack}
-          className="absolute block cursor-pointer font-['Poppins:Regular',sans-serif] leading-[0] left-[99px] not-italic text-[0px] text-black dark:text-white top-[764px] whitespace-nowrap hover:opacity-80"
+          className="absolute block cursor-pointer font-['Poppins:Regular',sans-serif] leading-[0] left-[99px] not-italic text-[0px] text-black dark:text-white top-[880px] whitespace-nowrap hover:opacity-80"
           data-node-id="1:2641"
         >
           <p className="text-[10px]">
