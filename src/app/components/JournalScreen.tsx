@@ -29,29 +29,6 @@ function formatTimeAgo(date: Date, language = 'en') {
   return rtf.format(-days, 'day');
 }
 
-const imgNotch = 'https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb';
-const imgRightSide = 'https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf';
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ''}>
-      <div className="h-[47px] relative w-full">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">9:41</p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function HomeIndicator({ className }: { className?: string }) {
   return (
     <div className={className || ''}>
@@ -402,8 +379,6 @@ export default function JournalScreen({
         `}</style>
 
       <div className="relative mx-auto w-full max-w-[390px] h-full">
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
-
         <div className="absolute bg-white dark:bg-gray-900 h-[109px] left-0 right-0 top-[-2px]" />
 
         <div className="absolute left-0 right-0 top-[52px] px-[20px] flex items-center justify-between">

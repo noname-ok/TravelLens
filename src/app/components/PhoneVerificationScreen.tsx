@@ -3,32 +3,8 @@ import { toast } from 'sonner';
 import { initializeRecaptcha, sendPhoneVerificationCode, verifyPhoneCode } from '@/app/services/authService';
 import { RecaptchaVerifier } from 'firebase/auth';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/f253bd1d-f8f7-4e3e-a85c-75dc10cd4849";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/dd4c1885-54a0-4e58-8757-354edd73ec7a";
 const imgIcon1 = "https://www.figma.com/api/mcp/asset/e98ba141-d4aa-4f2b-84c3-0c2bca3e7684";
 const imgAngleLeft = "https://www.figma.com/api/mcp/asset/db9dbf19-8dfd-49d3-bfa3-8f7589dc2555";
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""} data-name="StatusBar / iPhone 13">
-      <div className="h-[47px] relative w-full" data-name="Dark Mode=False, Type=Default">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]" data-name="Notch">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]" data-name="Left Side">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]" data-name="_StatusBar-time">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]" data-name="Right Side">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface PhoneVerificationScreenProps {
   phoneNumber: string;
@@ -206,8 +182,6 @@ export default function PhoneVerificationScreen({
 
         {/* reCAPTCHA container (invisible) */}
         <div id="recaptcha-container"></div>
-        
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
     </div>
   );

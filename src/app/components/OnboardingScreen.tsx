@@ -1,28 +1,4 @@
-const imgNotch = "https://www.figma.com/api/mcp/asset/c216bddb-8e08-446b-96e5-9664fd436d4a";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/ae589795-2db9-459f-86fe-216972baa222";
 const imgIcon1 = "https://www.figma.com/api/mcp/asset/d8ce4cba-6cf7-4b7b-9448-e15358a9d6a8";
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""}>
-      <div className="h-[47px] relative w-full">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-center text-white top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface OnboardingScreenProps {
   onNext?: () => void;
@@ -70,9 +46,6 @@ export default function OnboardingScreen({ onNext }: OnboardingScreenProps) {
             </div>
           </div>
         </div>
-
-        {/* Status Bar */}
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
     </div>
   );

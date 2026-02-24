@@ -45,20 +45,8 @@ interface DetectedText {
 }
 
 // ============================================================================
-// HELPER COMPONENTS (Status Bar, Home Indicator)
+// HELPER COMPONENTS (Home Indicator)
 // ============================================================================
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""}>
-      <div className="h-[47px] relative w-full bg-white/10 backdrop-blur-md">
-        <div className="absolute left-[30px] top-[14px]">
-            <p className="font-semibold text-[17px] text-black dark:text-white">9:41</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function HomeIndicator() {
   return (

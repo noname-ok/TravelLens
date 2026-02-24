@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/8a63521d-68e1-44e1-8b29-d36d92b1b97b";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/9b62d40e-ea82-4fc9-a1c0-be4e0c2e089c";
 const imgVector = "https://www.figma.com/api/mcp/asset/90336c2f-f3a7-4d22-a8f2-66f98df05882";
 const imgAngleLeft = "https://www.figma.com/api/mcp/asset/1a3f9342-d6e1-494e-8825-82e9199de542";
 const imgCaretDown = "https://www.figma.com/api/mcp/asset/b396ffcd-cced-4a3d-9c24-71435feaeac8";
@@ -21,28 +19,6 @@ const COUNTRY_CODES = [
   { code: '+91', country: 'IN', flag: '🇮🇳' },
   { code: '+61', country: 'AU', flag: '🇦🇺' },
 ];
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""} data-name="StatusBar / iPhone 13" data-node-id="1:64">
-      <div className="h-[47px] relative w-full" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]" data-name="Notch" data-node-id="1:66">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]" data-name="Left Side" data-node-id="1:68">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]" data-name="_StatusBar-time" data-node-id="1:69">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap" data-node-id="I1:69;839:7100">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]" data-name="Right Side" data-node-id="1:70">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface SignUpScreenProps {
   onBack?: () => void;
@@ -318,8 +294,6 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
             <span className="font-['Poppins:SemiBold',sans-serif] leading-[normal] not-italic dark:text-white">Go back</span>
           </p>
         </button>
-
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
     </div>
   );
