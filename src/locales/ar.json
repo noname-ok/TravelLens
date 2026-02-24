@@ -18,7 +18,14 @@
     "privateAccount": "حساب خاص",
     "privateAccountDescription": "عندما يكون حسابك عامًا، يمكن للجميع رؤية ملفك الشخصي ومنشوراتك.",
     "makePublicTitle": "جعل حسابك عامًا؟",
-    "makePublicDescription": "سيكون المحتوى الخاص بك مرئيًا للمستخدمين الآخرين. كن حذرًا عند مشاركة التفاصيل الشخصية."
+    "makePublicDescription": "سيكون المحتوى الخاص بك مرئيًا للمستخدمين الآخرين. كن حذرًا عند مشاركة التفاصيل الشخصية.",
+    "publicProfileTitle": "الملف الشخصي",
+    "publicProfileLoading": "جارٍ تحميل الملف الشخصي...",
+    "publicProfileNoBio": "لا توجد نبذة بعد",
+    "publicProfilePosts": "المنشورات",
+    "publicProfileNoPosts": "لا توجد منشورات بعد.",
+    "privateAccountPostsHiddenTitle": "حساب خاص",
+    "privateAccountPostsHiddenDescription": "منشورات هذا المستخدم مخفية لأن حسابه خاص."
   },
   "editProfile": {
     "title": "تعديل الملف الشخصي",
@@ -31,6 +38,27 @@
   "language": {
     "title": "اللغة",
     "changed": "تم تغيير اللغة إلى"
+  },
+  "journal": {
+    "aiSummary": {
+      "title": "ملخص التعليقات بالذكاء الاصطناعي",
+      "generating": "جارٍ الإنشاء...",
+      "emptyHint": "لخّص آراء المسافرين واحصل على نصائح عملية عندما تكون التعليقات قليلة.",
+      "error": "تعذر إنشاء ملخص الذكاء الاصطناعي الآن. يرجى المحاولة مرة أخرى.",
+      "sentimentLabel": "الانطباع",
+      "basedOnComments": "استنادًا إلى {{count}} تعليق",
+      "travelerShouldKnow": "ما يجب أن يعرفه المسافر:",
+      "sentiment": {
+        "positive": "إيجابي",
+        "mixed": "مختلط",
+        "cautious": "حذر"
+      }
+    },
+    "replyAction": "رد",
+    "deleteAction": "حذف",
+    "cancelAction": "إلغاء",
+    "replyingTo": "جارٍ الرد على {{name}}",
+    "replyToPlaceholder": "رد على {{name}}..."
   },
   "navigation": {
     "home": "الرئيسية",

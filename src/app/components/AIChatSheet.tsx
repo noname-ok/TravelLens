@@ -42,13 +42,13 @@ export function AIChatSheet({
   location,
   preferredLanguageCode,
 }: AIChatProps) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const targetLanguageCode = preferredLanguageCode || i18n.language || 'en';
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '0',
       role: 'assistant',
-      content: `Hi! I can answer questions about the ${explanation.title}. What would you like to know?`,
+      content: t('aiLens.chatGreeting', { title: explanation.title }),
       timestamp: new Date(),
     },
   ]);
@@ -82,7 +82,7 @@ export function AIChatSheet({
         };
 
         recognitionRef.current.onerror = () => {
-          toast.error('Speech recognition error');
+          toast.error(t('aiLens.speechRecognitionError'));
           setIsListening(false);
         };
 
@@ -95,7 +95,7 @@ export function AIChatSheet({
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      toast.error('Speech recognition not supported in your browser');
+      toast.error(t('aiLens.speechRecognitionNotSupported'));
       return;
     }
 
@@ -161,10 +161,10 @@ export function AIChatSheet({
   };
 
   const sampleQuestions = [
-    'What does this mean?',
-    'Is it safe?',
-    'Best time to visit?',
-    'How much does it cost?',
+    t('aiLens.sampleQuestion1'),
+    t('aiLens.sampleQuestion2'),
+    t('aiLens.sampleQuestion3'),
+    t('aiLens.sampleQuestion4'),
   ];
 
   const suggestedQuestions = sampleQuestions.filter(
@@ -181,8 +181,8 @@ export function AIChatSheet({
 
         {/* Header */}
         <SheetHeader className="border-b border-gray-200 px-4 py-3">
-          <SheetTitle className="text-lg font-bold text-gray-900">Ask About {explanation.title}</SheetTitle>
-          <SheetDescription className="text-xs text-gray-500">Get instant answers powered by AI</SheetDescription>
+          <SheetTitle className="text-lg font-bold text-gray-900">{t('aiLens.askAboutTitle', { title: explanation.title })}</SheetTitle>
+          <SheetDescription className="text-xs text-gray-500">{t('aiLens.chatDescription')}</SheetDescription>
         </SheetHeader>
 
         {/* Messages area */}
@@ -267,7 +267,7 @@ export function AIChatSheet({
             <div className="flex-1 flex gap-2 bg-gray-100 rounded-full px-4 py-2">
               <input
                 type="text"
-                placeholder="What would you like to know?"
+                placeholder={t('aiLens.whatWouldYouLikeToKnow')}
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
@@ -283,7 +283,7 @@ export function AIChatSheet({
               </button>
             </div>
           </div>
-          {isListening && <p className="text-xs text-red-500 text-center animate-pulse">🎤 Listening...</p>}
+          {isListening && <p className="text-xs text-red-500 text-center animate-pulse">🎤 {t('aiLens.listening')}</p>}
         </div>
       </SheetContent>
     </Sheet>

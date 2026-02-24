@@ -18,7 +18,14 @@
     "privateAccount": "非公開アカウント",
     "privateAccountDescription": "アカウントが公開されている場合、プロフィールと投稿は全員に表示されます。",
     "makePublicTitle": "アカウントを公開しますか？",
-    "makePublicDescription": "コンテンツは他のユーザーに表示されます。個人情報の共有には注意してください。"
+    "makePublicDescription": "コンテンツは他のユーザーに表示されます。個人情報の共有には注意してください。",
+    "publicProfileTitle": "プロフィール",
+    "publicProfileLoading": "プロフィールを読み込み中...",
+    "publicProfileNoBio": "自己紹介はまだありません",
+    "publicProfilePosts": "投稿",
+    "publicProfileNoPosts": "投稿はまだありません。",
+    "privateAccountPostsHiddenTitle": "非公開アカウント",
+    "privateAccountPostsHiddenDescription": "このユーザーのアカウントは非公開のため、投稿は表示されません。"
   },
   "editProfile": {
     "title": "プロフィールを編集",
@@ -72,6 +79,27 @@
     "setAsDefaultLanguage": "デフォルト言語に設定",
     "translateAction": "翻訳",
     "defaultLanguageSetTo": "デフォルト言語を {{language}} に設定しました"
+  },
+  "journal": {
+    "aiSummary": {
+      "title": "AIコメント要約",
+      "generating": "生成中...",
+      "emptyHint": "旅行者のフィードバックを要約し、コメントが少ない場合でも実用的なヒントを提供します。",
+      "error": "現在AI要約を生成できません。しばらくしてから再度お試しください。",
+      "sentimentLabel": "感情",
+      "basedOnComments": "{{count}}件のコメントに基づく",
+      "travelerShouldKnow": "旅行者が知っておくべきこと：",
+      "sentiment": {
+        "positive": "ポジティブ",
+        "mixed": "混合",
+        "cautious": "注意"
+      }
+    },
+    "replyAction": "返信",
+    "deleteAction": "削除",
+    "cancelAction": "キャンセル",
+    "replyingTo": "{{name}} に返信中",
+    "replyToPlaceholder": "{{name}} に返信..."
   },
   "navigation": {
     "home": "ホーム",

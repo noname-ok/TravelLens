@@ -11,6 +11,7 @@ import JournalScreen, { JournalEntry, JournalTab } from './components/JournalScr
 import MapViewScreen from './components/MapViewScreen';
 import AILensScreen from './components/AILensScreen';
 import ProfileScreen from './components/ProfileScreen';
+import PublicProfileScreen from './components/PublicProfileScreen';
 import JournalDetailScreen from './components/JournalDetailScreen';
 import CreateJournalScreen from './components/CreateJournalScreen';
 import EditProfileScreen from './components/EditProfileScreen';
@@ -29,13 +30,14 @@ import {
   deleteJournal,
   incrementJournalViews,
   recordUserJournalInterest,
+  syncAuthorAvatarAcrossContent,
   updateJournal,
   uploadJournalImage,
 } from './services/journalService';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 
-type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy' | 'itinerary';
+type Screen = 'login' | 'signup' | 'forgetPassword' | 'phoneVerification' | 'onboarding' | 'createNewPassword' | 'home' | 'mapview' | 'ailens' | 'profile' | 'userProfileView' | 'journalDetail' | 'createJournal' | 'editProfile' | 'language' | 'terms' | 'privacy' | 'itinerary';
 
 export default function App() {
   const { t } = useTranslation();
@@ -50,6 +52,8 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<TripItinerary | null>(null);
+  const [selectedProfileUser, setSelectedProfileUser] = useState<{ userId: string; userName?: string; userAvatarUrl?: string } | null>(null);
+  const [profileBackScreen, setProfileBackScreen] = useState<'home' | 'journalDetail'>('home');
   const interestViewedJournalIds = useRef<Set<string>>(new Set());
 
   const handleNavigate = (screen: Screen) => {
@@ -197,6 +201,22 @@ export default function App() {
     setSelectedTrip(trip);
     toast.success('Trip updated successfully');
   };
+
+  const handleOpenUserProfile = (
+    target: { userId: string; userName?: string; userAvatarUrl?: string },
+    source: 'home' | 'journalDetail' = 'home',
+  ) => {
+    if (!target.userId || !user) return;
+
+    if (target.userId === user.uid) {
+      setCurrentScreen('profile');
+      return;
+    }
+
+    setSelectedProfileUser(target);
+    setProfileBackScreen(source);
+    setCurrentScreen('userProfileView');
+  };
   useEffect(() => {
     if (!user || !selectedJournal || currentScreen !== 'journalDetail') {
       return;
@@ -316,6 +336,7 @@ export default function App() {
               setJournalInitialTab('myJournal');
               setCurrentScreen('createJournal');
             }}
+            onOpenUserProfile={(target) => handleOpenUserProfile(target, 'home')}
             onOpenJournal={async (journal) => {
               const success = await incrementJournalViews(journal.id);
               const nextViews = (journal.views ?? 0) + (success ? 1 : 0);
@@ -342,10 +363,31 @@ export default function App() {
             location={selectedJournal.location}
             description={selectedJournal.description}
             author={selectedJournal.author || user.displayName || user.email || 'User'}
+            authorId={selectedJournal.authorId}
+            authorAvatarUrl={selectedJournal.authorAvatarUrl}
             timeAgo={selectedJournal.timeAgo}
             likes={selectedJournal.likes}
             bookmarks={selectedJournal.bookmarks}
             imageUrl={selectedJournal.imageUrl}
+            onOpenUserProfile={(target) => handleOpenUserProfile(target, 'journalDetail')}
+          />
+        )}
+        {currentScreen === 'userProfileView' && user && selectedProfileUser && (
+          <PublicProfileScreen
+            viewedUserId={selectedProfileUser.userId}
+            currentUserId={user.uid}
+            fallbackName={selectedProfileUser.userName}
+            fallbackAvatarUrl={selectedProfileUser.userAvatarUrl}
+            onBack={() => setCurrentScreen(profileBackScreen)}
+            onOpenJournal={async (journal) => {
+              const success = await incrementJournalViews(journal.id);
+              const nextViews = (journal.views ?? 0) + (success ? 1 : 0);
+              setSelectedJournal({
+                ...journal,
+                views: nextViews,
+              });
+              setCurrentScreen('journalDetail');
+            }}
           />
         )}
         {currentScreen === 'createJournal' && user && (
@@ -581,6 +623,8 @@ export default function App() {
                   avatarUrl: nextAvatarUrl,
                   updatedAt: new Date(),
                 });
+
+                void syncAuthorAvatarAcrossContent(user.uid, nextAvatarUrl);
                 setCurrentScreen('profile');
               } else {
                 throw new Error('Failed to update profile');

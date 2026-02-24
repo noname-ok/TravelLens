@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Check, ChevronDown, ChevronLeft, Eye, EyeOff } from 'lucide-react';
 
 const imgVector = "https://www.figma.com/api/mcp/asset/90336c2f-f3a7-4d22-a8f2-66f98df05882";
 const imgAngleLeft = "https://www.figma.com/api/mcp/asset/1a3f9342-d6e1-494e-8825-82e9199de542";
@@ -87,7 +88,7 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
           data-name="angle-left" 
           data-node-id="1:2643"
         >
-          <img alt="Back" className="block max-w-none size-full dark:invert" src={imgAngleLeft} />
+          <ChevronLeft size={24} className="text-black dark:text-white" />
         </button>
         
         <div className="absolute content-stretch flex flex-col gap-[5px] items-start leading-[normal] left-[26px] not-italic top-[110px] tracking-[-0.165px] w-[323px]" data-node-id="1:2593">
@@ -152,9 +153,7 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
                       {COUNTRY_CODES.find(c => c.code === formData.countryCode)?.country}
                     </span>
                     <span className="font-['Poppins:Regular',sans-serif] text-[12px] text-black dark:text-white">{formData.countryCode}</span>
-                    <div className="h-[18px] w-[19px] ml-auto shrink-0" data-name="caret-down" data-node-id="1:2611">
-                      <img alt="" className="block max-w-none size-full dark:invert" src={imgCaretDown} />
-                    </div>
+                    <ChevronDown size={18} className="text-black dark:text-white ml-auto shrink-0" />
                   </button>
                   
                   {showCountryDropdown && (
@@ -242,7 +241,11 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
                   data-name="eye"
                   data-node-id="1:2635"
                 >
-                  <img alt="Toggle password visibility" className="block max-w-none size-full" src={imgEye} />
+                  {showPassword ? (
+                    <EyeOff size={19} className="text-black dark:text-white" />
+                  ) : (
+                    <Eye size={19} className="text-black dark:text-white" />
+                  )}
                 </button>
               </div>
             </div>
@@ -257,9 +260,7 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
                 }`}
               >
                 {formData.acceptTerms && (
-                  <div className="h-[8px] relative shrink-0 w-[11px]" data-name="Vector">
-                    <img alt="" className="block max-w-none size-full" src={imgVector} />
-                  </div>
+                  <Check size={12} className="text-white" />
                 )}
               </button>
               <p className="[text-decoration-skip-ink:none] decoration-solid font-['Poppins:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[11px] text-black dark:text-white underline cursor-pointer" data-node-id="1:2639">

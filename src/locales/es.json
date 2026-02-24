@@ -18,7 +18,14 @@
     "privateAccount": "Cuenta Privada",
     "privateAccountDescription": "Cuando tu cuenta es pública, tu perfil y publicaciones pueden ser vistos por todos.",
     "makePublicTitle": "¿Hacer tu Cuenta Pública?",
-    "makePublicDescription": "Tu contenido será visible para otros usuarios. Ten cuidado al compartir detalles personales."
+    "makePublicDescription": "Tu contenido será visible para otros usuarios. Ten cuidado al compartir detalles personales.",
+    "publicProfileTitle": "Perfil",
+    "publicProfileLoading": "Cargando perfil...",
+    "publicProfileNoBio": "Aún no hay biografía",
+    "publicProfilePosts": "Publicaciones",
+    "publicProfileNoPosts": "Aún no hay publicaciones.",
+    "privateAccountPostsHiddenTitle": "Cuenta privada",
+    "privateAccountPostsHiddenDescription": "Las publicaciones de este usuario están ocultas porque su cuenta es privada."
   },
   "editProfile": {
     "title": "Editar Perfil",
@@ -72,6 +79,27 @@
     "setAsDefaultLanguage": "Establecer como idioma predeterminado",
     "translateAction": "Traducir",
     "defaultLanguageSetTo": "Idioma predeterminado establecido en {{language}}"
+  },
+  "journal": {
+    "aiSummary": {
+      "title": "Resumen de comentarios con IA",
+      "generating": "Generando...",
+      "emptyHint": "Resume los comentarios de viajeros y obtiene consejos prácticos cuando aún hay pocos comentarios.",
+      "error": "No se puede generar el resumen de IA en este momento. Inténtalo de nuevo.",
+      "sentimentLabel": "Sentimiento",
+      "basedOnComments": "Basado en {{count}} comentario(s)",
+      "travelerShouldKnow": "El viajero debe saber:",
+      "sentiment": {
+        "positive": "positivo",
+        "mixed": "mixto",
+        "cautious": "cauteloso"
+      }
+    },
+    "replyAction": "Responder",
+    "deleteAction": "Eliminar",
+    "cancelAction": "Cancelar",
+    "replyingTo": "Respondiendo a {{name}}",
+    "replyToPlaceholder": "Responder a {{name}}..."
   },
   "navigation": {
     "home": "Inicio",

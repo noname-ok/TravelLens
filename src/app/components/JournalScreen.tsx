@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { normalizeLanguageCode } from '@/i18n';
 import JournalCard from './JournalCard';
 import {
   getJournalLocalizedContent,
@@ -9,6 +10,8 @@ import {
   toggleJournalReaction,
   type JournalRecord,
 } from '@/app/services/journalService';
+import { query, where, collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/app/config/firebase';
 
 // small helper to format numbers like 1200 -> 1.2k
 function formatNumber(n: number) {
@@ -50,6 +53,7 @@ interface JournalScreenProps {
   onOpenJournal?: (journal: JournalEntry) => void;
   onCreateJournal?: () => void;
   onEditJournal?: (journal: JournalEntry) => void;
+  onOpenUserProfile?: (user: { userId: string; userName?: string; userAvatarUrl?: string }) => void;
   userInterestVector?: number[];
   onPositiveInteraction?: (journalId: string, signal: 'like' | 'save') => void;
   initialTab?: JournalTab;
@@ -76,10 +80,23 @@ export interface JournalEntry {
   authorAvatarUrl?: string;
   isLiked?: boolean;
   isSaved?: boolean;
+  translationStatus?: 'translating' | 'translated' | 'fallback';
 }
 
-export type JournalTab = 'community' | 'myJournal' | 'favourites';
+export type JournalTab = 'community' | 'myJournal' | 'favourites' | 'notifications';
 type Tab = JournalTab;
+
+interface Notification {
+  id: string;
+  type: 'like' | 'save' | 'comment' | 'reply';
+  userId: string;
+  userName: string;
+  userAvatarUrl?: string;
+  postId: string;
+  postTitle: string;
+  commentText?: string;
+  createdAt: Date;
+}
 
 export default function JournalScreen({
   userName,
@@ -91,6 +108,7 @@ export default function JournalScreen({
   onOpenJournal,
   onCreateJournal,
   onEditJournal,
+  onOpenUserProfile,
   userInterestVector,
   onPositiveInteraction,
   initialTab,
@@ -99,6 +117,7 @@ export default function JournalScreen({
   const [activeTab, setActiveTab] = useState<Tab>('community');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const userInitial = (userName && userName.charAt(0).toUpperCase()) || (userEmail && userEmail.charAt(0).toUpperCase()) || 'U';
 
@@ -166,9 +185,15 @@ export default function JournalScreen({
 
     const unsubscribe = subscribeToJournals(
       (records: JournalRecord[]) => {
-        const currentLanguage = i18n.language || 'en';
+        const currentLanguage = normalizeLanguageCode(i18n.language || 'en');
         const mapped: JournalEntry[] = records.map((record) => {
           const translated = record.translations?.[currentLanguage];
+          const hasLocalizedContent = Boolean(translated?.title && translated?.location && translated?.description);
+          const isLocalizedFallback = hasLocalizedContent
+            ? translated?.title === record.title
+              && translated?.location === record.location
+              && translated?.description === record.description
+            : false;
           return {
             id: record.id,
             timeAgo: formatTimeAgo(record.createdAt, currentLanguage),
@@ -187,9 +212,18 @@ export default function JournalScreen({
             savedBy: record.savedBy,
             author: record.author,
             authorId: record.authorId,
-            authorAvatarUrl: record.authorAvatarUrl,
+            authorAvatarUrl:
+              currentUserId && record.authorId === currentUserId
+                ? (userAvatarUrl || record.authorAvatarUrl)
+                : record.authorAvatarUrl,
             isLiked: currentUserId ? (record.likedBy || []).includes(currentUserId) : false,
             isSaved: currentUserId ? (record.savedBy || []).includes(currentUserId) : false,
+            translationStatus:
+              currentLanguage === 'en'
+                ? undefined
+                : hasLocalizedContent
+                  ? (isLocalizedFallback ? 'fallback' : 'translated')
+                  : 'translating',
           };
         });
         if (!isActive) return;
@@ -201,19 +235,29 @@ export default function JournalScreen({
         if (missingTranslations.length === 0) return;
 
         void (async () => {
-          for (const record of missingTranslations) {
-            const localized = await getJournalLocalizedContent(record.id, currentLanguage, {
-              title: record.title,
-              location: record.location,
-              description: record.description,
-              country: record.country,
-            });
+          const batchSize = 2;
+          for (let index = 0; index < missingTranslations.length; index += batchSize) {
+            const chunk = missingTranslations.slice(index, index + batchSize);
+
+            const chunkResults = await Promise.all(
+              chunk.map(async (record) => {
+                const localized = await getJournalLocalizedContent(record.id, currentLanguage, {
+                  title: record.title,
+                  location: record.location,
+                  description: record.description,
+                  country: record.country,
+                });
+                return { record, localized };
+              }),
+            );
 
             if (!isActive) return;
 
             setJournals((prev) =>
               prev.map((entry) => {
-                if (entry.id !== record.id) return entry;
+                const result = chunkResults.find((item) => item.record.id === entry.id);
+                if (!result) return entry;
+                const { record, localized } = result;
                 return {
                   ...entry,
                   title: localized.title,
@@ -221,6 +265,12 @@ export default function JournalScreen({
                   description: localized.description,
                   country: localized.country || entry.country,
                   timeAgo: formatTimeAgo(record.createdAt, currentLanguage),
+                  translationStatus:
+                    localized.title === record.title
+                    && localized.location === record.location
+                    && localized.description === record.description
+                      ? 'fallback'
+                      : 'translated',
                 };
               }),
             );
@@ -236,7 +286,86 @@ export default function JournalScreen({
       isActive = false;
       unsubscribe();
     };
-  }, [i18n.language, currentUserId]);
+  }, [i18n.language, currentUserId, userAvatarUrl]);
+
+  // Fetch notifications: likes, saves, and comments on user's own posts
+  useEffect(() => {
+    if (!currentUserId) {
+      setNotifications([]);
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchNotifications = async () => {
+      try {
+        // Subscribe to journals where current user is the author
+        const journalQuery = query(
+          collection(db, 'journals'),
+          where('authorId', '==', currentUserId),
+        );
+
+        const unsubscribe = onSnapshot(journalQuery, async (snapshot) => {
+          const allNotifications: Notification[] = [];
+
+          for (const docSnapshot of snapshot.docs) {
+            const post = docSnapshot.data() as JournalRecord;
+
+            // Process likes
+            if (post.likedBy && post.likedBy.length > 0) {
+              for (const userId of post.likedBy) {
+                allNotifications.push({
+                  id: `like-${post.id}-${userId}`,
+                  type: 'like',
+                  userId,
+                  userName: 'User', // Will be updated from user data
+                  postId: post.id,
+                  postTitle: post.title,
+                  createdAt: post.createdAt,
+                });
+              }
+            }
+
+            // Process saves
+            if (post.savedBy && post.savedBy.length > 0) {
+              for (const userId of post.savedBy) {
+                allNotifications.push({
+                  id: `save-${post.id}-${userId}`,
+                  type: 'save',
+                  userId,
+                  userName: 'User',
+                  postId: post.id,
+                  postTitle: post.title,
+                  createdAt: post.createdAt,
+                });
+              }
+            }
+          }
+
+          // Sort by most recent
+          const sorted = allNotifications.sort(
+            (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+          );
+
+          if (isActive) {
+            setNotifications(sorted);
+          }
+        });
+
+        return () => {
+          unsubscribe();
+        };
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+      }
+    };
+
+    void fetchNotifications();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUserId]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const isSearchActive = searchOpen || normalizedSearch.length > 0;
@@ -259,6 +388,7 @@ export default function JournalScreen({
     { key: 'community', label: t('journal.forYou') },
     { key: 'myJournal', label: t('journal.myJournal') },
     { key: 'favourites', label: t('journal.favourites') },
+    { key: 'notifications', label: t('journal.notification') },
   ];
 
   const activeTabIndex = tabs.findIndex(tab => tab.key === activeTab);
@@ -462,8 +592,27 @@ export default function JournalScreen({
                 views={p.views}
                 isLiked={p.isLiked}
                 isSaved={p.isSaved}
+                actionLabel={t('journal.viewJournal')}
+                translationStatus={p.translationStatus}
+                translationStatusText={
+                  p.translationStatus === 'translated'
+                    ? t('journal.translationTranslated')
+                    : p.translationStatus === 'translating'
+                      ? t('journal.translationTranslating')
+                      : p.translationStatus === 'fallback'
+                        ? t('journal.translationFallback')
+                        : undefined
+                }
                 onToggleLike={() => toggleLike(p.id)}
                 onToggleSave={() => toggleSave(p.id)}
+                onAuthorClick={() => {
+                  if (!p.authorId) return;
+                  onOpenUserProfile?.({
+                    userId: p.authorId,
+                    userName: p.author,
+                    userAvatarUrl: p.authorAvatarUrl,
+                  });
+                }}
                 onViewJournal={() => onOpenJournal?.(p)}
               />
             ))}
@@ -511,10 +660,28 @@ export default function JournalScreen({
                   views={p.views}
                   isLiked={p.isLiked}
                   isSaved={p.isSaved}
+                  translationStatus={p.translationStatus}
+                  translationStatusText={
+                    p.translationStatus === 'translated'
+                      ? t('journal.translationTranslated')
+                      : p.translationStatus === 'translating'
+                        ? t('journal.translationTranslating')
+                        : p.translationStatus === 'fallback'
+                          ? t('journal.translationFallback')
+                          : undefined
+                  }
                   showViews
                   actionLabel={t('journal.edit')}
                   onToggleLike={() => toggleLike(p.id)}
                   onToggleSave={() => toggleSave(p.id)}
+                  onAuthorClick={() => {
+                    if (!p.authorId) return;
+                    onOpenUserProfile?.({
+                      userId: p.authorId,
+                      userName: p.author,
+                      userAvatarUrl: p.authorAvatarUrl,
+                    });
+                  }}
                   onViewJournal={() => onEditJournal?.(p)}
                 />
               ))}
@@ -541,11 +708,76 @@ export default function JournalScreen({
                 views={p.views}
                 isLiked={p.isLiked}
                 isSaved={p.isSaved}
+                actionLabel={t('journal.viewJournal')}
+                translationStatus={p.translationStatus}
+                translationStatusText={
+                  p.translationStatus === 'translated'
+                    ? t('journal.translationTranslated')
+                    : p.translationStatus === 'translating'
+                      ? t('journal.translationTranslating')
+                      : p.translationStatus === 'fallback'
+                        ? t('journal.translationFallback')
+                        : undefined
+                }
                 onToggleLike={() => toggleLike(p.id)}
                 onToggleSave={() => toggleSave(p.id)}
+                onAuthorClick={() => {
+                  if (!p.authorId) return;
+                  onOpenUserProfile?.({
+                    userId: p.authorId,
+                    userName: p.author,
+                    userAvatarUrl: p.authorAvatarUrl,
+                  });
+                }}
                 onViewJournal={() => onOpenJournal?.(p)}
               />
             ))}
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="space-y-4">
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="font-['Poppins',sans-serif] font-semibold text-[16px] text-black dark:text-white">{t('journal.noNotifications')}</p>
+                <p className="mt-2 font-['Inter',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400">{t('journal.notificationsHint')}</p>
+              </div>
+            ) : (
+              notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  onClick={() => {
+                    if (notif.postId) {
+                      const post = journals.find((p) => p.id === notif.postId);
+                      if (post) {
+                        onOpenJournal?.(post);
+                      }
+                    }
+                  }}
+                  className="rounded-[12px] border border-[rgba(0,0,0,0.08)] dark:border-gray-700 p-4 bg-[#F7F9FF] dark:bg-gray-800 hover:bg-[#EFF4FF] dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-[40px] h-[40px] rounded-full bg-[#CDE5FF] overflow-hidden flex items-center justify-center text-[#2C638B] font-semibold shrink-0">
+                      {notif.userAvatarUrl ? (
+                        <img src={notif.userAvatarUrl} alt={notif.userName} className="w-full h-full object-cover" />
+                      ) : (
+                        (notif.userName.charAt(0) || 'U').toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-['Poppins',sans-serif] font-semibold text-[13px] text-black dark:text-white">
+                        {notif.type === 'like' && `${notif.userName} ${t('journal.notificationLiked')}`}
+                        {notif.type === 'save' && `${notif.userName} ${t('journal.notificationSaved')}`}
+                        {notif.type === 'comment' && `${notif.userName} ${t('journal.notificationCommented')}`}
+                        {notif.type === 'reply' && `${notif.userName} ${t('journal.notificationReplied')}`}
+                      </p>
+                      <p className="mt-1 font-['Inter',sans-serif] text-[12px] text-[rgba(0,0,0,0.6)] dark:text-gray-400 truncate">{notif.postTitle}</p>
+                      <p className="mt-1 font-['Inter',sans-serif] text-[11px] text-[rgba(0,0,0,0.4)] dark:text-gray-500">{notif.createdAt.toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 

@@ -1227,7 +1227,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
             libraries={libraries}
             onError={(error) => {
               console.error('Google Maps Load Error:', error);
-              setLoadError('Failed to load Google Maps. Check API key restrictions.');
+              setLoadError(t('mapView.failedToLoadGoogleMaps'));
             }}
           >
             {/* Nearby Tab - Search Bar */}
@@ -1252,7 +1252,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                           setSelectedPredictionIndex(-1);
                         }, 200);
                       }}
-                      placeholder="Search here..."
+                      placeholder={t('mapView.searchPlaceholder')}
                       className="w-full bg-transparent outline-none font-['Poppins',sans-serif] text-[14px] text-[#2c638b] dark:text-white placeholder:text-[#2c638b] dark:placeholder:text-gray-400 placeholder:opacity-70"
                       onClick={(e) => {
                         // Select all text on click if there's content
@@ -1327,26 +1327,26 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                         <button
                           onClick={() => setIsRoutePanelCollapsed(false)}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-                          title="Expand panel"
+                          title={t('mapView.expandPanel')}
                         >
                           <ChevronDown size={20} className="text-gray-600 dark:text-gray-400" />
                         </button>
                       </div>
                       <div className="bg-[#f5f5f5] dark:bg-gray-700 rounded-[10px] px-3 py-2">
                         <p className="text-[11px] font-['Poppins',sans-serif] text-gray-500 dark:text-gray-400">
-                          Travel Mode: <span className="font-medium text-[#2c638b] dark:text-blue-400">{getTravelModeLabel(travelMode)}</span>
+                          {t('mapView.travelModeLabel')}: <span className="font-medium text-[#2c638b] dark:text-blue-400">{getTravelModeLabel(travelMode)}</span>
                         </p>
                         <div className="mt-2 grid grid-cols-3 gap-2">
                           <div className="text-center">
-                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Distance</p>
+                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">{t('mapView.totalDistance')}</p>
                             <p className="text-[12px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDistance(totalDistanceMeters)}</p>
                           </div>
                           <div className="text-center border-x border-[rgba(0,0,0,0.08)] dark:border-gray-600">
-                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Duration</p>
+                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">{t('mapView.duration')}</p>
                             <p className="text-[12px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDuration(totalDurationSeconds)}</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">ETA</p>
+                            <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">{t('mapView.eta')}</p>
                             <p className="text-[12px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatEta(totalDurationSeconds)}</p>
                           </div>
                         </div>
@@ -1364,7 +1364,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                     <button
                       onClick={() => setIsRoutePanelCollapsed(true)}
                       className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-                      title="Collapse panel"
+                      title={t('mapView.collapsePanel')}
                     >
                       <ChevronDown size={20} className="text-gray-600 dark:text-gray-400 rotate-180" />
                     </button>
@@ -1609,7 +1609,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                   {/* Travel Mode Selector */}
                   <div className="space-y-2">
                     <label className="text-[12px] font-['Poppins',sans-serif] text-gray-600 dark:text-gray-400">
-                      Travel Mode
+                      {t('mapView.travelModeLabel')}
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       <button
@@ -1663,15 +1663,15 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                     <div className="space-y-3">
                       <div className="grid grid-cols-3 gap-2">
                         <div className="text-center">
-                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Distance</p>
+                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">{t('mapView.totalDistance')}</p>
                           <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDistance(totalDistanceMeters)}</p>
                         </div>
                         <div className="text-center border-x border-[rgba(0,0,0,0.08)] dark:border-gray-600">
-                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">Duration</p>
+                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">{t('mapView.duration')}</p>
                           <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatDuration(totalDurationSeconds)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">ETA</p>
+                          <p className="text-[10px] text-gray-500 font-['Poppins',sans-serif]">{t('mapView.eta')}</p>
                           <p className="text-[13px] font-semibold text-[#2c638b] dark:text-blue-400 font-['Poppins',sans-serif]">{formatEta(totalDurationSeconds)}</p>
                         </div>
                       </div>
@@ -1688,7 +1688,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                         disabled={!routeOrigin || !routeDestination}
                         className="w-full bg-gradient-to-r from-[#2c638b] to-[#1e4d6a] text-white py-2.5 rounded-[10px] text-[14px] font-['Poppins',sans-serif] font-semibold hover:from-[#235070] hover:to-[#17394d] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Start Navigation in Google Maps
+                          {t('mapView.startNavigationInGoogleMaps')}
                       </button>
                     </div>
                   )}
@@ -1724,19 +1724,19 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                   </svg>
                 </div>
                 <p className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black mb-[8px]">
-                  Map Load Error
+                  {t('mapView.loadErrorTitle')}
                 </p>
                 <p className="font-['Poppins',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)] text-center px-[40px] mb-[16px]">
                   {loadError}
                 </p>
                 <div className="bg-white p-4 rounded-lg shadow-lg mx-[24px] text-left">
                   <p className="font-['Poppins',sans-serif] font-semibold text-[14px] text-black mb-2">
-                    🔧 Fix Steps:
+                    {t('mapView.fixStepsTitle')}
                   </p>
                   <ol className="font-['Poppins',sans-serif] text-[12px] text-gray-700 space-y-1 list-decimal list-inside">
-                    <li>Go to Google Cloud Console</li>
-                    <li>Find your API key</li>
-                    <li>Remove referrer restrictions OR add:</li>
+                    <li>{t('mapView.fixStep1')}</li>
+                    <li>{t('mapView.fixStep2')}</li>
+                    <li>{t('mapView.fixStep3')}</li>
                   </ol>
                   <div className="bg-gray-100 p-2 rounded mt-2 font-mono text-[10px]">
                     http://localhost:*/*<br/>
@@ -1746,7 +1746,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                     onClick={() => window.location.reload()}
                     className="mt-3 w-full bg-[#2c638b] text-white px-4 py-2 rounded-lg text-[12px] font-['Poppins',sans-serif] hover:bg-[#234d6a] transition"
                   >
-                    Retry After Fixing
+                    {t('mapView.retryAfterFix')}
                   </button>
                 </div>
               </div>
@@ -1773,7 +1773,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                         strokeColor: 'white',
                         strokeWeight: 3,
                       }}
-                      title="Your Location"
+                      title={t('mapView.yourLocation')}
                     />
                   )}
 
@@ -1849,7 +1849,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
                       onClick={() => fetchPlaceDetails(selectedAttraction.placeId, selectedAttraction)}
                       className="bg-[#2c638b] text-white px-3 py-1 rounded-lg text-[12px] font-['Poppins',sans-serif] hover:bg-[#234d6a] transition w-full"
                     >
-                      View Details
+                      {t('mapView.viewDetails')}
                     </button>
                   </div>
                 </InfoWindow>
@@ -1872,10 +1872,10 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
               </svg>
             </div>
             <p className="font-['Poppins',sans-serif] font-semibold text-[20px] text-black mb-[8px]">
-              Google Maps API Key Required
+              {t('mapView.apiKeyRequiredTitle')}
             </p>
             <p className="font-['Poppins',sans-serif] text-[14px] text-[rgba(0,0,0,0.6)] text-center px-[40px]">
-              Add VITE_GOOGLE_MAPS_API_KEY to your .env file
+              {t('mapView.apiKeyRequiredDesc')}
             </p>
           </div>
         )}
@@ -1885,7 +1885,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg z-20">
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2c638b] dark:border-blue-400"></div>
-              <span className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white">Loading...</span>
+              <span className="font-['Poppins',sans-serif] text-[14px] text-black dark:text-white">{t('mapView.loading')}</span>
             </div>
           </div>
         )}
@@ -1951,7 +1951,7 @@ export default function MapViewScreen({ currentScreen, onNavigate, onViewTrip }:
               onClick={resetToUserLocation}
               disabled={!userLocation}
               className="bg-white text-[#2c638b] rounded-full shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-[48px] h-[48px]"
-              title="Back to my location"
+              title={t('mapView.backToLocationTitle')}
             >
               <LocateFixed size={22} strokeWidth={2.5} />
             </button>

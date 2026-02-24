@@ -32,6 +32,14 @@ export const getLanguageNameFromCode = (languageCode: string): string => {
   return Object.keys(LANGUAGE_MAP).find((key) => LANGUAGE_MAP[key] === languageCode) || 'English';
 };
 
+export const normalizeLanguageCode = (languageCode?: string): string => {
+  if (!languageCode) return 'en';
+  const normalized = languageCode.toLowerCase();
+  if (normalized.startsWith('zh')) return 'zh';
+  const base = normalized.split(/[-_]/)[0];
+  return base || 'en';
+};
+
 const resources = {
   en: { translation: en },
   es: { translation: es },

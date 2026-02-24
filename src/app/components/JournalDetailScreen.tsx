@@ -1,18 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Home, MapPin, Camera, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { normalizeLanguageCode } from '@/i18n';
 import commentIcon from '@/assets/comment.svg';
 import backIcon from '@/assets/Back.svg';
 import shareIcon from '@/assets/Share.svg';
 import {
   createJournalComment,
+  deleteJournalComment,
   getJournalCommentLocalizedText,
   getJournalLocalizedContent,
   subscribeToJournalComments,
   toggleJournalCommentLike,
   type JournalCommentRecord,
 } from '@/app/services/journalService';
+import { generateCommentSummary } from '@/app/services/geminiService';
 
 function HomeIndicator({ className }: { className?: string }) {
   return (
@@ -38,11 +41,14 @@ interface JournalDetailProps {
   description?: string;
   imageUrl?: string;
   author?: string;
+  authorId?: string;
+  authorAvatarUrl?: string;
   timeAgo?: string;
   likes?: number;
   bookmarks?: number;
   isLiked?: boolean;
   isSaved?: boolean;
+  onOpenUserProfile?: (user: { userId: string; userName?: string; userAvatarUrl?: string }) => void;
 }
 
 export default function JournalDetailScreen({
@@ -59,11 +65,14 @@ export default function JournalDetailScreen({
   description = "The silence of the Zen gardens in Kyoto is something that can't be captured in a photo alone...",
   imageUrl,
   author = 'Teo Doe',
+  authorId,
+  authorAvatarUrl,
   timeAgo = '2 hours ago',
   likes = 1200,
   bookmarks = 234,
   isLiked = false,
   isSaved = false,
+  onOpenUserProfile,
 }: JournalDetailProps) {
   const { i18n, t } = useTranslation();
   const [liked, setLiked] = useState(isLiked);
@@ -77,6 +86,17 @@ export default function JournalDetailScreen({
   const [displayTitle, setDisplayTitle] = useState(title);
   const [displayLocation, setDisplayLocation] = useState(location);
   const [displayDescription, setDisplayDescription] = useState(description);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [commentSummary, setCommentSummary] = useState<{
+    summary: string;
+    sentiment: 'positive' | 'mixed' | 'cautious';
+    keyTopics: string[];
+    travelerTips: string[];
+    basedOnCommentCount: number;
+  } | null>(null);
+  const replyInputRef = useRef<HTMLInputElement | null>(null);
+  const lastSummaryKeyRef = useRef<string>('');
 
   useEffect(() => {
     setLiked(isLiked);
@@ -102,7 +122,7 @@ export default function JournalDetailScreen({
   }, [journalId]);
 
   useEffect(() => {
-    const languageCode = i18n.language || 'en';
+    const languageCode = normalizeLanguageCode(i18n.language || 'en');
     if (languageCode === 'en') return;
 
     let isCancelled = false;
@@ -124,7 +144,7 @@ export default function JournalDetailScreen({
   }, [journalId, i18n.language, title, location, description]);
 
   useEffect(() => {
-    const languageCode = i18n.language || 'en';
+    const languageCode = normalizeLanguageCode(i18n.language || 'en');
     if (languageCode === 'en') {
       setTranslatedCommentText({});
       return;
@@ -195,6 +215,21 @@ export default function JournalDetailScreen({
     }
   };
 
+  const handleDeleteComment = async (id: string) => {
+    const confirmed = window.confirm('Delete this comment?');
+    if (!confirmed) return;
+
+    const success = await deleteJournalComment(journalId, id, currentUserId);
+    if (!success) {
+      toast.error('Failed to delete comment');
+      return;
+    }
+
+    if (replyTargetId === id) {
+      setReplyTargetId(null);
+    }
+  };
+
   const submitComment = async () => {
     const trimmed = replyText.trim();
     if (!trimmed) return;
@@ -215,6 +250,10 @@ export default function JournalDetailScreen({
     setReplyText('');
     setReplyTargetId(null);
   };
+
+  const replyTarget = replyTargetId
+    ? comments.find((comment) => comment.id === replyTargetId)
+    : undefined;
 
   const handleShare = async () => {
     const shareTitle = title || 'Travel Journal';
@@ -260,20 +299,92 @@ export default function JournalDetailScreen({
     }
   };
 
+  useEffect(() => {
+    const summaryKey = JSON.stringify({
+      journalId,
+      title: displayTitle,
+      location: displayLocation,
+      description: displayDescription,
+      comments: comments.map((entry) => ({ id: entry.id, author: entry.author, text: entry.text })),
+    });
+
+    if (summaryKey === lastSummaryKeyRef.current) {
+      return;
+    }
+
+    lastSummaryKeyRef.current = summaryKey;
+    let isCancelled = false;
+
+    setIsSummaryLoading(true);
+    setSummaryError(null);
+
+    void generateCommentSummary(
+      displayTitle,
+      displayLocation,
+      displayDescription,
+      comments.map((entry) => ({ author: entry.author, text: entry.text })),
+    )
+      .then((result) => {
+        if (isCancelled) return;
+        setCommentSummary(result);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error('Failed to generate AI comment summary:', error);
+        setSummaryError(t('journal.aiSummary.error'));
+      })
+      .finally(() => {
+        if (isCancelled) return;
+        setIsSummaryLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [journalId, displayTitle, displayLocation, displayDescription, comments, t]);
+
   const renderComment = (comment: JournalCommentRecord, level = 0) => {
     const childComments = comments.filter((item) => item.parentId === comment.id);
     const likedByCurrentUser = (comment.likedBy || []).includes(currentUserId);
+    const isOwnComment = comment.authorId === currentUserId;
+    const isDeletedComment = comment.text === 'Comment deleted';
     return (
       <div key={comment.id} className="flex gap-3" style={{ marginLeft: level * 24 }}>
         <div className="w-[30px] h-[30px] bg-[#CDE5FF] rounded-full flex items-center justify-center">
-          {comment.authorAvatarUrl ? (
-            <img src={comment.authorAvatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
-          ) : (
-            <div className="w-[18px] h-[18px] bg-[#2C638B] rounded-full" />
-          )}
+          <button
+            type="button"
+            className="w-full h-full rounded-full"
+            onClick={() => {
+              if (!comment.authorId) return;
+              onOpenUserProfile?.({
+                userId: comment.authorId,
+                userName: comment.author,
+                userAvatarUrl: comment.authorAvatarUrl,
+              });
+            }}
+          >
+            {comment.authorAvatarUrl ? (
+              <img src={comment.authorAvatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
+            ) : (
+              <div className="w-[18px] h-[18px] bg-[#2C638B] rounded-full mx-auto" />
+            )}
+          </button>
         </div>
         <div className="flex-1">
-          <p className="font-['Inter'] font-light text-[10px] leading-[20px] text-black dark:text-white">{comment.author}</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (!comment.authorId) return;
+              onOpenUserProfile?.({
+                userId: comment.authorId,
+                userName: comment.author,
+                userAvatarUrl: comment.authorAvatarUrl,
+              });
+            }}
+            className="font-['Inter'] font-light text-[10px] leading-[20px] text-black dark:text-white"
+          >
+            {comment.author}
+          </button>
           <div className="bg-[#F5FAFB] dark:bg-gray-800 p-3 rounded-[8px]">
             <p className="font-['Poppins'] font-light text-[9px] leading-[22px] text-justify text-black dark:text-gray-300">{translatedCommentText[comment.id] || comment.text}</p>          </div>
           <div className="flex items-center justify-between mt-2">
@@ -282,22 +393,34 @@ export default function JournalDetailScreen({
                 onClick={() => toggleCommentLike(comment.id)}
                 className={`flex items-center gap-1 ${likedByCurrentUser ? 'text-red-500' : 'text-[#8b8b8b] dark:text-gray-400'}`}
               >
-                <img
-                  src="https://www.figma.com/api/mcp/asset/5948b008-a6f4-49fc-b5e9-69df2d30ebb7"
-                  alt="like"
-                  className="w-4 h-4"
-                  style={{ filter: likedByCurrentUser ? 'invert(34%) sepia(87%) saturate(4123%) hue-rotate(340deg) brightness(95%) contrast(98%)' : 'none' }}
-                />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
                 <span className={`text-[10px] leading-[22px] tracking-[-0.408px] ${likedByCurrentUser ? 'text-red-500' : 'text-[#8b8b8b] dark:text-gray-400'}`}>
                   {comment.likes}
                 </span>
               </button>
               <button
-                onClick={() => setReplyTargetId((prev) => (prev === comment.id ? null : comment.id))}
+                onClick={() => {
+                  if (isDeletedComment) return;
+                  setReplyTargetId((prev) => (prev === comment.id ? null : comment.id));
+                  setTimeout(() => {
+                    replyInputRef.current?.focus();
+                    replyInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 0);
+                }}
                 className="font-['Inter'] font-light text-[10px] leading-[22px] tracking-[-0.408px] text-black dark:text-white"
               >
-                Reply
+                {t('journal.replyAction')}
               </button>
+              {isOwnComment && !isDeletedComment && (
+                <button
+                  onClick={() => handleDeleteComment(comment.id)}
+                  className="font-['Inter'] font-light text-[10px] leading-[22px] tracking-[-0.408px] text-red-500"
+                >
+                  {t('journal.deleteAction')}
+                </button>
+              )}
             </div>
             <span className="font-['Inter'] font-extralight text-[10px] leading-[22px] tracking-[-0.408px] text-black dark:text-gray-400">{formatCommentTime(comment.createdAt)}</span>
           </div>
@@ -344,11 +467,39 @@ export default function JournalDetailScreen({
           </div>
 
           <div className="flex items-center px-[16px] py-[18px] gap-[12px]">
-            <div className="w-10 h-10 bg-[#CDE5FF] rounded-full flex items-center justify-center text-[#2C638B] font-bold">
-              {(userInitial || author.charAt(0)).toUpperCase()}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!authorId) return;
+                onOpenUserProfile?.({
+                  userId: authorId,
+                  userName: author,
+                  userAvatarUrl: authorAvatarUrl,
+                });
+              }}
+              className="w-10 h-10 bg-[#CDE5FF] rounded-full flex items-center justify-center text-[#2C638B] font-bold overflow-hidden"
+            >
+              {authorAvatarUrl ? (
+                <img src={authorAvatarUrl} alt="author" className="w-full h-full object-cover" />
+              ) : (
+                (userInitial || author.charAt(0)).toUpperCase()
+              )}
+            </button>
             <div className="flex-1">
-              <p className="font-['Inter'] font-extrabold text-[14px] text-[#49454F] dark:text-white">{author}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!authorId) return;
+                  onOpenUserProfile?.({
+                    userId: authorId,
+                    userName: author,
+                    userAvatarUrl: authorAvatarUrl,
+                  });
+                }}
+                className="font-['Inter'] font-extrabold text-[14px] text-[#49454F] dark:text-white"
+              >
+                {author}
+              </button>
               <p className="font-['Inter'] font-medium text-[10px] text-[#B3B3B3] dark:text-gray-400">{t('journal.verifiedTraveler')}</p>
             </div>
             <p className="font-['Inter'] font-bold text-[11px] text-[#888888] dark:text-gray-400">{timeAgo}</p>
@@ -364,12 +515,9 @@ export default function JournalDetailScreen({
 
           <div className="px-6 py-4 flex items-center gap-6">
             <button onClick={toggleLike} className={`flex items-center gap-2 ${liked ? 'text-red-500' : 'text-[#8b8b8b]'} text-[14px]`}>
-              <img
-                src="https://www.figma.com/api/mcp/asset/5948b008-a6f4-49fc-b5e9-69df2d30ebb7"
-                alt="like"
-                className="w-5 h-5"
-                style={{ filter: liked ? 'invert(34%) sepia(87%) saturate(4123%) hue-rotate(340deg) brightness(95%) contrast(98%)' : 'none' }}
-              />
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
               <span className={`text-[13px] ${liked ? 'text-red-500' : 'text-[#8b8b8b]'}`}>
                 {formatLikes(likeCount)}
               </span>
@@ -395,12 +543,76 @@ export default function JournalDetailScreen({
           <div className="px-[28px] py-6 space-y-4">
             <h3 className="font-['Poppins'] font-semibold text-[16px] dark:text-white">{t('journal.comments')}</h3>
 
+            <div className="bg-[#F4F9FF] dark:bg-blue-900/20 border border-[#D3E8FF] dark:border-blue-800 rounded-[12px] p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="font-['Poppins'] font-semibold text-[12px] text-[#2C638B] dark:text-blue-300">{t('journal.aiSummary.title')}</p>
+                {isSummaryLoading && (
+                  <span className="text-[10px] font-semibold text-[#2C638B] dark:text-blue-300">
+                    {t('journal.aiSummary.generating')}
+                  </span>
+                )}
+              </div>
+
+              {!commentSummary && !summaryError && (
+                <p className="text-[10px] text-[rgba(0,0,0,0.65)] dark:text-gray-300">
+                  {t('journal.aiSummary.emptyHint')}
+                </p>
+              )}
+
+              {summaryError && (
+                <p className="text-[10px] text-red-500">{summaryError}</p>
+              )}
+
+              {commentSummary && (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-black dark:text-white leading-[18px]">{commentSummary.summary}</p>
+                  <p className="text-[10px] text-[#2C638B] dark:text-blue-300">
+                    {t('journal.aiSummary.sentimentLabel')}: <span className="font-semibold capitalize">{t(`journal.aiSummary.sentiment.${commentSummary.sentiment}`)}</span> · {t('journal.aiSummary.basedOnComments', { count: commentSummary.basedOnCommentCount })}
+                  </p>
+                  {commentSummary.keyTopics.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {commentSummary.keyTopics.map((topic, index) => (
+                        <span key={`${topic}-${index}`} className="text-[9px] px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-[#2C638B] dark:text-blue-300 border border-[#D3E8FF] dark:border-blue-800">
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {commentSummary.travelerTips.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-[#2C638B] dark:text-blue-300">{t('journal.aiSummary.travelerShouldKnow')}</p>
+                      {commentSummary.travelerTips.slice(0, 3).map((tip, index) => (
+                        <p key={`${tip}-${index}`} className="text-[10px] text-black dark:text-white leading-[16px]">
+                          • {tip}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {comments.filter((comment) => !comment.parentId).map((comment) => renderComment(comment))}
+
+            {replyTarget && (
+              <div className="flex items-center justify-between bg-[#EAF4FF] dark:bg-blue-900/20 rounded-[10px] px-3 py-2">
+                <p className="text-[10px] font-['Poppins'] text-[#2C638B] dark:text-blue-300">
+                  {t('journal.replyingTo', { name: replyTarget.author })}
+                </p>
+                <button
+                  onClick={() => setReplyTargetId(null)}
+                  className="text-[10px] font-semibold text-[#2C638B] dark:text-blue-300"
+                >
+                  {t('journal.cancelAction')}
+                </button>
+              </div>
+            )}
 
             <div className="mt-4 flex items-center bg-[rgba(217,217,217,0.3)] dark:bg-gray-800 rounded-full px-4 py-2">
               <input
+                ref={replyInputRef}
                 type="text"
-                placeholder={t('journal.writeComment')}
+                placeholder={replyTarget ? t('journal.replyToPlaceholder', { name: replyTarget.author }) : t('journal.writeComment')}
                 className="bg-transparent border-none outline-none text-[10px] flex-1 font-['Poppins'] font-light dark:text-white"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}

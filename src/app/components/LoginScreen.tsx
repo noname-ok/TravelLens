@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Camera, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { signInWithEmail, signInWithGoogle } from '@/app/services/authService';
 
@@ -70,8 +71,8 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
       <div className="relative mx-auto w-full max-w-[390px] h-full">
         <div className="absolute content-stretch flex flex-col gap-[13px] items-center left-[33px] top-[80px] w-[323px]" data-node-id="1:2491">
           <div className="relative shrink-0 size-[114px]" data-name="icon 1" data-node-id="1:2492">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <img alt="" className="absolute left-[-22.5%] max-w-none size-[145%] top-[-10.75%]" src={imgIcon1} />
+            <div className="absolute inset-0 rounded-full bg-[#e7f4fb] flex items-center justify-center">
+              <Camera size={48} className="text-[#0fa3e2]" />
             </div>
           </div>
           <div className="content-stretch flex flex-col gap-[30px] items-center relative shrink-0 w-full" data-node-id="1:2493">
@@ -121,7 +122,11 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
                         data-name="eye"
                         data-node-id="1:2510"
                       >
-                        <img alt="Toggle password visibility" className="block max-w-none size-full" src={imgEye} />
+                        {showPassword ? (
+                          <EyeOff size={19} className="text-black dark:text-white" />
+                        ) : (
+                          <Eye size={19} className="text-black dark:text-white" />
+                        )}
                       </button>
                     </div>
                   </div>

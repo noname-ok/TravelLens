@@ -18,7 +18,14 @@
     "privateAccount": "私密账户",
     "privateAccountDescription": "当您的账户公开时，您的个人资料和帖子可以被所有人看到。",
     "makePublicTitle": "公开您的账户？",
-    "makePublicDescription": "您的内容将对其他用户可见。请小心分享个人详细信息。"
+    "makePublicDescription": "您的内容将对其他用户可见。请小心分享个人详细信息。",
+    "publicProfileTitle": "个人资料",
+    "publicProfileLoading": "正在加载个人资料...",
+    "publicProfileNoBio": "暂无个人简介",
+    "publicProfilePosts": "帖子",
+    "publicProfileNoPosts": "暂无帖子。",
+    "privateAccountPostsHiddenTitle": "私密账户",
+    "privateAccountPostsHiddenDescription": "该用户的账户为私密状态，因此其帖子不可见。"
   },
   "editProfile": {
     "title": "编辑个人资料",
@@ -60,11 +67,30 @@
     "delete": "删除",
     "searchPlaceholder": "搜索日记",
     "writeComment": "在这里写下你的评论...",
+    "replyAction": "回复",
+    "deleteAction": "删除",
+    "cancelAction": "取消",
+    "replyingTo": "正在回复 {{name}}",
+    "replyToPlaceholder": "回复 {{name}}...",
     "verifiedTraveler": "认证旅行者",
     "fillRequired": "请填写标题、地点和描述。",
     "detectingLocation": "正在检测位置...",
     "useCurrentLocation": "使用当前位置",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "aiSummary": {
+      "title": "AI 评论总结",
+      "generating": "生成中...",
+      "emptyHint": "总结旅行者反馈，并在评论较少时提供实用建议。",
+      "error": "暂时无法生成 AI 总结，请稍后重试。",
+      "sentimentLabel": "情绪",
+      "basedOnComments": "基于 {{count}} 条评论",
+      "travelerShouldKnow": "旅行者应知道：",
+      "sentiment": {
+        "positive": "积极",
+        "mixed": "中性",
+        "cautious": "谨慎"
+      }
+    }
   },
   "mapView": {
     "title": "地图视图",
