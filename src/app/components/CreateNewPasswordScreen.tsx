@@ -3,33 +3,9 @@ import { toast } from 'sonner';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/d15057c3-f9ab-4f2d-926a-87f0b3686cd1";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/697478ad-25fc-4dc2-b2d6-778d9b5ec6f1";
 const imgIcon1 = "https://www.figma.com/api/mcp/asset/9f1788a8-11dc-47ec-9768-cbe920deca16";
 const imgAngleLeft = "https://www.figma.com/api/mcp/asset/9c3356ba-5e4f-4bf4-aea9-99cc828a0941";
 const imgEye = "https://www.figma.com/api/mcp/asset/d7d3f672-f2dd-4bb5-b76c-09daffc97115";
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""}>
-      <div className="h-[47px] relative w-full">
-        <div className="-translate-x-1/2 absolute h-[32px] left-1/2 top-[-2px] w-[164px]">
-          <img alt="" className="block max-w-none size-full" src={imgNotch} />
-        </div>
-        <div className="-translate-x-1/2 absolute contents left-[calc(16.67%-11px)] top-[14px]">
-          <div className="-translate-x-1/2 absolute h-[21px] left-[calc(16.67%-11px)] rounded-[24px] top-[14px] w-[54px]">
-            <p className="-translate-x-1/2 absolute font-['SF_Pro_Text:Semibold',sans-serif] h-[20px] leading-[22px] left-[27px] not-italic text-[17px] text-black dark:text-white text-center top-px tracking-[-0.408px] w-[54px] whitespace-pre-wrap">
-              9:41
-            </p>
-          </div>
-        </div>
-        <div className="-translate-x-1/2 absolute h-[13px] left-[calc(83.33%-0.3px)] top-[19px] w-[77.401px]">
-          <img alt="" className="block max-w-none size-full" src={imgRightSide} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface CreateNewPasswordScreenProps {
   onBack?: () => void;
@@ -172,9 +148,6 @@ export default function CreateNewPasswordScreen({ onBack, onPasswordCreated }: C
             </button>
           </div>
         </div>
-
-        {/* Status Bar */}
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
     </div>
   );

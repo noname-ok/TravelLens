@@ -8,9 +8,6 @@ import { PLACE_FILTERS, Attraction, PlaceDetails, PlaceLocation } from '@/app/ty
 import { TripItinerary } from '@/app/types/tripPlanning';
 import { saveTripToStorage } from '@/app/services/tripPlannerService';
 
-const imgNotch = "https://www.figma.com/api/mcp/asset/447966c0-8cc6-4c7f-a13a-64114ed088bb";
-const imgRightSide = "https://www.figma.com/api/mcp/asset/1b3fd3c4-c6a2-4bcf-ab21-ccaf3d359bcf";
-
 const libraries: ("places")[] = ["places"];
 
 const mapContainerStyle = {

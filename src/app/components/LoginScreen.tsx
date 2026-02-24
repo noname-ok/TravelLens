@@ -3,21 +3,9 @@ import { Camera, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { signInWithEmail, signInWithGoogle } from '@/app/services/authService';
 
+const imgIcon1 = "https://www.figma.com/api/mcp/asset/3350b0c3-3072-4ea6-86d0-37a67f8115f8";
+const imgEye = "https://www.figma.com/api/mcp/asset/e1e0e2ad-5130-408c-8bb0-aa43e9b978f1";
 const imgGmail = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg";
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""} data-name="StatusBar / iPhone 13" data-node-id="1:64">
-      <div className="h-[47px] relative w-full px-6 flex items-center justify-between" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
-        <p className="font-semibold text-[17px] text-black dark:text-white">9:41</p>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-2 rounded-sm border border-black/60 dark:border-white/70" />
-          <div className="w-1 h-2 rounded-sm bg-black/70 dark:bg-white/80" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface LoginScreenProps {
   onCreateAccount?: () => void;
@@ -200,7 +188,6 @@ export default function LoginScreen({ onCreateAccount, onForgetPassword, onLogin
             </div>
           </div>
         </div>
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
     </div>
   );

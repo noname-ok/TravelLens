@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Check, ChevronDown, ChevronLeft, Eye, EyeOff } from 'lucide-react';
 
+const imgVector = "https://www.figma.com/api/mcp/asset/90336c2f-f3a7-4d22-a8f2-66f98df05882";
+const imgAngleLeft = "https://www.figma.com/api/mcp/asset/1a3f9342-d6e1-494e-8825-82e9199de542";
+const imgCaretDown = "https://www.figma.com/api/mcp/asset/b396ffcd-cced-4a3d-9c24-71435feaeac8";
+const imgEye = "https://www.figma.com/api/mcp/asset/a6af9c4a-b252-47b0-aecc-6f4ebecbc5cd";
 
 // Common country codes
 const COUNTRY_CODES = [
@@ -16,20 +20,6 @@ const COUNTRY_CODES = [
   { code: '+91', country: 'IN', flag: '🇮🇳' },
   { code: '+61', country: 'AU', flag: '🇦🇺' },
 ];
-
-function StatusBarIPhone({ className }: { className?: string }) {
-  return (
-    <div className={className || ""} data-name="StatusBar / iPhone 13" data-node-id="1:64">
-      <div className="h-[47px] relative w-full px-6 flex items-center justify-between" data-name="Dark Mode=False, Type=Default" data-node-id="1:65">
-        <p className="font-semibold text-[17px] text-black dark:text-white">9:41</p>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-2 rounded-sm border border-black/60 dark:border-white/70" />
-          <div className="w-1 h-2 rounded-sm bg-black/70 dark:bg-white/80" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface SignUpScreenProps {
   onBack?: () => void;
@@ -305,8 +295,6 @@ export default function SignUpScreen({ onBack, onSignUp }: SignUpScreenProps) {
             <span className="font-['Poppins:SemiBold',sans-serif] leading-[normal] not-italic dark:text-white">Go back</span>
           </p>
         </button>
-
-        <StatusBarIPhone className="absolute h-[47px] left-0 right-0 overflow-clip top-0" />
       </div>
     </div>
   );
