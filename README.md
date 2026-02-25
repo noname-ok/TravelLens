@@ -72,7 +72,7 @@ This section highlights how **TravelLens** meets the preliminary‑round criteri
 | **User Feedback & Iteration (15 pts)** | See [USER_FEEDBACK.md](USER_FEEDBACK.md) – three key insights, rapid iterations, quantitative satisfaction scores. |
 | **Success Metrics & Scalability (10 pts)** | Metrics in Technology Justification (confidence + community goals) and roadmap scaling sections below. |
 | **AI Integration (10 pts)** | Gemini Vision is used for image explanation, translation, embeddings and chatbot; explicit rationale in Technology Justification. |
-| **Technology Innovation (10 pts)** | Unique combination of live vision, translation, cultural context, plus “For You” embedding feed; described in Key Features/Innovation. |
+| **Technology Innovation (10 pts)** | Unique combination of live vision, translation, cultural context, hidden‑gem discovery and AI itinerary planning; plus “For You” embedding feed. See Key Features/Innovation. |
 | **Technical Architecture & Google Technologies (5 pts)** | Detailed architecture diagrams, service breakdown, and full justification of Google APIs in Technology Justification. |
 | **Technical Implementation & Challenges (5 pts)** | Implementation notes, major challenges (rate limits, image quality, cultural sensitivity) and resolutions documented above and in Technology Justification. |
 | **Completeness & Demonstration (10 pts)** | Working prototype with core flow, demo video script provided, comprehensive README for setup, screenshots in repo. |
@@ -149,9 +149,10 @@ TravelLens is a mobile web app that:
 1. **Captures your surroundings** via smartphone camera
 2. **Uses Google Gemini AI** to instantly analyze and explain what you're seeing
 3. **Translates text** in 14+ languages with cultural context (not just word-for-word)
-4. **Provides cultural guidance** - etiquette, dress codes, safety tips
-5. **Discovers nearby attractions** using Google Maps with cultural context
-6. **Lets you save & share** experiences as travel journal posts with a community
+4. **Provides cultural guidance** – etiquette, dress codes, safety tips, and historical notes
+5. **Discovers nearby attractions** using Google Maps with cultural context, even in places that aren’t on the tourist map. The system surfaces hidden gems around you, so a user wandering in a small town like Kelantan still gets meaningful suggestions.
+6. **Helps plan your trip** by generating AI-driven itineraries based on your preferences – great when you don’t know where to go.
+7. **Lets you save & share** experiences as travel journal posts with a community, spreading awareness of off‑the‑beaten‑path locations.
 
 **Core User Journey:**
 ```
@@ -200,14 +201,15 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
 ---
 
 ### **4️⃣ Nearby Attractions Discovery** 🗺️
-- **What it does:** Find and recommend nearby attractions with cultural context
+- **What it does:** Suggest places to visit—even when you’re standing in an obscure neighbourhood or a non‑tourist town. The app surface nearby “hidden gems” and lesser‑known sites to encourage exploration beyond popular hotspots.
 - **Powered by:** Google Maps API + Places API
 - **You see:**
-  - 📍 Nearby temples, restaurants, museums, parks
-  - 📏 Distance from current location
-  - ⭐ Ratings and reviews
+  - 📍 Temples, cafés, historic houses and community spots near your current location
+  - 📏 Distance from where you are (backyard, not just downtown)
+  - ⭐ Ratings and local review snippets
   - 👔 Cultural tips & dress code for each place
-- **Example:** Standing at Red Square → See 5 nearby cultural sites + etiquette for each
+- **Why it matters:** Boosts travel to under‑visited areas (e.g. rural Kelantan) and feeds into the journal community so users can share their discoveries and inspire others.
+- **Example:** Standing on a quiet street in a small village → get suggestions for a family‑run museum 2 km away + a local eatery with cultural insights
 
 ---
 
@@ -218,8 +220,8 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
   - Edit or add your own thoughts
   - Choose public/private
   - Like, save, and view other travelers' posts
-  - See cultural insights from other travelers
-- **Example:** Save temple visit → Post shared → Other travelers like your insights
+  - See cultural insights from other travelers — especially valuable for off‑the‑beaten‑path locations discovered via the Nearby tab
+- **Example:** Save temple visit → Post shared → Other travelers like your insights; a peer discovers a remote waterfall thanks to you
 
 ---
 
@@ -229,6 +231,17 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
 - User profiles with preferences
 - Privacy settings (public/private account)
 - GPS sharing toggles
+
+---
+
+### **6️⃣ Smart Itinerary Planner** 📅
+- **What it does:** When you’re unsure where to go, tell the app your interests (culture, food, adventure, history) and let AI generate a personalised day‑by‑day itinerary. Works in cities or remote regions where you don’t know the highlights.
+- **Powered by:** Gemini LLM + Google Maps data
+- **Features:**
+  - Select trip length, mood, budget
+  - Receive a full itinerary with places, rough timings and cultural notes
+  - Save itinerary as a journal entry or share with friends
+- **Example:** Tourist arrives in Kelantan with no plans → AI suggests a 3‑day route visiting markets, heritage sites, and hidden beaches.
 
 ---
 

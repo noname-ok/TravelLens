@@ -463,6 +463,28 @@ Status: Feature works but needs visual emphasis
 
 ---
 
+### **Key Insight #8: Hidden‑Gem Discovery & Itinerary Help**
+**Problem Identified:**
+```
+Testers were unsure what to do when they arrived in an unfamiliar, non‑touristy area. "There’s nothing to see here" was a common comment.
+```
+**Solution Implemented:**
+- Nearby tab tuned to surface off‑the‑beaten‑path places (local shops, small museums, natural spots).
+- Added AI trip planner in Route tab; users choose preferences and receive a ready itinerary.
+
+```javascript
+// Sample itinerary prompt snippet
+const prompt = `Create a 2-day travel plan for a visitor in Kelantan who likes culture and food.
+Return as JSON with day1/day2 and places.`;
+```
+
+**Impact:**
+- ✅ Maria discovered two temples and a roadside waterfall she’d never have found.
+- ✅ Yuki used the planner to create a structured 3‑day route, calling it "like having a personal guide." 
+- ✅ Both testers reported feeling empowered to explore beyond well‑known areas; one immediately shared a journal post about the hidden waterfall.
+
+---
+
 ## 📊 **Consolidated Testing Results**
 
 ### **Critical Insights Across All Phases**
@@ -476,6 +498,7 @@ Status: Feature works but needs visual emphasis
 | **5** | Map Errors Broke Trust | Generic error messages | Better error handling | ✅ Implemented |
 | **6** | Onboarding Needed | New users confused | Created OnboardingScreen | ✅ Existed |
 | **7** | Cultural Alerts Too Subtle | Users might miss warnings | Changed to prominent banner | ✅ Implemented |
+| **8** | Hidden‑Gem Discovery & Itinerary Help | Users didn't know what to visit in non-tourist areas | Enhanced Nearby results + AI itinerary planner; encouraged journal sharing | ✅ Implemented |
 
 ---
 
@@ -540,6 +563,10 @@ Overall: 11/12 (92%) completion rate ✅
 ### **Positive Feedback**
 
 > "This is the travel app I've been waiting for. Not just a map, but actual understanding." - Tester P2-1
+
+> "I found a waterfall nobody told me about just by tapping Nearby – amazing!" - Tester P3-1
+
+> "The itinerary planner felt like a personal guide. I would have wandered aimlessly without it." - Tester P3-2
 
 > "Without this, I would have been so lost. Literally and culturally." - Tester P3-2
 

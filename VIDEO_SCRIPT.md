@@ -13,7 +13,7 @@
 **Narrator (Voiceover):**
 > "Imagine you're traveling to a foreign country. You see an interesting sign, a historic building, or a local dish... but you don't understand what it is. Common problem, right?
 >
-> Meet **TravelLens** - the AI-powered travel companion that instantly explains your surroundings, translates signs in real-time, and helps you discover nearby attractions. All through your camera."
+> Meet **TravelLens** - the AI-powered travel companion that instantly explains your surroundings, translates signs in real-time, helps you discover nearby attractions (even off the beaten path), and can plan an itinerary for you. All through your camera."
 
 **[Fade to: Home screen with "Take Photo" button]**
 
@@ -97,22 +97,22 @@
 
 ---
 
-#### **Step 4: Explore Nearby (2:50 - 3:30)**
+#### **Step 4: Explore Nearby (2:50 - 3:20)**
 
 **[Visual: Nearby Attractions button → MapViewScreen]**
 
 **Narrator:**
-> "Once you understand the place, you'll want to explore what's nearby.
+> "Once you understand the place, you'll want to explore what's nearby—even if you’re standing in a sleepy village or outside a regular house. TravelLens surfaces hidden gems and small‑town attractions you’d otherwise miss.
 > 
 > Tap **'View Nearby Attractions'** and TravelLens uses Google Maps to show you:
-> - Nearby temples, restaurants, museums, parks
+> - Nearby temples, restaurants, museums, parks and unexpected local spots
 > - Distance & ratings
 > - Cultural tips specific to each location
 > - Why each place is worth visiting"
 
 **[Show MapViewScreen with:]**
 - Google Map centered on current location
-- 5-6 pins for attractions
+- 5-6 pins for attractions, including a local cafe in a rural area
 - Tap one to see details
 - Cultural etiquette banner appears
 - Details sheet shows reviews + cultural tips
@@ -121,10 +121,29 @@
 - 🕉️ Royal Palace (2.5km away) - "Remove shoes in certain areas"
 - 🍜 Local Restaurant (0.8km) - "Tipping not expected but appreciated"
 - 🏛️ National Museum (1.2km) - "Photography restricted in some sections"
+- 🛶 Hidden waterfall (1.1km) - "Bring insect repellent"
 
 ---
 
-#### **Step 5: Save & Share (3:30 - 3:50)**
+#### **Step 5: Plan Your Trip (3:20 - 3:40)**
+
+**[Visual: Route tab → Trip planner UI]**
+
+**Narrator:**
+> "Don’t know where to go next? Use the **Plan Your Trip** tool.
+> Select your interests—culture, food, adventure—plus trip length, and the AI will draft a full itinerary, even in places you’ve never heard of.
+> 
+> The result is a ready‑made plan you can save or share with friends."
+
+**[Show animation:]**
+1. Open Route tab
+2. Choose preferences
+3. Generated itinerary appears with dates and notes
+4. Option to save as journal entry
+
+---
+
+#### **Step 6: Save & Share (3:40 - 3:50)**
 
 **[Visual: Back to explanation screen → Click "Save to Journal"]**
 
