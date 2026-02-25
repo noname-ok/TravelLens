@@ -7,7 +7,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)
-![KitaHack 2026](https://img.shields.io/badge/KitaHack%202026-Finalist-gold.svg)
+
 
 ---
 
