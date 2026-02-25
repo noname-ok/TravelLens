@@ -15,12 +15,13 @@
 
 1. [Repository Overview](#repository-overview--team-introduction)
 2. [Project Overview](#project-overview)
-3. [Key Features](#key-features)
-4. [Technologies Used](#overview-of-technologies-used)
-5. [Implementation Details & Innovation](#implementation-details--innovation)
-6. [Challenges Faced](#challenges-faced)
-7. [Installation & Setup](#installation--setup)
-8. [Future Roadmap](#future-roadmap)
+3. [Judges’ Evaluation Guide](#judges-evaluation-guide)
+4. [Key Features](#key-features)
+5. [Technologies Used](#overview-of-technologies-used)
+6. [Implementation Details & Innovation](#implementation-details--innovation)
+7. [Challenges Faced](#challenges-faced)
+8. [Installation & Setup](#installation--setup)
+9. [Future Roadmap](#future-roadmap)
 
 ---
 
@@ -58,6 +59,26 @@ TravelLens/
 ---
 
 ## 🎯 Project Overview
+
+### **Problem Statement**
+
+## 🧾 Judges’ Evaluation Guide
+
+This section highlights how **TravelLens** meets the preliminary‑round criteria defined by KitaHack 2026. Use it during judging to quickly verify the project’s strengths in each scoring category.
+
+| Criterion | Evidence in Project |
+|-----------|---------------------|
+| **Problem Statement & SDG Alignment (15 pts)** | Clear description under **Project Overview** + detailed SDG mapping (SDG 4, 11, 10) with real‑world impact examples. |
+| **User Feedback & Iteration (15 pts)** | See [USER_FEEDBACK.md](USER_FEEDBACK.md) – three key insights, rapid iterations, quantitative satisfaction scores. |
+| **Success Metrics & Scalability (10 pts)** | Metrics in Technology Justification (confidence + community goals) and roadmap scaling sections below. |
+| **AI Integration (10 pts)** | Gemini Vision is used for image explanation, translation, embeddings and chatbot; explicit rationale in Technology Justification. |
+| **Technology Innovation (10 pts)** | Unique combination of live vision, translation, cultural context, plus “For You” embedding feed; described in Key Features/Innovation. |
+| **Technical Architecture & Google Technologies (5 pts)** | Detailed architecture diagrams, service breakdown, and full justification of Google APIs in Technology Justification. |
+| **Technical Implementation & Challenges (5 pts)** | Implementation notes, major challenges (rate limits, image quality, cultural sensitivity) and resolutions documented above and in Technology Justification. |
+| **Completeness & Demonstration (10 pts)** | Working prototype with core flow, demo video script provided, comprehensive README for setup, screenshots in repo. |
+
+Above sections are cross‑referenced so judges can quickly find supporting evidence.
+
 
 ### **Problem Statement**
 

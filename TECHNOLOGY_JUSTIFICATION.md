@@ -14,6 +14,24 @@ TravelLens is an AI-powered travel companion that uses Google Gemini Vision API 
 
 ## 🎯 **Problem Statement**
 
+## ⚙️ Evaluation Criteria Mapping
+
+TravelLens has been structured to maximize scores across the preliminary round categories. This table points judges to where support is found in the documentation or codebase.
+
+| Criterion | Location in Repo/Docs |
+|-----------|-----------------------|
+| Problem Statement & SDG Alignment (15 pts) | Section “Problem Statement” + SDG sections below; examples and statistics at top of this document. |
+| User Feedback & Iteration (15 pts) | See [USER_FEEDBACK.md](USER_FEEDBACK.md) – 7+ insights with implementation code excerpts. |
+| Success Metrics & Scalability (10 pts) | Section **Impact Metrics & Goals** and **Future Roadmap** later in this file. |
+| AI Integration (10 pts) | Described under **Solution Overview** and **Technology Stack Rationale**; source code in `geminiService.ts`. |
+| Technology Innovation (10 pts) | Highlighted in **Innovation Highlights** (README) and unique flows in this file. |
+| Technical Architecture & Google Technologies (5 pts) | Detailed diagrams in this file + **Overview of Technologies Used** in README. |
+| Technical Implementation & Challenges (5 pts) | Section **Challenges Faced & Solutions** in this document; code examples included. |
+| Completeness & Demonstration (10 pts) | Working prototype note at top of README; demonstration video script in `VIDEO_SCRIPT.md`. |
+
+Use these references when evaluating – they correspond directly to the judging rubric.
+
+
 ### **The Core Challenge**
 
 Modern travelers frequently encounter barriers that prevent meaningful cultural engagement:

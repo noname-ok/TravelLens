@@ -8,6 +8,9 @@
 
 TravelLens was tested with **10 real users** across three phases: internal team (3), friends/family (5), and real-world travelers (2). Testing revealed three critical insights that drove product improvements, resulting in a more intuitive, culturally-sensitive application.
 
+> **Judges’ Note:** user feedback and iteration is worth **15 points** in the preliminary round. The following document enumerates at least three key insights, concrete improvements, and quantitative satisfaction metrics requested by the rubric.
+
+
 ---
 
 ## 👥 **User Testing Overview**

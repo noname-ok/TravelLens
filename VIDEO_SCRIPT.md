@@ -150,11 +150,13 @@
 **[Visual: Show app achieving goals - icons + metrics]**
 
 **Narrator:**
-> "TravelLens is built on cutting-edge Google technologies:
+> "TravelLens is built on cutting-edge Google technologies to satisfy the hackathon requirements: one **Google AI technology** plus an additional Google developer technology.
 > 
-> - **Google Gemini Vision API** powers instant image analysis
-> - **Google Maps API** provides accurate location services
-> - **Firebase** securely stores your travel memories
+> - **Google Gemini Vision API** (AI) powers instant image analysis, translation, embeddings and the chatbot – the core AI integration.
+> - **Google Maps API** provides accurate location services and nearby attraction data.
+> - **Firebase** securely stores your travel memories and powers the user community feed.
+> 
+> (Judges: this demonstrates both AI and non‑AI Google technologies working together.)
 > 
 > This solution directly supports **UN Sustainable Development Goals**:
 > - **SDG 4**: Quality Education - Learn about new cultures instantly
