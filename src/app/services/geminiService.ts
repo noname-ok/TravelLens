@@ -31,21 +31,56 @@ const rateLimiter = {
   }
 };
 
+const HIGH_DEMAND_MESSAGE =
+  'AI is currently experiencing high demand. Please try again in a few moments.';
+
+const RETRYABLE_ERROR_PATTERNS = [
+  '429',
+  'quota',
+  '503',
+  'high demand',
+  'service unavailable',
+  'temporarily unavailable',
+  'overloaded',
+  'timeout',
+  'timed out',
+  'fetch failed',
+  'networkerror',
+];
+
+function isRetryableGeminiError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error || '').toLowerCase();
+  return RETRYABLE_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+function isHighDemandGeminiError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error || '').toLowerCase();
+  return message.includes('503') || message.includes('high demand') || message.includes('service unavailable');
+}
+
 /**
- * Exponential Backoff Utility
- * Retries the function if it hits a 429 (Rate Limit) error
+ * Exponential Backoff Utility for transient Gemini/API failures.
  */
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
-  try {
-    return await fn();
-  } catch (error: any) {
-    const isRateLimit = error.message?.includes('429') || error.message?.includes('quota');
-    if (isRateLimit && retries > 0) {
-      console.warn(`⚠️ Quota hit. Retrying in ${delay / 1000}s... (${retries} left)`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return withRetry(fn, retries - 1, delay * 2); // Double the wait time each try
+  let attemptsRemaining = retries;
+  let currentDelay = delay;
+
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (!isRetryableGeminiError(error) || attemptsRemaining <= 0) {
+        if (isHighDemandGeminiError(error)) {
+          throw new Error(HIGH_DEMAND_MESSAGE);
+        }
+        throw error;
+      }
+
+      console.warn(`⚠️ Transient Gemini error. Retrying in ${currentDelay / 1000}s... (${attemptsRemaining} left)`);
+      await new Promise((resolve) => setTimeout(resolve, currentDelay));
+      attemptsRemaining -= 1;
+      currentDelay *= 2;
     }
-    throw error;
   }
 }
 
@@ -69,6 +104,37 @@ export function isGeminiConfigured(): boolean {
 // MODEL STRINGS (Stable for Feb 2026)
 const VISION_MODEL = 'gemini-2.5-flash'; 
 const CHAT_MODEL = 'gemini-2.5-flash-lite'; // Higher RPD for text tasks
+const CHAT_MODEL_FALLBACKS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite'];
+
+async function generateTextContentWithFallback(prompt: string): Promise<string> {
+  if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
+
+  const models = [CHAT_MODEL, ...CHAT_MODEL_FALLBACKS];
+  let lastError: unknown;
+
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await withRetry(() => model.generateContent(prompt));
+      const text = result.response.text();
+      if (text?.trim()) {
+        return text;
+      }
+      throw new Error('AI returned an empty response.');
+    } catch (error) {
+      lastError = error;
+      const shouldTryNextModel = isRetryableGeminiError(error) || isHighDemandGeminiError(error);
+      if (!shouldTryNextModel) {
+        throw error;
+      }
+    }
+  }
+
+  if (isHighDemandGeminiError(lastError)) {
+    throw new Error(HIGH_DEMAND_MESSAGE);
+  }
+  throw lastError instanceof Error ? lastError : new Error('AI request failed. Please try again.');
+}
 
 export interface AIExplanationResult {
   title: string;
@@ -269,12 +335,9 @@ export async function generateTripItinerary(
 ): Promise<ItineraryResponse> {
   if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
 
-  return withRetry(async () => {
-    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
-
-    const placesList = places
-      .map((place, index) => `${index + 1}. ${place.name} (${place.address}) - Duration: ${place.estimatedDuration}h`)
-      .join('\n');
+  const placesList = places
+    .map((place, index) => `${index + 1}. ${place.name} (${place.address}) - Duration: ${place.estimatedDuration}h`)
+    .join('\n');
 
     const prompt = `You are an expert travel planner. Create a detailed ${numberOfDays}-day trip itinerary starting from ${startDate}.
 
@@ -299,14 +362,12 @@ Return ONLY a JSON object with this exact structure:
   "tips": ["Cultural tip", "Practical tip", "Safety tip"]
 }`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  const responseText = await generateTextContentWithFallback(prompt);
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
 
-    if (!jsonMatch) throw new Error('AI returned invalid itinerary format.');
+  if (!jsonMatch) throw new Error('AI returned invalid itinerary format.');
 
-    return JSON.parse(jsonMatch[0]) as ItineraryResponse;
-  });
+  return JSON.parse(jsonMatch[0]) as ItineraryResponse;
 }
 
 /**
@@ -329,10 +390,7 @@ export async function findPlacesByPreference(
 ): Promise<PreferencePlacesResponse> {
   if (!genAI) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE);
 
-  return withRetry(async () => {
-    const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
-
-    const prompt = `You are an expert travel guide. Suggest ${Math.min(preferences.length * 2, 8)} specific, real places to visit in ${location} based on these preferences: ${preferences.join(', ')}.
+  const prompt = `You are an expert travel guide. Suggest ${Math.min(preferences.length * 2, 8)} specific, real places to visit in ${location} based on these preferences: ${preferences.join(', ')}.
 
 For a ${numberOfDays}-day trip, recommend places that:
 - Exist in reality
@@ -353,14 +411,12 @@ Return ONLY a JSON object with this exact structure:
   "summary": "Brief explanation of the selection"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  const responseText = await generateTextContentWithFallback(prompt);
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
 
-    if (!jsonMatch) throw new Error('AI returned invalid places format.');
+  if (!jsonMatch) throw new Error('AI returned invalid places format.');
 
-    return JSON.parse(jsonMatch[0]) as PreferencePlacesResponse;
-  });
+  return JSON.parse(jsonMatch[0]) as PreferencePlacesResponse;
 }
 
 const TARGET_LANGUAGE_NAMES: Record<string, string> = {

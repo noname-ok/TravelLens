@@ -53,11 +53,6 @@ export default function LanguageScreen({ currentScreen, onNavigate, onBack, onLa
         </div>
 
         <div className="absolute left-0 right-0 top-[96px] bottom-[90px] overflow-y-auto no-scrollbar px-[27px]">
-          <div className="mt-4 mb-4 p-3 bg-[#FFF9E6] dark:bg-amber-900/20 border border-[#FFD54F] dark:border-amber-700 rounded-[10px]">
-            <p className="font-['Poppins',sans-serif] text-[12px] text-[#856404] dark:text-amber-400 leading-[16px]">
-              ℹ️ Demo: Translation currently applies to Profile section only
-            </p>
-          </div>
           <div className="flex flex-col gap-3">
             {LANGUAGES.map((language) => (
               <button

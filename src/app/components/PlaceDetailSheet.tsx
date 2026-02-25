@@ -54,7 +54,7 @@ export default function PlaceDetailSheet({ place, onClose }: PlaceDetailSheetPro
       />
       
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] shadow-xl z-50 max-h-[85vh] overflow-hidden animate-slide-up flex flex-col">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white rounded-t-[24px] shadow-xl z-50 max-h-[85vh] overflow-hidden animate-slide-up flex flex-col">
         {/* Drag Handle */}
         <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
           <div className="w-[40px] h-[4px] bg-gray-300 rounded-full" />
