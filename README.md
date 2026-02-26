@@ -233,6 +233,10 @@ We utilize a **Structured JSON Schema** in our Gemini prompts to ensure the AI a
 - `interestingFact`: Educational trivia to support SDG 4.
 - `travelerTip`: Practical advice for translated text.
 
+### **Iterative Design**
+
+Based on testing with 10 users, we iterated on our AI prompts to move from literal labels to cultural context and added a high-visibility warning system for etiquette alerts.
+
 ---
 
 ## Challenges Faced
