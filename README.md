@@ -193,35 +193,7 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
 | **Maps** | @react-google-maps/api | React bindings for Google Maps |
 
 ### **Architecture Diagram**
-<img width="1617" height="821" alt="image" src="https://github.com/user-attachments/assets/73c7e85b-e461-4545-aae6-9c9ad92c74cb" />
-
-```
-┌─────────────────────────────────────────┐
-│          TravelLens App (React)         │
-│         (Mobile Web - 390px optimized)  │
-├─────────────────────────────────────────┤
-│                                         │
-│  ┌─────────────┐      ┌─────────────┐  │
-│  │  UI Layer   │      │   Services  │  │
-│  ├─────────────┤      ├─────────────┤  │
-│  │ • Screens   │◄────►│ • Gemini    │  │
-│  │ • Components│      │ • Firebase  │  │
-│  │ • Modals    │      │ • Maps      │  │
-│  └─────────────┘      └─────────────┘  │
-│                                         │
-└─────────────────────────────────────────┘
-    ▲                ▲                 ▲
-    │                │                 │
-   API/REST      Real-time DB       Maps API
-    │                │                 │
-    ▼                ▼                 ▼
- ╔═════════╗ ╔══════════════╗ ╔════════════════╗
- ║ Gemini  ║ ║  Firebase    ║ ║ Google Maps    ║
- ║ Vision  ║ ║  (Auth+DB)   ║ ║ (Places)       ║
- ╚═════════╝ ╚══════════════╝ ╚════════════════╝
-```
-
----
+<img width="2560" height="1300" alt="image" src="https://github.com/user-attachments/assets/cb1a2656-a781-4782-83f0-581041d4d5fb" />
 
 ## Implementation Details & Innovation
 
