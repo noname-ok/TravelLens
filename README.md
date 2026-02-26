@@ -21,7 +21,7 @@
 
 ## Repository Overview
 
-### **Team: TravelLens Development**
+### **Team: TravelLens by KitaBest**
 
 This project was built for **KitaHack 2026** - a hackathon focused on AI-powered solutions addressing UN Sustainable Development Goals.
 
