@@ -79,6 +79,10 @@ Modern travelers face three critical barriers:
 #### **Secondary: SDG 11 - Sustainable Cities & Communities**
 - **Contribution:** Encourages respectful tourism via "Cultural Etiquette" alerts and promotes "Hidden Gems" in under-visited areas (like rural Kelantan) to decentralize mass tourism.
 - **Real Impact:** Testers successfully identified local dress codes/etiquette via AI alerts.
+
+#### **Tertiary: SDG 10 – Reduced Inequalities**
+- **Contribution:** Breaks language and access barriers by enabling travelers to instantly translate signs, menus, and cultural information through AI photo capture, making knowledge accessible regardless of background or budget.
+- **Real Impact:** Testers were able to confidently navigate foreign-language environments and understand local contexts without relying on tour guides or prior language skills.
 ---
 
 ### **Solution Description**
