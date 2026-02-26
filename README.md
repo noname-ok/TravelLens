@@ -155,11 +155,12 @@ Take Photo → AI Explanation → Translate Text → View Nearby Places → Save
 ### **7. Travel Journal & Community** 
 - **What it does:** Save experiences and share with global community
 - **Features:**
-  - Create journal posts with AI-generated captions
+  - Create journal posts 
   - Edit or add your own thoughts
   - Choose public/private
   - Like, save, and view other travelers' posts
   - See cultural insights from other travelers — especially valuable for off‑the‑beaten‑path locations discovered via the Nearby tab
+  - Get the notifications when someone comments
 
 ---
 
