@@ -1,13 +1,9 @@
 
-# 🌍 TravelLens - AI Travel Explainer & Smart Cultural Guide
+# TravelLens - AI Travel Explainer & Smart Cultural Guide
 
 **Understand Places Instantly — Travel Smarter, Safer, and More Meaningfully**
 
 > Transform travel from simply seeing places to truly understanding them, with instant AI explanations, real-time translation, and cultural guidance powered by Google Gemini.
-
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)
-
 
 ---
 
@@ -25,16 +21,11 @@
 
 ---
 
-## 👥 Repository Overview & Team Introduction
+## Repository Overview & Team Introduction
 
 ### **Team: TravelLens Development**
 
 This project was built for **KitaHack 2026** - a hackathon focused on AI-powered solutions addressing UN Sustainable Development Goals.
-
-**Project Repository:**
-- **GitHub:** [TravelLens](https://github.com/phuaxuantan/TravelLens)
-- **Status:** Beta/Production-Ready for submission
-- **Last Updated:** February 20, 2026
 
 ### **Repository Structure**
 
@@ -58,11 +49,11 @@ TravelLens/
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 ### **Problem Statement**
 
-## 🧾 Judges’ Evaluation Guide
+## Judges’ Evaluation Guide
 
 This section highlights how **TravelLens** meets the preliminary‑round criteria defined by KitaHack 2026. Use it during judging to quickly verify the project’s strengths in each scoring category.
 
